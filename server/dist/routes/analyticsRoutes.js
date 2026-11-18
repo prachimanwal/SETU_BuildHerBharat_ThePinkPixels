@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const analyticsController_1 = require("../controllers/analyticsController");
+const auth_1 = require("../middleware/auth");
+const router = (0, express_1.Router)();
+router.get('/seeker/progress', auth_1.authenticateUser, (0, auth_1.requireRole)('seeker'), analyticsController_1.getSeekerProgress);
+router.get('/employer/stats', auth_1.authenticateUser, (0, auth_1.requireRole)('employer'), analyticsController_1.getEmployerStats);
+router.get('/admin/stats', auth_1.authenticateUser, (0, auth_1.requireRole)('admin'), analyticsController_1.getAdminStats);
+exports.default = router;

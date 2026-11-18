@@ -1,0 +1,15 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const employerController_1 = require("../controllers/employerController");
+const auth_1 = require("../middleware/auth");
+const router = (0, express_1.Router)();
+router.use(auth_1.authenticateUser, (0, auth_1.requireRole)('employer'));
+router.get('/opportunities', employerController_1.getMyOpportunities);
+router.post('/opportunities', employerController_1.createOpportunity);
+router.put('/opportunities/:id', employerController_1.updateOpportunity);
+router.delete('/opportunities/:id', employerController_1.deleteOpportunity);
+router.get('/applicants', employerController_1.getApplicants);
+router.put('/applicants/:id/status', employerController_1.updateApplicantStatus);
+router.post('/verification', employerController_1.submitVerificationDocs);
+exports.default = router;
