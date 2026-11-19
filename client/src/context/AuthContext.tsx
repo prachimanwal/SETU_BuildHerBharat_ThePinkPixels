@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { apiFetch } from '../utils/api';
 
 export interface User {
   id: string;
@@ -64,15 +65,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
+  const extractUser = (resData: any): User | null => {
+    if (!resData) return null;
+    if (resData.data && resData.data.user) return resData.data.user;
+    if (resData.user) return resData.user;
+    return null;
+  };
+
+  const extractToken = (resData: any): string | null => {
+    if (!resData) return null;
+    if (resData.data && resData.data.token) return resData.data.token;
+    if (resData.token) return resData.token;
+    return null;
+  };
+
   const fetchCurrentUser = async () => {
     try {
-      const res = await fetch('/api/auth/me', {
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include'
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setUser(data.user);
+      const res = await apiFetch('/api/auth/me');
+      if (res.ok && res.data) {
+        const u = extractUser(res.data);
+        setUser(u);
       } else {
         setUser(null);
       }
@@ -89,17 +101,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await apiFetch('/api/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ email, password })
       });
-      const data = await res.json();
+
       if (!res.ok) {
-        return { success: false, error: data.error || 'Login failed' };
+        return { success: false, error: res.error || 'Login failed' };
       }
-      setUser(data.user);
+
+      const userData = extractUser(res.data);
+      const token = extractToken(res.data);
+      if (token) {
+        localStorage.setItem('setu_auth_token', token);
+      }
+
+      setUser(userData);
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message || 'Network error' };
@@ -108,17 +125,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loginWithGoogle = async (data: { credential?: string; email?: string; name?: string; avatar?: string; role?: string }) => {
     try {
-      const res = await fetch('/api/auth/google', {
+      const res = await apiFetch('/api/auth/google', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify(data)
       });
-      const resData = await res.json();
+
       if (!res.ok) {
-        return { success: false, error: resData.error || 'Google login failed' };
+        return { success: false, error: res.error || 'Google sign-in failed' };
       }
-      setUser(resData.user);
+
+      const userData = extractUser(res.data);
+      const token = extractToken(res.data);
+      if (token) {
+        localStorage.setItem('setu_auth_token', token);
+      }
+
+      setUser(userData);
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message || 'Network error' };
@@ -127,17 +149,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = async (data: any) => {
     try {
-      const res = await fetch('/api/auth/register', {
+      const res = await apiFetch('/api/auth/register', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify(data)
       });
-      const resData = await res.json();
+
       if (!res.ok) {
-        return { success: false, error: resData.error || 'Registration failed' };
+        return { success: false, error: res.error || 'Registration failed' };
       }
-      setUser(resData.user);
+
+      const userData = extractUser(res.data);
+      const token = extractToken(res.data);
+      if (token) {
+        localStorage.setItem('setu_auth_token', token);
+      }
+
+      setUser(userData);
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message || 'Network error' };
@@ -146,28 +173,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include'
-      });
+      await apiFetch('/api/auth/logout', { method: 'POST' });
     } finally {
+      localStorage.removeItem('setu_auth_token');
       setUser(null);
     }
   };
 
   const updateProfile = async (data: any) => {
     try {
-      const res = await fetch('/api/auth/profile', {
+      const res = await apiFetch('/api/users/profile', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify(data)
       });
-      const resData = await res.json();
+
       if (!res.ok) {
-        return { success: false, error: resData.error || 'Profile update failed' };
+        return { success: false, error: res.error || 'Profile update failed' };
       }
-      setUser(resData.user);
+
+      const userData = extractUser(res.data);
+      if (userData) {
+        setUser(userData);
+      }
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message || 'Network error' };

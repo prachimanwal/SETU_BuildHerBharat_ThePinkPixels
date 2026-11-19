@@ -1,0 +1,14 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const opportunity_controller_1 = require("../controllers/opportunity.controller");
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const role_middleware_1 = require("../middleware/role.middleware");
+const router = (0, express_1.Router)();
+router.get('/', auth_middleware_1.optionalAuthenticate, opportunity_controller_1.getOpportunities);
+router.get('/matched', auth_middleware_1.authenticate, opportunity_controller_1.getMatchedOpportunities);
+router.get('/:id', auth_middleware_1.optionalAuthenticate, opportunity_controller_1.getOpportunityById);
+router.post('/', auth_middleware_1.authenticate, (0, role_middleware_1.requireRole)('employer'), role_middleware_1.requireApprovedEmployer, opportunity_controller_1.createOpportunity);
+router.put('/:id', auth_middleware_1.authenticate, (0, role_middleware_1.requireRole)('employer', 'admin'), opportunity_controller_1.updateOpportunity);
+router.delete('/:id', auth_middleware_1.authenticate, (0, role_middleware_1.requireRole)('employer', 'admin'), opportunity_controller_1.deleteOpportunity);
+exports.default = router;

@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const learning_controller_1 = require("../controllers/learning.controller");
+const auth_middleware_1 = require("../middleware/auth.middleware");
+const router = (0, express_1.Router)();
+router.get('/', auth_middleware_1.optionalAuthenticate, learning_controller_1.getLearningResources);
+router.get('/recommended', auth_middleware_1.optionalAuthenticate, learning_controller_1.getRecommendedLearning);
+router.post('/:id/complete', auth_middleware_1.authenticate, learning_controller_1.completeLearning);
+exports.default = router;

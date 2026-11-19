@@ -16,6 +16,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { apiFetch } from '../utils/api';
 
 export const SeekerDashboardPage: React.FC = () => {
   const { user } = useAuth();
@@ -30,24 +31,22 @@ export const SeekerDashboardPage: React.FC = () => {
     const fetchDashboard = async () => {
       try {
         const [progressRes, oppsRes, learnRes] = await Promise.all([
-          fetch('/api/analytics/seeker/progress', { credentials: 'include' }),
-          fetch('/api/public/opportunities?limit=3', { credentials: 'include' }),
-          fetch('/api/seeker/learning', { credentials: 'include' })
+          apiFetch('/api/dashboard'),
+          apiFetch('/api/opportunities?limit=3'),
+          apiFetch('/api/learning')
         ]);
 
-        if (progressRes.ok) {
-          const pData = await progressRes.json();
-          setProgressData(pData);
+        if (progressRes.ok && progressRes.data) {
+          setProgressData(progressRes.data.data || progressRes.data);
         }
 
-        if (oppsRes.ok) {
-          const oData = await oppsRes.json();
+        if (oppsRes.ok && oppsRes.data) {
+          const oData = oppsRes.data.data || oppsRes.data;
           setOpportunities((oData.results || []).slice(0, 3));
         }
 
-        if (learnRes.ok) {
-          const lData = await learnRes.json();
-          // Filter to items in progress or top 2 items
+        if (learnRes.ok && learnRes.data) {
+          const lData = learnRes.data.data || learnRes.data;
           const inProgressOrTop = (lData || []).slice(0, 2);
           setLearningItems(inProgressOrTop);
         }
