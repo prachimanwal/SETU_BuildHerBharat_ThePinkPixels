@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateProfile = exports.getMe = exports.logout = exports.login = exports.register = void 0;
+exports.googleAuth = exports.updateProfile = exports.getMe = exports.logout = exports.login = exports.register = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const User_1 = require("../models/User");
 const token_1 = require("../utils/token");
@@ -192,3 +192,110 @@ const updateProfile = async (req, res) => {
     }
 };
 exports.updateProfile = updateProfile;
+const googleAuth = async (req, res) => {
+    try {
+        const { credential, role, email: directEmail, name: directName, avatar: directAvatar } = req.body;
+        let email = directEmail;
+        let name = directName;
+        let avatar = directAvatar;
+        // If credential JWT token is passed from Google One Tap / GIS
+        if (credential && typeof credential === 'string') {
+            try {
+                const parts = credential.split('.');
+                if (parts.length === 3) {
+                    const payloadJson = Buffer.from(parts[1], 'base64').toString('utf8');
+                    const payload = JSON.parse(payloadJson);
+                    if (payload.email) {
+                        email = payload.email;
+                    }
+                    if (payload.name) {
+                        name = payload.name;
+                    }
+                    if (payload.picture) {
+                        avatar = payload.picture;
+                    }
+                }
+            }
+            catch (e) {
+                console.warn('Failed to parse Google JWT payload:', e);
+            }
+        }
+        if (!email) {
+            res.status(400).json({ error: 'Valid Google email is required' });
+            return;
+        }
+        let user = await User_1.User.findOne({ email: email.toLowerCase() });
+        if (!user) {
+            // Auto-register user with assigned role
+            const assignedRole = role === 'employer' ? 'employer' : 'seeker';
+            const randomPassword = Math.random().toString(36).slice(-10) + 'A1!';
+            const salt = await bcryptjs_1.default.genSalt(10);
+            const passwordHash = await bcryptjs_1.default.hash(randomPassword, salt);
+            user = new User_1.User({
+                name: name || email.split('@')[0],
+                email: email.toLowerCase(),
+                passwordHash,
+                role: assignedRole,
+                avatar: avatar || '',
+                seekerProfile: assignedRole === 'seeker'
+                    ? {
+                        headline: 'SETU Member',
+                        phone: '',
+                        location: { city: '', state: '', isRural: false },
+                        languages: ['Hindi', 'English'],
+                        educationLevel: 'Graduate',
+                        qualifications: [],
+                        skills: [],
+                        experienceLevel: 'Fresher',
+                        careerGoals: '',
+                        interests: [],
+                        preferredWorkMode: 'any',
+                        resumeUrl: '',
+                        isCareerRestart: false
+                    }
+                    : undefined,
+                employerProfile: assignedRole === 'employer'
+                    ? {
+                        companyName: name || 'Enterprise Partner',
+                        industry: 'General',
+                        website: '',
+                        companySize: '1-10',
+                        description: '',
+                        verificationStatus: 'pending',
+                        verificationDocs: {
+                            docType: 'GSTIN / Registration',
+                            docNumber: '',
+                            notes: '',
+                            submittedAt: new Date()
+                        }
+                    }
+                    : undefined
+            });
+            await user.save();
+        }
+        else {
+            if (avatar && !user.avatar) {
+                user.avatar = avatar;
+                await user.save();
+            }
+        }
+        const token = (0, token_1.generateToken)(user);
+        (0, token_1.setAuthCookie)(res, token);
+        res.json({
+            message: 'Signed in with Google successfully',
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                avatar: user.avatar,
+                seekerProfile: user.seekerProfile,
+                employerProfile: user.employerProfile
+            }
+        });
+    }
+    catch (error) {
+        res.status(500).json({ error: error.message || 'Server error during Google authentication' });
+    }
+};
+exports.googleAuth = googleAuth;

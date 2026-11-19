@@ -68,6 +68,80 @@ const getSeekerProgress = async (req, res) => {
         ];
         const completedStagesCount = journeyStages.filter((s) => s.completed).length;
         const journeyPercentage = Math.round((completedStagesCount / 7) * 100);
+        // Dynamic Profile Completion Percentage calculation
+        let profileScore = 0;
+        if (req.user?.name)
+            profileScore += 10;
+        if (profile?.headline && profile.headline.trim())
+            profileScore += 15;
+        if (profile?.location?.city && profile.location.city.trim())
+            profileScore += 15;
+        if (profile?.skills && profile.skills.length > 0)
+            profileScore += 15;
+        if (profile?.educationLevel && profile.educationLevel !== 'No formal degree')
+            profileScore += 15;
+        if (profile?.phone && profile.phone.trim())
+            profileScore += 10;
+        if (profile?.experienceLevel)
+            profileScore += 10;
+        if (profile?.resumeUrl && profile.resumeUrl.trim())
+            profileScore += 10;
+        const profileCompletionPercentage = Math.min(100, Math.max(15, profileScore));
+        // Verified skills count
+        const passedAttempts = attempts.filter((att) => att.passed);
+        const passedDomains = new Set(passedAttempts.map((att) => att.domain));
+        const skillsVerifiedCount = passedDomains.size;
+        // Recent activity list
+        const recentActivityList = [];
+        applications.forEach((app) => {
+            recentActivityList.push({
+                id: `app-${app._id}`,
+                type: 'application',
+                title: `Applied to ${app.opportunityId?.title || 'Job Opening'}`,
+                subtitle: `${app.opportunityId?.organisationName || 'Employer'} • Status: ${app.status}`,
+                timestamp: app.updatedAt || app.createdAt,
+                badgeText: app.status,
+                badgeColor: app.status === 'Selected' ? 'emerald' : app.status === 'Interview Scheduled' ? 'purple' : 'blue'
+            });
+        });
+        attempts.forEach((att) => {
+            recentActivityList.push({
+                id: `att-${att._id}`,
+                type: 'assessment',
+                title: `Completed ${att.domain} Assessment`,
+                subtitle: `Scored ${att.percentage}% (${att.score}/${att.maxScore}) • ${att.passed ? 'Verified' : 'Needs Practice'}`,
+                timestamp: att.completedAt,
+                badgeText: att.passed ? 'Passed' : 'Completed',
+                badgeColor: att.passed ? 'emerald' : 'amber'
+            });
+        });
+        learningProgress.forEach((p) => {
+            if (p.status === 'completed') {
+                recentActivityList.push({
+                    id: `learn-${p._id}`,
+                    type: 'learning',
+                    title: `Completed ${p.resourceId?.title || 'Learning Module'}`,
+                    subtitle: `Skill: ${p.resourceId?.skillTag || 'Skill Development'}`,
+                    timestamp: p.updatedAt || p.createdAt,
+                    badgeText: 'Completed',
+                    badgeColor: 'blue'
+                });
+            }
+        });
+        portfolioProjects.forEach((proj) => {
+            recentActivityList.push({
+                id: `proj-${proj._id}`,
+                type: 'portfolio',
+                title: `Added Portfolio Project "${proj.title}"`,
+                subtitle: `${proj.category || 'Portfolio'} • ${proj.tags?.slice(0, 3).join(', ') || ''}`,
+                timestamp: proj.createdAt,
+                badgeText: 'Portfolio',
+                badgeColor: 'indigo'
+            });
+        });
+        const recentActivity = recentActivityList
+            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+            .slice(0, 6);
         const isFreshAccount = attempts.length === 0 &&
             learningProgress.length === 0 &&
             portfolioProjects.length === 0 &&
@@ -76,6 +150,9 @@ const getSeekerProgress = async (req, res) => {
             isFreshAccount,
             journeyStages,
             journeyPercentage,
+            profileCompletionPercentage,
+            skillsVerifiedCount,
+            recentActivity,
             applications: {
                 total: applications.length,
                 statusCounts,
@@ -83,6 +160,7 @@ const getSeekerProgress = async (req, res) => {
             },
             assessments: {
                 totalAttempts: attempts.length,
+                skillsVerifiedCount,
                 history: assessmentChartData
             },
             learning: {

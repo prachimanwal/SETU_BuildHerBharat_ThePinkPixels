@@ -207,3 +207,119 @@ export const updateProfile = async (
     res.status(500).json({ error: error.message || 'Failed to update profile' });
   }
 };
+
+export const googleAuth = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const { credential, role, email: directEmail, name: directName, avatar: directAvatar } = req.body;
+
+    let email = directEmail;
+    let name = directName;
+    let avatar = directAvatar;
+
+    // If credential JWT token is passed from Google One Tap / GIS
+    if (credential && typeof credential === 'string') {
+      try {
+        const parts = credential.split('.');
+        if (parts.length === 3) {
+          const payloadJson = Buffer.from(parts[1], 'base64').toString('utf8');
+          const payload = JSON.parse(payloadJson);
+          if (payload.email) {
+            email = payload.email;
+          }
+          if (payload.name) {
+            name = payload.name;
+          }
+          if (payload.picture) {
+            avatar = payload.picture;
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to parse Google JWT payload:', e);
+      }
+    }
+
+    if (!email) {
+      res.status(400).json({ error: 'Valid Google email is required' });
+      return;
+    }
+
+    let user = await User.findOne({ email: email.toLowerCase() });
+
+    if (!user) {
+      // Auto-register user with assigned role
+      const assignedRole: UserRole = role === 'employer' ? 'employer' : 'seeker';
+      const randomPassword = Math.random().toString(36).slice(-10) + 'A1!';
+      const salt = await bcrypt.genSalt(10);
+      const passwordHash = await bcrypt.hash(randomPassword, salt);
+
+      user = new User({
+        name: name || email.split('@')[0],
+        email: email.toLowerCase(),
+        passwordHash,
+        role: assignedRole,
+        avatar: avatar || '',
+        seekerProfile:
+          assignedRole === 'seeker'
+            ? {
+                headline: 'SETU Member',
+                phone: '',
+                location: { city: '', state: '', isRural: false },
+                languages: ['Hindi', 'English'],
+                educationLevel: 'Graduate',
+                qualifications: [],
+                skills: [],
+                experienceLevel: 'Fresher',
+                careerGoals: '',
+                interests: [],
+                preferredWorkMode: 'any',
+                resumeUrl: '',
+                isCareerRestart: false
+              }
+            : undefined,
+        employerProfile:
+          assignedRole === 'employer'
+            ? {
+                companyName: name || 'Enterprise Partner',
+                industry: 'General',
+                website: '',
+                companySize: '1-10',
+                description: '',
+                verificationStatus: 'pending',
+                verificationDocs: {
+                  docType: 'GSTIN / Registration',
+                  docNumber: '',
+                  notes: '',
+                  submittedAt: new Date()
+                }
+              }
+            : undefined
+      });
+
+      await user.save();
+    } else {
+      if (avatar && !user.avatar) {
+        user.avatar = avatar;
+        await user.save();
+      }
+    }
+
+    const token = generateToken(user);
+    setAuthCookie(res, token);
+
+    res.json({
+      message: 'Signed in with Google successfully',
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar,
+        seekerProfile: user.seekerProfile,
+        employerProfile: user.employerProfile
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Server error during Google authentication' });
+  }
+};
+

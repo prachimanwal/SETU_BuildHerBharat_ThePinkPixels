@@ -132,19 +132,13 @@ export const Navbar: React.FC = () => {
       {/* Main Nav Header */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo with bridge motif */}
+          {/* Logo with official SETU brand */}
           <Link to="/" className="flex items-center space-x-2.5 group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#1E1B4B] to-indigo-900 flex items-center justify-center text-white shadow-sm ring-1 ring-indigo-950/20 group-hover:scale-105 transition-transform">
-              <span className="font-bold text-lg font-serif text-amber-300 tracking-tighter">स</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="font-black text-xl tracking-tight text-slate-950 font-serif leading-none">
-                SETU
-              </span>
-              <span className="text-[10px] text-stone-600 font-medium tracking-tight mt-0.5 hidden sm:inline">
-                {language === 'hi' ? 'हुनर से हक़ की कमाई तक' : 'Bridging Skills to Livelihood'}
-              </span>
-            </div>
+            <img
+              src="/setu-logo.png"
+              alt="SETU – Connect • Empower • Grow"
+              className="h-10 w-auto object-contain"
+            />
           </Link>
 
           {/* Desktop Navigation Links */}

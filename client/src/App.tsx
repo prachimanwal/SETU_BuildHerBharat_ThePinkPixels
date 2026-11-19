@@ -5,6 +5,7 @@ import { LanguageProvider } from './context/LanguageContext';
 
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
+import { DashboardLayout } from './components/DashboardLayout';
 
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
@@ -22,8 +23,8 @@ import { BuildHerPage } from './pages/BuildHerPage';
 import { EmployerDashboardPage } from './pages/EmployerDashboardPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 
-// Protected Route Component for Authenticated Users
-const ProtectedRoute: React.FC<{
+// Helper for Protected Authenticated Routes with 20:80 SaaS Layout
+const ProtectedDashboardRoute: React.FC<{
   children: React.ReactNode;
   allowedRoles?: string[];
 }> = ({ children, allowedRoles }) => {
@@ -31,7 +32,7 @@ const ProtectedRoute: React.FC<{
 
   if (loading) {
     return (
-      <div className="min-h-[50vh] flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-[#FAF8F5]">
         <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full" />
       </div>
     );
@@ -47,7 +48,91 @@ const ProtectedRoute: React.FC<{
     return <Navigate to="/dashboard" replace />;
   }
 
-  return <>{children}</>;
+  return <DashboardLayout>{children}</DashboardLayout>;
+};
+
+// Helper for Dual-Access Pages (Public when logged out; 20:80 SaaS Dashboard when logged in)
+const HybridRoute: React.FC<{
+  children: React.ReactNode;
+}> = ({ children }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#FAF8F5]">
+        <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (user) {
+    return <DashboardLayout>{children}</DashboardLayout>;
+  }
+
+  return (
+    <div className="flex flex-col min-h-screen bg-[#FAF8F5]">
+      <Navbar />
+      <main className="flex-1">{children}</main>
+      <Footer />
+    </div>
+  );
+};
+
+// Helper for Login/Register Pages
+const AuthOnlyRoute: React.FC<{
+  children: React.ReactNode;
+}> = ({ children }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#FAF8F5]">
+        <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (user) {
+    if (user.role === 'admin') return <Navigate to="/admin" replace />;
+    if (user.role === 'employer') return <Navigate to="/employer" replace />;
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return (
+    <div className="flex flex-col min-h-screen bg-[#FAF8F5]">
+      <main className="flex-1">{children}</main>
+      <Footer />
+    </div>
+  );
+};
+
+// Helper for Landing Page
+const HomeRoute: React.FC = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#FAF8F5]">
+        <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (user) {
+    if (user.role === 'admin') return <Navigate to="/admin" replace />;
+    if (user.role === 'employer') return <Navigate to="/employer" replace />;
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return (
+    <div className="flex flex-col min-h-screen bg-[#FAF8F5]">
+      <Navbar />
+      <main className="flex-1">
+        <HomePage />
+      </main>
+      <Footer />
+    </div>
+  );
 };
 
 export default function App() {
@@ -55,95 +140,137 @@ export default function App() {
     <LanguageProvider>
       <AuthProvider>
         <BrowserRouter>
-          <div className="flex flex-col min-h-screen bg-[#FAF8F5]">
-            <Navbar />
-            <main className="flex-1">
-              <Routes>
-                {/* Public Discovery Routes */}
-                <Route path="/" element={<HomePage />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/register" element={<RegisterPage />} />
-                <Route path="/opportunities" element={<OpportunitiesPage />} />
-                <Route path="/schemes" element={<GovernmentSchemesPage />} />
-                <Route path="/build-her" element={<BuildHerPage />} />
-                <Route path="/learn" element={<LearnPage />} />
+          <Routes>
+            {/* Landing & Public Discovery Routes */}
+            <Route path="/" element={<HomeRoute />} />
+            <Route
+              path="/login"
+              element={
+                <AuthOnlyRoute>
+                  <LoginPage />
+                </AuthOnlyRoute>
+              }
+            />
+            <Route
+              path="/register"
+              element={
+                <AuthOnlyRoute>
+                  <RegisterPage />
+                </AuthOnlyRoute>
+              }
+            />
 
-                {/* Seeker Protected Routes */}
-                <Route
-                  path="/dashboard"
-                  element={
-                    <ProtectedRoute allowedRoles={['seeker']}>
-                      <SeekerDashboardPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/profile"
-                  element={
-                    <ProtectedRoute allowedRoles={['seeker']}>
-                      <ProfilePage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/assess"
-                  element={
-                    <ProtectedRoute allowedRoles={['seeker']}>
-                      <AssessPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/portfolio"
-                  element={
-                    <ProtectedRoute allowedRoles={['seeker']}>
-                      <PortfolioPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/applications"
-                  element={
-                    <ProtectedRoute allowedRoles={['seeker']}>
-                      <ApplicationsPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/progress"
-                  element={
-                    <ProtectedRoute allowedRoles={['seeker']}>
-                      <MyProgressPage />
-                    </ProtectedRoute>
-                  }
-                />
+            {/* Dual Access Routes (Public when logged out; 20:80 Dashboard when logged in) */}
+            <Route
+              path="/opportunities"
+              element={
+                <HybridRoute>
+                  <OpportunitiesPage />
+                </HybridRoute>
+              }
+            />
+            <Route
+              path="/schemes"
+              element={
+                <HybridRoute>
+                  <GovernmentSchemesPage />
+                </HybridRoute>
+              }
+            />
+            <Route
+              path="/build-her"
+              element={
+                <HybridRoute>
+                  <BuildHerPage />
+                </HybridRoute>
+              }
+            />
+            <Route
+              path="/learn"
+              element={
+                <HybridRoute>
+                  <LearnPage />
+                </HybridRoute>
+              }
+            />
 
-                {/* Employer Portal */}
-                <Route
-                  path="/employer"
-                  element={
-                    <ProtectedRoute allowedRoles={['employer']}>
-                      <EmployerDashboardPage />
-                    </ProtectedRoute>
-                  }
-                />
+            {/* Seeker Authenticated 20:80 Dashboard Routes */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedDashboardRoute allowedRoles={['seeker']}>
+                  <SeekerDashboardPage />
+                </ProtectedDashboardRoute>
+              }
+            />
+            <Route
+              path="/home"
+              element={<Navigate to="/dashboard" replace />}
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedDashboardRoute allowedRoles={['seeker']}>
+                  <ProfilePage />
+                </ProtectedDashboardRoute>
+              }
+            />
+            <Route
+              path="/assess"
+              element={
+                <ProtectedDashboardRoute allowedRoles={['seeker']}>
+                  <AssessPage />
+                </ProtectedDashboardRoute>
+              }
+            />
+            <Route
+              path="/portfolio"
+              element={
+                <ProtectedDashboardRoute allowedRoles={['seeker']}>
+                  <PortfolioPage />
+                </ProtectedDashboardRoute>
+              }
+            />
+            <Route
+              path="/applications"
+              element={
+                <ProtectedDashboardRoute allowedRoles={['seeker']}>
+                  <ApplicationsPage />
+                </ProtectedDashboardRoute>
+              }
+            />
+            <Route
+              path="/progress"
+              element={
+                <ProtectedDashboardRoute allowedRoles={['seeker']}>
+                  <MyProgressPage />
+                </ProtectedDashboardRoute>
+              }
+            />
 
-                {/* Admin Control Portal */}
-                <Route
-                  path="/admin"
-                  element={
-                    <ProtectedRoute allowedRoles={['admin']}>
-                      <AdminDashboardPage />
-                    </ProtectedRoute>
-                  }
-                />
+            {/* Employer 20:80 Dashboard Portal */}
+            <Route
+              path="/employer"
+              element={
+                <ProtectedDashboardRoute allowedRoles={['employer']}>
+                  <EmployerDashboardPage />
+                </ProtectedDashboardRoute>
+              }
+            />
 
-                {/* Fallback */}
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </main>
-            <Footer />
-          </div>
+            {/* Admin 20:80 Dashboard Portal */}
+            <Route
+              path="/admin"
+              element={
+                <ProtectedDashboardRoute allowedRoles={['admin']}>
+                  <AdminDashboardPage />
+                </ProtectedDashboardRoute>
+              }
+            />
+
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
         </BrowserRouter>
       </AuthProvider>
     </LanguageProvider>

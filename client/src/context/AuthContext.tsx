@@ -51,6 +51,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  loginWithGoogle: (data: { credential?: string; email?: string; name?: string; avatar?: string; role?: string }) => Promise<{ success: boolean; error?: string }>;
   register: (data: any) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   updateProfile: (data: any) => Promise<{ success: boolean; error?: string }>;
@@ -99,6 +100,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: data.error || 'Login failed' };
       }
       setUser(data.user);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Network error' };
+    }
+  };
+
+  const loginWithGoogle = async (data: { credential?: string; email?: string; name?: string; avatar?: string; role?: string }) => {
+    try {
+      const res = await fetch('/api/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(data)
+      });
+      const resData = await res.json();
+      if (!res.ok) {
+        return { success: false, error: resData.error || 'Google login failed' };
+      }
+      setUser(resData.user);
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message || 'Network error' };
@@ -160,7 +180,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, login, register, logout, updateProfile, refreshUser }}
+      value={{ user, loading, login, loginWithGoogle, register, logout, updateProfile, refreshUser }}
     >
       {children}
     </AuthContext.Provider>

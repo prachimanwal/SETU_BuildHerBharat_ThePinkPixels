@@ -1,41 +1,37 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
-  Sparkles,
-  ArrowRight,
   Award,
   BookOpen,
+  FolderGit2,
+  FileText,
+  ArrowRight,
   Briefcase,
-  Layers,
-  Calendar,
+  MapPin,
   Clock,
-  Video,
-  CheckCircle2,
-  AlertCircle,
   ExternalLink,
-  Bookmark,
   ChevronRight,
-  TrendingUp
+  CheckCircle2,
+  Calendar,
+  Sparkles
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useLanguage } from '../context/LanguageContext';
-import { JourneyBridge } from '../components/JourneyBridge';
 
 export const SeekerDashboardPage: React.FC = () => {
   const { user } = useAuth();
-  const { language, t } = useLanguage();
+  const navigate = useNavigate();
 
   const [progressData, setProgressData] = useState<any>(null);
-  const [matchedOpportunities, setMatchedOpportunities] = useState<any[]>([]);
-  const [learningRecommendations, setLearningRecommendations] = useState<any[]>([]);
+  const [opportunities, setOpportunities] = useState<any[]>([]);
+  const [learningItems, setLearningItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadDashboardData = async () => {
+    const fetchDashboard = async () => {
       try {
         const [progressRes, oppsRes, learnRes] = await Promise.all([
           fetch('/api/analytics/seeker/progress', { credentials: 'include' }),
-          fetch('/api/public/opportunities?limit=4', { credentials: 'include' }),
+          fetch('/api/public/opportunities?limit=3', { credentials: 'include' }),
           fetch('/api/seeker/learning', { credentials: 'include' })
         ]);
 
@@ -46,356 +42,381 @@ export const SeekerDashboardPage: React.FC = () => {
 
         if (oppsRes.ok) {
           const oData = await oppsRes.json();
-          setMatchedOpportunities(oData.results || []);
+          setOpportunities((oData.results || []).slice(0, 3));
         }
 
         if (learnRes.ok) {
           const lData = await learnRes.json();
-          setLearningRecommendations((lData || []).slice(0, 3));
+          // Filter to items in progress or top 2 items
+          const inProgressOrTop = (lData || []).slice(0, 2);
+          setLearningItems(inProgressOrTop);
         }
       } catch (err) {
-        console.error('Failed to load dashboard data:', err);
+        console.error('Failed to load dashboard:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    loadDashboardData();
+    fetchDashboard();
   }, []);
+
+  // Compute profile completion percentage dynamically
+  const calculateProfilePct = () => {
+    if (progressData?.profileCompletionPercentage !== undefined) {
+      return progressData.profileCompletionPercentage;
+    }
+    const profile = user?.seekerProfile;
+    let score = 0;
+    if (user?.name) score += 10;
+    if (profile?.headline && profile.headline.trim()) score += 15;
+    if (profile?.location?.city && profile.location.city.trim()) score += 15;
+    if (profile?.educationLevel && profile.educationLevel !== 'No formal degree') score += 15;
+    if (profile?.skills && profile.skills.length > 0) score += 15;
+    if (profile?.experienceLevel) score += 10;
+    if (profile?.phone && profile.phone.trim()) score += 10;
+    if (profile?.resumeUrl && profile.resumeUrl.trim()) score += 10;
+    return Math.min(100, Math.max(20, score));
+  };
+
+  const profilePct = calculateProfilePct();
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-16 text-center text-stone-600">
-        <div className="inline-block animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full mb-3"></div>
-        <p className="text-sm font-medium">{t('loading')}</p>
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full" />
       </div>
     );
   }
 
-  // Derive Next Suggested Action
-  let nextAction = {
-    title: 'Complete your first Skill Assessment',
-    desc: 'Verify your practical capabilities in Graphic Design, Web Development, or Digital Office Operations.',
-    cta: 'Take an Assessment',
-    path: '/assess'
-  };
+  // Database Overview Counts
+  const skillsVerified = progressData?.skillsVerifiedCount ?? (progressData?.assessments?.skillsVerifiedCount ?? 0);
+  const learningCompleted = progressData?.learning?.completedCount ?? 0;
+  const portfolioProjects = progressData?.portfolio?.totalCount ?? 0;
+  const activeApplications = progressData?.applications?.total ?? 0;
 
-  const completedStages = progressData?.journeyStages
-    ?.filter((s: any) => s.completed)
-    ?.map((s: any) => s.id) || ['discover'];
-
-  const scheduledInterviewApp = progressData?.applications?.recent?.find(
-    (app: any) => app.status === 'Interview Scheduled' && app.interviewDetails?.date
-  );
-
-  if (scheduledInterviewApp) {
-    nextAction = {
-      title: `Upcoming Interview: ${scheduledInterviewApp.opportunityId?.title || 'Creative Role'}`,
-      desc: `Scheduled for ${scheduledInterviewApp.interviewDetails.date} at ${scheduledInterviewApp.interviewDetails.time}. Review the employer instructions.`,
-      cta: 'View Interview Details',
-      path: '/applications'
-    };
-  } else if (!completedStages.includes('assess')) {
-    nextAction = {
-      title: 'Step 2: Take a Skill Assessment',
-      desc: 'Discover your strengths and identify any skill gaps in 10-15 minutes.',
-      cta: 'Assess My Skills',
-      path: '/assess'
-    };
-  } else if (!completedStages.includes('practice')) {
-    nextAction = {
-      title: 'Step 3 & 4: Complete a Practical Assignment',
-      desc: 'Build real-world work (like a Canva flyer or spreadsheet) and add it directly to your portfolio.',
-      cta: 'Start Practice Assignment',
-      path: '/learn?tab=assignments'
-    };
-  } else if (!completedStages.includes('portfolio')) {
-    nextAction = {
-      title: 'Step 5: Publish your Portfolio Project',
-      desc: 'Showcase your work samples to employers to unlock matched job applications.',
-      cta: 'Manage Portfolio',
-      path: '/portfolio'
-    };
-  } else {
-    nextAction = {
-      title: 'Step 6 & 7: Explore Matched Opportunities',
-      desc: 'Apply directly to verified employers with transparent skill matching and interview tracking.',
-      cta: 'Browse Matched Roles',
-      path: '/opportunities'
-    };
-  }
+  // Recent Activity Feed
+  const recentActivities = progressData?.recentActivity || [];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      {/* Welcome Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-stone-200 gap-4">
+    <div className="space-y-8 max-w-6xl mx-auto pb-8">
+      {/* SECTION A: Welcome Section */}
+      <section className="bg-white rounded-2xl p-6 sm:p-7 border border-stone-200/90 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center space-x-2">
-            <h1 className="text-2xl sm:text-3xl font-bold font-serif text-slate-900">
-              {language === 'hi' ? `नमस्ते, ${user?.name}` : `Welcome, ${user?.name}`}
-            </h1>
-            {user?.seekerProfile?.isCareerRestart && (
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-pink-100 text-pink-800 border border-pink-200">
-                Build Her Returnee
+          <h2 className="text-xl sm:text-2xl font-bold text-stone-900 tracking-tight">
+            Welcome back, {user?.name || 'Seeker'}!
+          </h2>
+          <p className="text-sm text-stone-500 mt-1">
+            Your journey towards better opportunities starts here.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/opportunities"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold rounded-xl shadow-xs transition"
+          >
+            <span>Explore Opportunities</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      </section>
+
+      {/* SECTION B: Complete Your Profile */}
+      <section className="bg-white rounded-2xl p-6 sm:p-7 border border-stone-200/90 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-base font-bold text-stone-900">Complete Your Profile</h3>
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700">
+                {profilePct}% Done
               </span>
-            )}
+            </div>
+            <p className="text-xs text-stone-500 mt-1">
+              Your profile is {profilePct}% complete. Complete your profile to receive better opportunity matches.
+            </p>
           </div>
-          <p className="text-xs sm:text-sm text-stone-600 mt-1">
-            {user?.seekerProfile?.headline || 'SETU Skilled Candidate'} •{' '}
-            {user?.seekerProfile?.location?.city || 'India'}
+          <Link
+            to="/profile"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-stone-900 hover:bg-black text-white text-xs font-medium rounded-xl transition shadow-xs shrink-0"
+          >
+            <span>Complete Profile</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        {/* Dynamic Progress Bar */}
+        <div className="w-full bg-stone-100 h-2.5 rounded-full overflow-hidden">
+          <div
+            className="bg-gradient-to-r from-orange-500 to-amber-500 h-2.5 rounded-full transition-all duration-500 ease-out"
+            style={{ width: `${profilePct}%` }}
+          />
+        </div>
+      </section>
+
+      {/* SECTION C: Quick Overview (4 small cards) */}
+      <section>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Card 1: Skills Verified */}
+          <div className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-stone-500">Skills Verified</span>
+              <div className="w-8 h-8 rounded-xl bg-orange-50 flex items-center justify-center text-orange-600">
+                <Award className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="mt-3 flex items-baseline gap-2">
+              <span className="text-2xl font-bold text-stone-900">{skillsVerified}</span>
+              <span className="text-[11px] text-stone-400">assessments passed</span>
+            </div>
+          </div>
+
+          {/* Card 2: Learning Completed */}
+          <div className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-stone-500">Learning Completed</span>
+              <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+                <BookOpen className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="mt-3 flex items-baseline gap-2">
+              <span className="text-2xl font-bold text-stone-900">{learningCompleted}</span>
+              <span className="text-[11px] text-stone-400">modules completed</span>
+            </div>
+          </div>
+
+          {/* Card 3: Portfolio Projects */}
+          <div className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-stone-500">Portfolio Projects</span>
+              <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600">
+                <FolderGit2 className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="mt-3 flex items-baseline gap-2">
+              <span className="text-2xl font-bold text-stone-900">{portfolioProjects}</span>
+              <span className="text-[11px] text-stone-400">published projects</span>
+            </div>
+          </div>
+
+          {/* Card 4: Active Applications */}
+          <div className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-stone-500">Active Applications</span>
+              <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+                <FileText className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="mt-3 flex items-baseline gap-2">
+              <span className="text-2xl font-bold text-stone-900">{activeApplications}</span>
+              <span className="text-[11px] text-stone-400">live submissions</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION D: Recommended Opportunities (2-3 cards max) */}
+      <section className="bg-white rounded-2xl p-6 sm:p-7 border border-stone-200/90 shadow-xs">
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h3 className="text-base font-bold text-stone-900">Recommended Opportunities</h3>
+            <p className="text-xs text-stone-500 mt-0.5">
+              Verified roles matching your profile and verified strengths
+            </p>
+          </div>
+          <Link
+            to="/opportunities"
+            className="text-xs font-semibold text-orange-600 hover:text-orange-700 flex items-center gap-1"
+          >
+            <span>View All</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        {opportunities.length === 0 ? (
+          <p className="text-xs text-stone-500 py-4 text-center">
+            No recommended opportunities available right now. Explore the Opportunities directory!
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {opportunities.map((opp) => (
+              <div
+                key={opp._id}
+                className="flex flex-col justify-between p-4 rounded-xl border border-stone-200/80 bg-stone-50/50 hover:bg-stone-50 hover:border-stone-300 transition-all"
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-stone-200/70 text-stone-700 capitalize">
+                      {opp.workMode || 'Hybrid'}
+                    </span>
+                    <span className="text-[11px] font-bold text-stone-700">
+                      {opp.stipendOrSalary || 'Competitive'}
+                    </span>
+                  </div>
+
+                  <h4 className="text-sm font-bold text-stone-900 line-clamp-1 mb-1">
+                    {opp.title}
+                  </h4>
+                  <p className="text-xs text-stone-600 font-medium line-clamp-1 mb-2">
+                    {opp.organisationName}
+                  </p>
+
+                  <div className="flex items-center gap-1.5 text-xs text-stone-500 mb-3">
+                    <MapPin className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">{opp.location?.city || 'India'}</span>
+                  </div>
+
+                  {/* Skills tags */}
+                  <div className="flex flex-wrap gap-1 mb-4">
+                    {(opp.requiredSkills || []).slice(0, 3).map((sk: string, i: number) => (
+                      <span
+                        key={i}
+                        className="text-[10px] bg-white border border-stone-200 text-stone-600 px-2 py-0.5 rounded"
+                      >
+                        {sk}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <Link
+                  to="/opportunities"
+                  className="w-full text-center py-2 px-3 bg-white hover:bg-orange-50 hover:border-orange-200 hover:text-orange-600 border border-stone-200 text-stone-800 text-xs font-semibold rounded-lg transition"
+                >
+                  View Details
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* SECTION E: Continue Learning (2 cards max) */}
+      <section className="bg-white rounded-2xl p-6 sm:p-7 border border-stone-200/90 shadow-xs">
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h3 className="text-base font-bold text-stone-900">Continue Learning</h3>
+            <p className="text-xs text-stone-500 mt-0.5">
+              Practical modules and assignments to sharpen your employment portfolio
+            </p>
+          </div>
+          <Link
+            to="/learn"
+            className="text-xs font-semibold text-orange-600 hover:text-orange-700 flex items-center gap-1"
+          >
+            <span>Browse Catalog</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        {learningItems.length === 0 ? (
+          <div className="text-center py-6 border border-dashed border-stone-200 rounded-xl">
+            <BookOpen className="w-8 h-8 text-stone-300 mx-auto mb-2" />
+            <p className="text-xs text-stone-500">No learning in progress.</p>
+            <Link
+              to="/learn"
+              className="mt-2 inline-block text-xs font-semibold text-orange-600 hover:underline"
+            >
+              Start learning practical skills →
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {learningItems.map((item, idx) => (
+              <div
+                key={item.id || item._id || idx}
+                className="flex items-center justify-between p-4 rounded-xl border border-stone-200/80 bg-stone-50/50 hover:bg-stone-50 transition"
+              >
+                <div className="space-y-1 pr-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-blue-100 text-blue-700">
+                      {item.type === 'practical_assignment' ? 'Practical Project' : 'Learning Module'}
+                    </span>
+                    <span className="text-[10px] text-stone-500">{item.duration || '20 mins'}</span>
+                  </div>
+                  <h4 className="text-xs font-bold text-stone-900 line-clamp-1">{item.title}</h4>
+                  <p className="text-[11px] text-stone-500 line-clamp-1">Skill: {item.skillTag || 'Operations'}</p>
+                </div>
+                <Link
+                  to="/learn"
+                  className="shrink-0 px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-medium rounded-lg transition"
+                >
+                  Continue
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* SECTION F: Recent Activity */}
+      <section className="bg-white rounded-2xl p-6 sm:p-7 border border-stone-200/90 shadow-xs">
+        <div className="mb-4">
+          <h3 className="text-base font-bold text-stone-900">Recent Activity</h3>
+          <p className="text-xs text-stone-500 mt-0.5">
+            Real-time milestones from your applications, assessments, and learning journey
           </p>
         </div>
 
-        <div className="flex items-center space-x-2">
-          <Link
-            to="/profile"
-            className="px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg border border-stone-300 bg-white hover:bg-stone-50 text-slate-800 transition"
-          >
-            {language === 'hi' ? 'प्रोफ़ाइल संपादित करें' : 'Edit Profile & Skills'}
-          </Link>
-          <Link
-            to="/progress"
-            className="px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-[#E65100] hover:bg-orange-700 text-white transition flex items-center space-x-1.5"
-          >
-            <TrendingUp className="w-4 h-4" />
-            <span>{t('navProgress')}</span>
-          </Link>
-        </div>
-      </div>
-
-      {/* 7-Stage Visual Journey Bridge */}
-      <JourneyBridge
-        currentStage={scheduledInterviewApp ? 'earn' : completedStages[completedStages.length - 1] || 'discover'}
-        completedStages={completedStages}
-      />
-
-      {/* Next Suggested Action Alert Banner */}
-      <div className="bg-gradient-to-r from-orange-500 to-amber-600 rounded-2xl p-5 sm:p-6 text-white shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <div className="flex items-center space-x-2 text-orange-200 text-xs font-bold uppercase tracking-wider">
-            <Sparkles className="w-4 h-4 text-amber-300" />
-            <span>Next Suggested Action</span>
-          </div>
-          <h3 className="text-lg sm:text-xl font-bold">{nextAction.title}</h3>
-          <p className="text-xs sm:text-sm text-orange-100 max-w-2xl">{nextAction.desc}</p>
-        </div>
-        <Link
-          to={nextAction.path}
-          className="self-start sm:self-auto px-5 py-2.5 rounded-xl bg-white text-orange-800 font-bold text-xs sm:text-sm hover:bg-orange-50 transition shadow-sm shrink-0 flex items-center space-x-1.5"
-        >
-          <span>{nextAction.cta}</span>
-          <ArrowRight className="w-4 h-4" />
-        </Link>
-      </div>
-
-      {/* Scheduled Interview Highlight (if any) */}
-      {scheduledInterviewApp && (
-        <div className="bg-emerald-50 border border-emerald-300 rounded-2xl p-5 sm:p-6 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 flex items-center space-x-1.5">
-              <Calendar className="w-4 h-4 text-emerald-600" />
-              <span>Active Scheduled Interview</span>
-            </span>
-            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-200 text-emerald-900">
-              Stage 7: Earn
-            </span>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
-            <div className="space-y-1">
-              <span className="text-xs text-emerald-700 font-medium">Position & Employer</span>
-              <h4 className="font-bold text-slate-900 text-base">
-                {scheduledInterviewApp.opportunityId?.title || 'Selected Role'}
-              </h4>
-              <p className="text-xs text-stone-600">
-                {scheduledInterviewApp.opportunityId?.organisationName}
-              </p>
-            </div>
-            <div className="space-y-1">
-              <span className="text-xs text-emerald-700 font-medium">Date & Time</span>
-              <p className="font-bold text-slate-900 text-sm">
-                {scheduledInterviewApp.interviewDetails.date} at {scheduledInterviewApp.interviewDetails.time}
-              </p>
-              {scheduledInterviewApp.interviewDetails.meetLinkOrLocation && (
-                <a
-                  href={scheduledInterviewApp.interviewDetails.meetLinkOrLocation}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs font-semibold text-emerald-800 hover:underline flex items-center space-x-1"
-                >
-                  <Video className="w-3.5 h-3.5" />
-                  <span>Join Video Meeting</span>
-                </a>
-              )}
-            </div>
-            <div className="space-y-1">
-              <span className="text-xs text-emerald-700 font-medium">Instructions</span>
-              <p className="text-xs text-slate-700 line-clamp-3">
-                {scheduledInterviewApp.interviewDetails.instructions}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Grid: Matched Opportunities & Skill Assessments */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column: Matched Opportunities (2 Cols) */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-bold text-slate-900 font-serif">
-                {language === 'hi' ? 'आपके हुनर से मेल खाते अवसर' : 'Matched Opportunities For You'}
-              </h3>
-              <p className="text-xs text-stone-600">
-                Transparent ranking based on your verified skills, work mode, and goals
-              </p>
-            </div>
+        {recentActivities.length === 0 ? (
+          <div className="text-center py-8 border border-dashed border-stone-200 rounded-xl">
+            <Sparkles className="w-8 h-8 text-stone-300 mx-auto mb-2" />
+            <p className="text-xs text-stone-500">
+              No recent activity yet. Start by assessing your skills!
+            </p>
             <Link
-              to="/opportunities"
-              className="text-xs font-semibold text-orange-600 hover:text-orange-700 flex items-center space-x-1"
+              to="/assess"
+              className="mt-2 inline-block text-xs font-semibold text-orange-600 hover:underline"
             >
-              <span>{language === 'hi' ? 'सभी देखें' : 'View All'}</span>
-              <ChevronRight className="w-4 h-4" />
+              Take Skill Assessment →
             </Link>
           </div>
-
-          <div className="space-y-3.5">
-            {matchedOpportunities.map((res: any, idx: number) => {
-              const opp = res.opportunity;
-              return (
-                <div
-                  key={opp._id || idx}
-                  className="bg-white rounded-xl border border-stone-200 p-4 sm:p-5 shadow-sm hover:border-orange-300 transition space-y-3"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div>
-                      <h4 className="font-bold text-slate-900 text-base">{opp.title}</h4>
-                      <p className="text-xs text-stone-600 font-medium">
-                        {opp.organisationName} • {opp.location}
-                      </p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-800">
-                        {res.matchScore}% Match
-                      </span>
-                      <span className="text-xs font-medium px-2 py-0.5 rounded bg-stone-100 text-stone-700">
-                        {opp.workMode.toUpperCase()}
-                      </span>
-                    </div>
+        ) : (
+          <div className="divide-y divide-stone-100">
+            {recentActivities.map((act: any) => (
+              <div key={act.id} className="py-3 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center text-stone-600 shrink-0">
+                    {act.type === 'assessment' ? (
+                      <Award className="w-4 h-4 text-orange-600" />
+                    ) : act.type === 'application' ? (
+                      <FileText className="w-4 h-4 text-emerald-600" />
+                    ) : act.type === 'portfolio' ? (
+                      <FolderGit2 className="w-4 h-4 text-purple-600" />
+                    ) : (
+                      <BookOpen className="w-4 h-4 text-blue-600" />
+                    )}
                   </div>
-
-                  {/* Explainability Tags */}
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {res.matchReasons?.map((reason: string, rIdx: number) => (
-                      <span
-                        key={rIdx}
-                        className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-stone-100 text-stone-700 flex items-center space-x-1"
-                      >
-                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                        <span>{reason}</span>
-                      </span>
-                    ))}
+                  <div>
+                    <p className="text-xs font-semibold text-stone-900">{act.title}</p>
+                    <p className="text-[11px] text-stone-500">{act.subtitle}</p>
                   </div>
+                </div>
 
-                  <div className="flex items-center justify-between pt-2 border-t border-stone-100 text-xs">
-                    <span className="font-semibold text-slate-700">{opp.salaryOrStipend}</span>
-                    <Link
-                      to="/opportunities"
-                      className="font-semibold text-orange-600 hover:text-orange-700 flex items-center space-x-1"
+                <div className="text-right shrink-0">
+                  {act.badgeText && (
+                    <span
+                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                        act.badgeColor === 'emerald'
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : act.badgeColor === 'purple'
+                          ? 'bg-purple-100 text-purple-700'
+                          : act.badgeColor === 'amber'
+                          ? 'bg-amber-100 text-amber-700'
+                          : 'bg-stone-100 text-stone-700'
+                      }`}
                     >
-                      <span>View & Apply</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Right Column: Skill Gaps & Recommended Learning */}
-        <div className="space-y-6">
-          {/* Recent Assessment Gaps */}
-          <div className="bg-white rounded-2xl border border-stone-200 p-5 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
-              <h4 className="font-bold text-slate-900 text-sm font-serif">
-                Skill Strengths & Gaps
-              </h4>
-              <Link to="/assess" className="text-xs font-semibold text-orange-600 hover:underline">
-                Assess More
-              </Link>
-            </div>
-
-            {progressData?.assessments?.totalAttempts > 0 ? (
-              <div className="space-y-3">
-                <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-900">
-                  <span className="font-bold block mb-1">Demonstrated Strengths:</span>
-                  <div className="flex flex-wrap gap-1">
-                    {user?.seekerProfile?.skills?.slice(0, 4).map((s, idx) => (
-                      <span key={idx} className="bg-white px-2 py-0.5 rounded border border-emerald-300 font-medium">
-                        {s}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900">
-                  <span className="font-bold block mb-1">Recommended Skill Focus:</span>
-                  <p className="text-[11px] text-amber-800 mb-2">
-                    Complete practical assignments in these topics to elevate your match scores:
+                      {act.badgeText}
+                    </span>
+                  )}
+                  <p className="text-[10px] text-stone-400 mt-0.5">
+                    {new Date(act.timestamp).toLocaleDateString()}
                   </p>
-                  <Link
-                    to="/learn?tab=assignments"
-                    className="inline-flex items-center text-xs font-bold text-amber-900 hover:underline"
-                  >
-                    <span>View Hands-on Assignments</span>
-                    <ArrowRight className="w-3.5 h-3.5 ml-1" />
-                  </Link>
                 </div>
               </div>
-            ) : (
-              <div className="p-4 bg-stone-50 rounded-xl text-center space-y-2">
-                <Award className="w-8 h-8 text-stone-400 mx-auto" />
-                <p className="text-xs text-stone-600">No assessments taken yet.</p>
-                <Link
-                  to="/assess"
-                  className="inline-block px-3 py-1.5 rounded-lg bg-orange-600 text-white text-xs font-semibold"
-                >
-                  Take 1st Assessment
-                </Link>
-              </div>
-            )}
+            ))}
           </div>
-
-          {/* Quick Learning Recommendations */}
-          <div className="bg-white rounded-2xl border border-stone-200 p-5 shadow-sm space-y-3">
-            <div className="flex items-center justify-between">
-              <h4 className="font-bold text-slate-900 text-sm font-serif">
-                Recommended Practice
-              </h4>
-              <Link to="/learn" className="text-xs font-semibold text-orange-600 hover:underline">
-                View All
-              </Link>
-            </div>
-
-            <div className="space-y-2.5">
-              {learningRecommendations.map((r, idx) => (
-                <Link
-                  key={r._id || idx}
-                  to="/learn"
-                  className="block p-3 rounded-xl border border-stone-100 bg-stone-50/60 hover:bg-stone-50 transition space-y-1"
-                >
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-orange-700">
-                    {r.type.replace('_', ' ')}
-                  </span>
-                  <h5 className="font-bold text-slate-900 text-xs line-clamp-1">{r.title}</h5>
-                  <p className="text-[11px] text-stone-600 line-clamp-1">{r.summary}</p>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+        )}
+      </section>
     </div>
   );
 };

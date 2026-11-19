@@ -25,6 +25,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { JourneyBridge } from '../components/JourneyBridge';
 
 ChartJS.register(
   CategoryScale,
@@ -157,6 +158,15 @@ export const MyProgressPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* 7-Stage Visual Journey Bridge */}
+      <JourneyBridge
+        completedStages={
+          progress?.journeyStages
+            ?.filter((s: any) => s.completed)
+            ?.map((s: any) => s.id) || ['discover']
+        }
+      />
 
       {/* Metric Cards Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
