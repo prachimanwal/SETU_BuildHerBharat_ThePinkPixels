@@ -77,8 +77,6 @@ app.get('/api/health', (_req, res) => {
     project: 'SETU',
     tagline: 'Bridging Skills, Opportunities & Employment',
     taglineHindi: 'हुनर से हक़ की कमाई तक।',
-    event: 'Builder Bharat 2026 – Build Her Bharat',
-    institution: 'K.R. Mangalam University, Gurugram',
     timestamp: new Date()
   });
 });

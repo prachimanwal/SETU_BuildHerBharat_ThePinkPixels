@@ -1,7 +1,7 @@
 {
   "name": "setu-platform",
   "version": "1.0.0",
-  "description": "SETU - Bridging Skills, Opportunities & Employment (Builder Bharat 2026)",
+  "description": "SETU - Bridging Skills, Opportunities & Employment",
   "scripts": {
     "dev": "concurrently -n \"API,WEB\" -c \"bgBlue.bold,bgMagenta.bold\" \"npm run dev --prefix backend\" \"npm run dev --prefix client\"",
     "dev:backend": "npm run dev --prefix backend",

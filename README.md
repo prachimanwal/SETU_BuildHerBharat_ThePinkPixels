@@ -1,8 +1,6 @@
 # SETU: Bridging Skills, Opportunities & Employment
 ### हुनर से हक़ की कमाई तक।
-
-**Event**: Builder Bharat 2026 – Build Her Bharat  
-**Institution**: K.R. Mangalam University, Gurugram  
+**Platform**: Independent Employment & Skill-Development Ecosystem  
 **Tech Stack**: Node.js, Express.js, TypeScript, MongoDB Atlas, Mongoose, Zod, JWT / HttpOnly Cookie & Bearer Sessions, Google OAuth 2.0, bcrypt, React 19, Tailwind CSS v4.
 
 ---

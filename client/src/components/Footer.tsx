@@ -50,19 +50,6 @@ export const Footer: React.FC = () => {
           </nav>
         </div>
 
-        {/* Elegant Hackathon Attribution (Task 2) */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 py-3.5 px-5 rounded-xl bg-[#121212] border border-[#222222] text-xs">
-          <div className="flex items-center gap-2.5 text-[#A3A3A3]">
-            <span className="w-2 h-2 rounded-full bg-[#FF5A1F] shadow-[0_0_8px_rgba(255,90,31,0.6)]"></span>
-            <span>
-              Built for <strong className="text-[#F5F5F5] font-semibold">Builder Bharat 2026 — Build Her Bharat</strong>
-            </span>
-          </div>
-          <span className="text-[#737373] font-medium">
-            K.R. Mangalam University, Gurugram
-          </span>
-        </div>
-
         {/* Bottom Legal & Copyright */}
         <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#737373] text-center sm:text-left">
           <p>© 2026 SETU. All Rights Reserved. हुनर से हक़ की कमाई तक।</p>

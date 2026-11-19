@@ -6,8 +6,8 @@ export const translations = {
     brandName: 'SETU',
     brandTagline: 'Bridging Skills, Opportunities & Employment',
     brandHindiTagline: 'हुनर से हक़ की कमाई तक।',
-    eventBadge: 'Builder Bharat 2026 – Build Her Bharat',
-    institution: 'K.R. Mangalam University, Gurugram',
+    eventBadge: 'SETU Employment Ecosystem',
+    institution: 'SETU Platform',
 
     // Nav
     navHome: 'Home',
@@ -56,8 +56,8 @@ export const translations = {
     brandName: 'सेतु (SETU)',
     brandTagline: 'कौशल, अवसर और रोजगार का सेतु',
     brandHindiTagline: 'हुनर से हक़ की कमाई तक।',
-    eventBadge: 'बिल्डर भारत 2026 – बिल्ड हर भारत',
-    institution: 'के.आर. मंगलम विश्वविद्यालय, गुरुग्राम',
+    eventBadge: 'सेतु रोजगार पारिस्थितिकी तंत्र',
+    institution: 'सेतु प्लेटफॉर्म',
 
     // Nav
     navHome: 'होम',

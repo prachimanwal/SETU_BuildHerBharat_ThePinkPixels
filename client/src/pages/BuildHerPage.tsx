@@ -98,7 +98,7 @@ export const BuildHerPage: React.FC = () => {
           <div className="space-y-2 max-w-2xl">
             <div className="inline-flex items-center space-x-2 bg-pink-500/20 border border-pink-400/30 px-3 py-1 rounded-full text-xs text-pink-200">
               <Heart className="w-3.5 h-3.5 fill-pink-300 text-pink-300" />
-              <span>Builder Bharat 2026 – Build Her Bharat Initiative</span>
+              <span>SETU Women Career Restart Initiative</span>
             </div>
             <h1 className="text-3xl sm:text-5xl font-black font-serif tracking-tight">
               Build Her: हुनर से स्वावलंबन तक
@@ -342,7 +342,7 @@ export const BuildHerPage: React.FC = () => {
             </h3>
           </div>
           <p className="text-xs text-[#A3A3A3] leading-relaxed max-w-3xl">
-            We partner with regional self-help groups, university alumni circles at K.R. Mangalam University, and peer collectives. Follow these structured frameworks to connect with returning women professionals in your district.
+            We partner with regional self-help groups, certified industry mentorship circles, and professional peer collectives. Follow these structured frameworks to connect with returning women professionals in your district.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs pt-1">
             <div className="p-3.5 bg-[#101010] rounded-xl border border-[#292929] space-y-1">

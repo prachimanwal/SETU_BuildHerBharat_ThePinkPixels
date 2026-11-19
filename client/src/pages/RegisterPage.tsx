@@ -180,7 +180,7 @@ export const RegisterPage: React.FC = () => {
 
         {/* Footer Attribution */}
         <div className="relative z-10 text-xs text-[#737373]">
-          <p>© 2026 SETU. Built for Builder Bharat 2026 — Build Her Bharat.</p>
+          <p>© 2026 SETU Platform. Bridging Skills, Opportunities & Employment.</p>
         </div>
       </div>
 
