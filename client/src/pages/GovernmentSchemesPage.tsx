@@ -161,16 +161,16 @@ export const GovernmentSchemesPage: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-stone-200 gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#292929] gap-4">
         <div>
           <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-amber-700">
             <Landmark className="w-4 h-4" />
             <span>Verified Public Resources</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold font-serif text-slate-900">
+          <h1 className="text-2xl sm:text-3xl font-bold font-serif text-[#F5F5F5]">
             {language === 'hi' ? 'सरकारी कौशल एवं रोजगार योजनाएं' : 'Government Skilling & Employment Schemes'}
           </h1>
-          <p className="text-xs sm:text-sm text-stone-600 max-w-2xl mt-0.5">
+          <p className="text-xs sm:text-sm text-[#A3A3A3] max-w-2xl mt-0.5">
             Curated directory of Central & State initiatives (PMKVY, NAPS, PM Vishwakarma, Stand-Up India) with confirmed official government links.
           </p>
         </div>
@@ -198,16 +198,16 @@ export const GovernmentSchemesPage: React.FC = () => {
       </div>
 
       {/* Search & Filters */}
-      <form onSubmit={handleSearch} className="bg-white rounded-2xl border border-stone-200 p-4 sm:p-5 shadow-sm space-y-3">
+      <form onSubmit={handleSearch} className="bg-[#151515] rounded-2xl border border-[#292929] p-4 sm:p-5 shadow-sm space-y-3">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <div className="md:col-span-2 relative">
-            <Search className="w-4 h-4 text-stone-400 absolute left-3 top-3" />
+            <Search className="w-4 h-4 text-[#555555] absolute left-3 top-3" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search scheme name, ministry, or benefits..."
-              className="w-full pl-9 pr-3.5 py-2.5 rounded-lg border border-stone-300 text-xs sm:text-sm outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full pl-9 pr-3.5 py-2.5 rounded-lg border border-[#333333] text-xs sm:text-sm outline-none focus:ring-2 focus:ring-amber-500"
             />
           </div>
 
@@ -215,7 +215,7 @@ export const GovernmentSchemesPage: React.FC = () => {
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-lg border border-stone-300 bg-white text-xs sm:text-sm text-stone-700 font-medium outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full px-3 py-2.5 rounded-lg border border-[#333333] bg-[#151515] text-xs sm:text-sm text-[#D4D4D4] font-medium outline-none focus:ring-2 focus:ring-amber-500"
             >
               <option value="all">All Categories</option>
               <option value="skill_training">Skill Training</option>
@@ -230,7 +230,7 @@ export const GovernmentSchemesPage: React.FC = () => {
             <select
               value={audienceFilter}
               onChange={(e) => setAudienceFilter(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-lg border border-stone-300 bg-white text-xs sm:text-sm text-stone-700 font-medium outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full px-3 py-2.5 rounded-lg border border-[#333333] bg-[#151515] text-xs sm:text-sm text-[#D4D4D4] font-medium outline-none focus:ring-2 focus:ring-amber-500"
             >
               <option value="all">All Audiences</option>
               <option value="women">Women</option>
@@ -245,12 +245,12 @@ export const GovernmentSchemesPage: React.FC = () => {
 
       {/* Schemes Grid */}
       {loading ? (
-        <div className="text-center py-16 text-stone-500">
+        <div className="text-center py-16 text-[#737373]">
           <div className="inline-block animate-spin w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full mb-3"></div>
           <p className="text-sm">Loading verified government schemes...</p>
         </div>
       ) : schemes.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-dashed border-stone-300 p-12 text-center text-stone-500">
+        <div className="bg-[#151515] rounded-2xl border border-dashed border-[#333333] p-12 text-center text-[#737373]">
           No schemes found matching the selected filters.
         </div>
       ) : (
@@ -258,26 +258,26 @@ export const GovernmentSchemesPage: React.FC = () => {
           {schemes.map((s) => (
             <div
               key={s._id}
-              className="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm hover:border-amber-300 transition flex flex-col justify-between space-y-4"
+              className="bg-[#151515] rounded-2xl border border-[#292929] p-6 shadow-sm hover:border-amber-300 transition flex flex-col justify-between space-y-4"
             >
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 uppercase">
                     {s.category.replace('_', ' ')}
                   </span>
-                  <span className="text-[10px] text-stone-600">
+                  <span className="text-[10px] text-[#A3A3A3]">
                     Reviewed: {s.lastReviewedDate || 'Confirmed Active'}
                   </span>
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-bold font-serif text-slate-900 leading-snug">
+                  <h3 className="text-lg font-bold font-serif text-[#F5F5F5] leading-snug">
                     {s.title}
                   </h3>
                   {s.hindiTitle && (
                     <p className="text-xs text-amber-900 font-serif mt-0.5">{s.hindiTitle}</p>
                   )}
-                  <p className="text-xs text-stone-600 mt-1">{s.ministryOrDepartment}</p>
+                  <p className="text-xs text-[#A3A3A3] mt-1">{s.ministryOrDepartment}</p>
                 </div>
 
                 {/* Target Audience Badges */}
@@ -285,26 +285,26 @@ export const GovernmentSchemesPage: React.FC = () => {
                   {s.targetAudience?.map((aud: string, aIdx: number) => (
                     <span
                       key={aIdx}
-                      className="bg-stone-100 text-stone-700 px-2 py-0.5 rounded text-[10px] font-semibold uppercase"
+                      className="bg-[#1C1C1C] text-[#D4D4D4] px-2 py-0.5 rounded text-[10px] font-semibold uppercase"
                     >
                       {aud}
                     </span>
                   ))}
                 </div>
 
-                <div className="p-3 bg-stone-50 rounded-xl border border-stone-100 text-xs space-y-2">
+                <div className="p-3 bg-[#101010] rounded-xl border border-[#222222] text-xs space-y-2">
                   <div>
-                    <span className="font-bold text-slate-900 block mb-0.5">Benefits:</span>
-                    <p className="text-stone-700 leading-relaxed text-[11px]">{s.benefitsSummary}</p>
+                    <span className="font-bold text-[#F5F5F5] block mb-0.5">Benefits:</span>
+                    <p className="text-[#D4D4D4] leading-relaxed text-[11px]">{s.benefitsSummary}</p>
                   </div>
                   <div>
-                    <span className="font-bold text-slate-900 block mb-0.5">Eligibility:</span>
-                    <p className="text-stone-700 leading-relaxed text-[11px]">{s.eligibilitySummary}</p>
+                    <span className="font-bold text-[#F5F5F5] block mb-0.5">Eligibility:</span>
+                    <p className="text-[#D4D4D4] leading-relaxed text-[11px]">{s.eligibilitySummary}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-stone-100 flex items-center justify-between">
+              <div className="pt-3 border-t border-[#222222] flex items-center justify-between">
                 <a
                   href={s.officialUrl}
                   target="_blank"
@@ -319,14 +319,14 @@ export const GovernmentSchemesPage: React.FC = () => {
                   <div className="flex items-center space-x-1.5">
                     <button
                       onClick={() => openEditModal(s)}
-                      className="p-1.5 text-stone-500 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition"
+                      className="p-1.5 text-[#737373] hover:text-purple-700 hover:bg-purple-50 rounded-lg transition"
                       title="Edit Scheme"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => handleDeleteScheme(s._id)}
-                      className="p-1.5 text-stone-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                      className="p-1.5 text-[#737373] hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
                       title="Delete Scheme"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -342,14 +342,14 @@ export const GovernmentSchemesPage: React.FC = () => {
       {/* Admin Add/Edit Modal */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-stone-200 animate-in zoom-in-95">
-            <div className="p-5 border-b border-stone-200 flex items-center justify-between">
-              <h3 className="font-bold text-slate-900 text-base font-serif">
+          <div className="bg-[#151515] rounded-2xl max-w-xl w-full shadow-2xl border border-[#292929] animate-in zoom-in-95">
+            <div className="p-5 border-b border-[#292929] flex items-center justify-between">
+              <h3 className="font-bold text-[#F5F5F5] text-base font-serif">
                 {editingScheme ? 'Edit Government Scheme' : 'Add Government Scheme (Admin)'}
               </h3>
               <button
                 onClick={() => setModalOpen(false)}
-                className="p-1.5 rounded-lg text-stone-500 hover:bg-stone-100"
+                className="p-1.5 rounded-lg text-[#737373] hover:bg-[#1C1C1C]"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -357,44 +357,44 @@ export const GovernmentSchemesPage: React.FC = () => {
 
             <form onSubmit={handleSaveScheme} className="p-6 space-y-4 text-xs">
               <div>
-                <label className="block font-semibold text-stone-700 mb-1">Scheme Title *</label>
+                <label className="block font-semibold text-[#D4D4D4] mb-1">Scheme Title *</label>
                 <input
                   type="text"
                   required
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-stone-300 text-sm outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 rounded-lg border border-[#333333] text-sm outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-stone-700 mb-1">Hindi Title</label>
+                <label className="block font-semibold text-[#D4D4D4] mb-1">Hindi Title</label>
                 <input
                   type="text"
                   value={hindiTitle}
                   onChange={(e) => setHindiTitle(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-stone-300 text-sm outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 rounded-lg border border-[#333333] text-sm outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-stone-700 mb-1">Ministry / Dept *</label>
+                <label className="block font-semibold text-[#D4D4D4] mb-1">Ministry / Dept *</label>
                 <input
                   type="text"
                   required
                   value={ministry}
                   onChange={(e) => setMinistry(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-stone-300 text-sm outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 rounded-lg border border-[#333333] text-sm outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-stone-700 mb-1">Category</label>
+                  <label className="block font-semibold text-[#D4D4D4] mb-1">Category</label>
                   <select
                     value={category}
                     onChange={(e: any) => setCategory(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-stone-300 bg-white text-sm outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 rounded-lg border border-[#333333] bg-[#151515] text-sm outline-none focus:ring-2 focus:ring-purple-500"
                   >
                     <option value="skill_training">Skill Training</option>
                     <option value="apprenticeship">Apprenticeship</option>
@@ -405,56 +405,56 @@ export const GovernmentSchemesPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-stone-700 mb-1">Target Audience</label>
+                  <label className="block font-semibold text-[#D4D4D4] mb-1">Target Audience</label>
                   <input
                     type="text"
                     value={targetAudience}
                     onChange={(e) => setTargetAudience(e.target.value)}
                     placeholder="e.g. women, youth, rural"
-                    className="w-full px-3 py-2 rounded-lg border border-stone-300 text-sm outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 rounded-lg border border-[#333333] text-sm outline-none focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-semibold text-stone-700 mb-1">Official URL (.gov.in) *</label>
+                <label className="block font-semibold text-[#D4D4D4] mb-1">Official URL (.gov.in) *</label>
                 <input
                   type="url"
                   required
                   value={officialUrl}
                   onChange={(e) => setOfficialUrl(e.target.value)}
                   placeholder="https://..."
-                  className="w-full px-3 py-2 rounded-lg border border-stone-300 text-sm outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 rounded-lg border border-[#333333] text-sm outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-stone-700 mb-1">Benefits Summary *</label>
+                <label className="block font-semibold text-[#D4D4D4] mb-1">Benefits Summary *</label>
                 <textarea
                   required
                   rows={2}
                   value={benefitsSummary}
                   onChange={(e) => setBenefitsSummary(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-stone-300 text-sm outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 rounded-lg border border-[#333333] text-sm outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-stone-700 mb-1">Eligibility Summary *</label>
+                <label className="block font-semibold text-[#D4D4D4] mb-1">Eligibility Summary *</label>
                 <textarea
                   required
                   rows={2}
                   value={eligibilitySummary}
                   onChange={(e) => setEligibilitySummary(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-stone-300 text-sm outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 rounded-lg border border-[#333333] text-sm outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
 
-              <div className="flex justify-end space-x-2 pt-3 border-t border-stone-200">
+              <div className="flex justify-end space-x-2 pt-3 border-t border-[#292929]">
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="px-4 py-2 rounded-lg border border-stone-300 font-semibold hover:bg-stone-100"
+                  className="px-4 py-2 rounded-lg border border-[#333333] font-semibold hover:bg-[#1C1C1C]"
                 >
                   Cancel
                 </button>

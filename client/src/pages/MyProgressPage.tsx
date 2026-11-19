@@ -55,8 +55,8 @@ export const MyProgressPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-16 text-center text-stone-600">
-        <div className="inline-block animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full mb-3"></div>
+      <div className="max-w-6xl mx-auto px-4 py-16 text-center text-[#A3A3A3]">
+        <div className="inline-block animate-spin w-8 h-8 border-4 border-[#FF5A1F] border-t-transparent rounded-full mb-3"></div>
         <p className="text-sm font-medium">Computing your real recorded progress...</p>
       </div>
     );
@@ -117,15 +117,15 @@ export const MyProgressPage: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
       {/* Header */}
-      <div className="space-y-1 pb-4 border-b border-stone-200">
-        <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-orange-700">
+      <div className="space-y-1 pb-4 border-b border-[#292929]">
+        <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-[#FF7847]">
           <TrendingUp className="w-4 h-4" />
           <span>Stage 8: My Progress & Analytics</span>
         </div>
-        <h1 className="text-2xl sm:text-3xl font-bold font-serif text-slate-900">
+        <h1 className="text-2xl sm:text-3xl font-bold font-serif text-[#F5F5F5]">
           {language === 'hi' ? 'मेरी प्रगति और डेटा चार्ट' : 'Recorded Activity & Progress Analytics'}
         </h1>
-        <p className="text-xs sm:text-sm text-stone-600 max-w-2xl">
+        <p className="text-xs sm:text-sm text-[#A3A3A3] max-w-2xl">
           Visual graphs derived strictly from your saved records: assessment scores, completed learning assignments, portfolio deliverables, and application stages.
         </p>
       </div>
@@ -133,25 +133,25 @@ export const MyProgressPage: React.FC = () => {
       {/* Fresh Account Empty State */}
       {isFresh && (
         <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-orange-200 rounded-2xl p-6 sm:p-8 space-y-4 text-center">
-          <div className="w-12 h-12 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center mx-auto">
+          <div className="w-12 h-12 rounded-full bg-[#241A14] text-[#FF7847] flex items-center justify-center mx-auto">
             <Sparkles className="w-6 h-6" />
           </div>
           <div className="space-y-1">
-            <h3 className="text-lg font-bold text-slate-900">Your Journey Begins Here!</h3>
-            <p className="text-xs sm:text-sm text-stone-600 max-w-md mx-auto">
+            <h3 className="text-lg font-bold text-[#F5F5F5]">Your Journey Begins Here!</h3>
+            <p className="text-xs sm:text-sm text-[#A3A3A3] max-w-md mx-auto">
               You haven't completed any assessments or applications yet. Complete your first action to see live Chart.js visualizations here.
             </p>
           </div>
           <div className="flex items-center justify-center gap-3 pt-2">
             <Link
               to="/assess"
-              className="px-4 py-2 bg-[#E65100] text-white font-bold text-xs rounded-lg hover:bg-orange-700 transition"
+              className="px-4 py-2 bg-[#E65100] text-white font-bold text-xs rounded-lg hover:bg-[#FF7847] transition"
             >
               Take 1st Assessment
             </Link>
             <Link
               to="/opportunities"
-              className="px-4 py-2 border border-stone-300 bg-white text-stone-800 font-bold text-xs rounded-lg hover:bg-stone-50 transition"
+              className="px-4 py-2 border border-[#333333] bg-[#151515] text-[#E5E5E5] font-bold text-xs rounded-lg hover:bg-[#101010] transition"
             >
               Explore Opportunities
             </Link>
@@ -170,57 +170,57 @@ export const MyProgressPage: React.FC = () => {
 
       {/* Metric Cards Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl border border-stone-200 p-4 shadow-sm space-y-1">
-          <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block">
+        <div className="bg-[#151515] rounded-xl border border-[#292929] p-4 shadow-sm space-y-1">
+          <span className="text-[11px] font-bold text-[#737373] uppercase tracking-wider block">
             Journey Completion
           </span>
-          <div className="text-2xl font-black text-orange-600 font-serif">
+          <div className="text-2xl font-black text-[#FF5A1F] font-serif">
             {progress?.journeyPercentage || 0}%
           </div>
-          <p className="text-[11px] text-stone-600">Across 7 core SETU stages</p>
+          <p className="text-[11px] text-[#A3A3A3]">Across 7 core SETU stages</p>
         </div>
 
-        <div className="bg-white rounded-xl border border-stone-200 p-4 shadow-sm space-y-1">
-          <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block">
+        <div className="bg-[#151515] rounded-xl border border-[#292929] p-4 shadow-sm space-y-1">
+          <span className="text-[11px] font-bold text-[#737373] uppercase tracking-wider block">
             Assessments Taken
           </span>
-          <div className="text-2xl font-black text-slate-900 font-serif">
+          <div className="text-2xl font-black text-[#F5F5F5] font-serif">
             {progress?.assessments?.totalAttempts || 0}
           </div>
-          <p className="text-[11px] text-stone-600">Evaluated on server</p>
+          <p className="text-[11px] text-[#A3A3A3]">Evaluated on server</p>
         </div>
 
-        <div className="bg-white rounded-xl border border-stone-200 p-4 shadow-sm space-y-1">
-          <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block">
+        <div className="bg-[#151515] rounded-xl border border-[#292929] p-4 shadow-sm space-y-1">
+          <span className="text-[11px] font-bold text-[#737373] uppercase tracking-wider block">
             Practice Deliverables
           </span>
-          <div className="text-2xl font-black text-slate-900 font-serif">
+          <div className="text-2xl font-black text-[#F5F5F5] font-serif">
             {progress?.learning?.completedCount || 0}
           </div>
-          <p className="text-[11px] text-stone-600">Added to your portfolio</p>
+          <p className="text-[11px] text-[#A3A3A3]">Added to your portfolio</p>
         </div>
 
-        <div className="bg-white rounded-xl border border-stone-200 p-4 shadow-sm space-y-1">
-          <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block">
+        <div className="bg-[#151515] rounded-xl border border-[#292929] p-4 shadow-sm space-y-1">
+          <span className="text-[11px] font-bold text-[#737373] uppercase tracking-wider block">
             Direct Applications
           </span>
-          <div className="text-2xl font-black text-slate-900 font-serif">
+          <div className="text-2xl font-black text-[#F5F5F5] font-serif">
             {progress?.applications?.total || 0}
           </div>
-          <p className="text-[11px] text-stone-600">Active recruiter reviews</p>
+          <p className="text-[11px] text-[#A3A3A3]">Active recruiter reviews</p>
         </div>
       </div>
 
       {/* Charts Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Chart 1: Application Funnel */}
-        <div className="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between pb-2 border-b border-stone-100">
-            <h3 className="font-bold text-slate-900 text-sm font-serif flex items-center space-x-2">
-              <Briefcase className="w-4 h-4 text-orange-600" />
+        <div className="bg-[#151515] rounded-2xl border border-[#292929] p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between pb-2 border-b border-[#222222]">
+            <h3 className="font-bold text-[#F5F5F5] text-sm font-serif flex items-center space-x-2">
+              <Briefcase className="w-4 h-4 text-[#FF5A1F]" />
               <span>Application Pipeline by Status</span>
             </h3>
-            <span className="text-xs font-semibold text-stone-500">
+            <span className="text-xs font-semibold text-[#737373]">
               Total: {progress?.applications?.total || 0}
             </span>
           </div>
@@ -232,19 +232,19 @@ export const MyProgressPage: React.FC = () => {
                 options={{ maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }}
               />
             ) : (
-              <p className="text-xs text-stone-400 italic">No applications recorded yet</p>
+              <p className="text-xs text-[#555555] italic">No applications recorded yet</p>
             )}
           </div>
         </div>
 
         {/* Chart 2: Assessment Scores */}
-        <div className="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between pb-2 border-b border-stone-100">
-            <h3 className="font-bold text-slate-900 text-sm font-serif flex items-center space-x-2">
-              <Award className="w-4 h-4 text-orange-600" />
+        <div className="bg-[#151515] rounded-2xl border border-[#292929] p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between pb-2 border-b border-[#222222]">
+            <h3 className="font-bold text-[#F5F5F5] text-sm font-serif flex items-center space-x-2">
+              <Award className="w-4 h-4 text-[#FF5A1F]" />
               <span>Skill Assessment Performance</span>
             </h3>
-            <span className="text-xs font-semibold text-stone-500">
+            <span className="text-xs font-semibold text-[#737373]">
               {history.length} Attempt(s)
             </span>
           </div>
@@ -253,15 +253,15 @@ export const MyProgressPage: React.FC = () => {
             {history.length > 0 ? (
               <Bar data={barData} options={barOptions} />
             ) : (
-              <p className="text-xs text-stone-400 italic">No assessment attempts completed yet</p>
+              <p className="text-xs text-[#555555] italic">No assessment attempts completed yet</p>
             )}
           </div>
         </div>
       </div>
 
       {/* 7-Stage Detailed Progress Tracker */}
-      <div className="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm space-y-4">
-        <h3 className="font-bold text-slate-900 text-sm font-serif">
+      <div className="bg-[#151515] rounded-2xl border border-[#292929] p-6 shadow-sm space-y-4">
+        <h3 className="font-bold text-[#F5F5F5] text-sm font-serif">
           7-Stage Journey Audit Trail
         </h3>
 
@@ -272,7 +272,7 @@ export const MyProgressPage: React.FC = () => {
               className={`p-3 rounded-xl border text-left space-y-1 ${
                 stage.completed
                   ? 'border-emerald-300 bg-emerald-50/40 text-emerald-950'
-                  : 'border-stone-200 bg-stone-50 text-stone-500'
+                  : 'border-[#292929] bg-[#101010] text-[#737373]'
               }`}
             >
               <div className="flex items-center justify-between">
@@ -280,11 +280,11 @@ export const MyProgressPage: React.FC = () => {
                 {stage.completed ? (
                   <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                 ) : (
-                  <span className="text-[10px] font-semibold text-stone-600">Pending</span>
+                  <span className="text-[10px] font-semibold text-[#A3A3A3]">Pending</span>
                 )}
               </div>
               <h5 className="font-bold text-xs">{stage.label}</h5>
-              <p className="text-[10px] text-stone-600 leading-snug">{stage.description}</p>
+              <p className="text-[10px] text-[#A3A3A3] leading-snug">{stage.description}</p>
             </div>
           ))}
         </div>

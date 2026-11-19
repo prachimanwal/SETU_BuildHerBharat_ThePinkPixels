@@ -52,16 +52,16 @@ export const ApplicationsPage: React.FC = () => {
       case 'Selected':
         return 'bg-green-600 text-white font-bold';
       case 'Rejected':
-        return 'bg-stone-100 text-stone-600 border-stone-200';
+        return 'bg-[#1C1C1C] text-[#A3A3A3] border-[#292929]';
       default:
-        return 'bg-stone-100 text-stone-700';
+        return 'bg-[#1C1C1C] text-[#D4D4D4]';
     }
   };
 
   if (loading) {
     return (
-      <div className="max-w-5xl mx-auto px-4 py-16 text-center text-stone-600">
-        <div className="inline-block animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full mb-3"></div>
+      <div className="max-w-5xl mx-auto px-4 py-16 text-center text-[#A3A3A3]">
+        <div className="inline-block animate-spin w-8 h-8 border-4 border-[#FF5A1F] border-t-transparent rounded-full mb-3"></div>
         <p className="text-sm font-medium">Loading your applications...</p>
       </div>
     );
@@ -70,22 +70,22 @@ export const ApplicationsPage: React.FC = () => {
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
       {/* Header */}
-      <div className="space-y-1 pb-4 border-b border-stone-200">
-        <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-orange-700">
+      <div className="space-y-1 pb-4 border-b border-[#292929]">
+        <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-[#FF7847]">
           <Briefcase className="w-4 h-4" />
           <span>Stage 7: Earn & Track Applications</span>
         </div>
-        <h1 className="text-2xl sm:text-3xl font-bold font-serif text-slate-900">
+        <h1 className="text-2xl sm:text-3xl font-bold font-serif text-[#F5F5F5]">
           {language === 'hi' ? 'मेरे आवेदन और साक्षात्कार' : 'Application Tracking & Status History'}
         </h1>
-        <p className="text-xs sm:text-sm text-stone-600 max-w-2xl">
+        <p className="text-xs sm:text-sm text-[#A3A3A3] max-w-2xl">
           Follow your active direct applications, track recruiter updates step-by-step, and access scheduled interview meeting links.
         </p>
       </div>
 
       {/* External Applications Transparency Notice */}
-      <div className="p-3.5 bg-stone-100/80 rounded-xl border border-stone-200 text-xs text-stone-600 flex items-start space-x-2.5">
-        <AlertCircle className="w-4 h-4 text-stone-500 shrink-0 mt-0.5" />
+      <div className="p-3.5 bg-stone-100/80 rounded-xl border border-[#292929] text-xs text-[#A3A3A3] flex items-start space-x-2.5">
+        <AlertCircle className="w-4 h-4 text-[#737373] shrink-0 mt-0.5" />
         <p className="leading-relaxed">
           <strong>Notice on External Applications:</strong> Clicks on external job links (such as official government portals or third-party careers sites) are not recorded as confirmed applications on SETU. Only direct applications submitted through SETU have automated status tracking and scheduled interview notifications.
         </p>
@@ -93,16 +93,16 @@ export const ApplicationsPage: React.FC = () => {
 
       {/* Applications List */}
       {applications.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-dashed border-stone-300 p-12 text-center space-y-3">
-          <Briefcase className="w-10 h-10 text-stone-400 mx-auto" />
-          <h4 className="font-bold text-slate-900 text-base">No active applications yet</h4>
-          <p className="text-xs text-stone-500 max-w-sm mx-auto">
+        <div className="bg-[#151515] rounded-2xl border border-dashed border-[#333333] p-12 text-center space-y-3">
+          <Briefcase className="w-10 h-10 text-[#555555] mx-auto" />
+          <h4 className="font-bold text-[#F5F5F5] text-base">No active applications yet</h4>
+          <p className="text-xs text-[#737373] max-w-sm mx-auto">
             You haven't submitted direct applications yet. Explore matched opportunities to submit your profile and portfolio.
           </p>
           <div className="pt-2">
             <Link
               to="/opportunities"
-              className="inline-flex items-center space-x-1.5 px-4 py-2 bg-[#E65100] text-white text-xs font-bold rounded-lg shadow-sm hover:bg-orange-700 transition"
+              className="inline-flex items-center space-x-1.5 px-4 py-2 bg-[#E65100] text-white text-xs font-bold rounded-lg shadow-sm hover:bg-[#FF7847] transition"
             >
               <span>Explore Opportunities</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -119,19 +119,19 @@ export const ApplicationsPage: React.FC = () => {
             return (
               <div
                 key={app._id}
-                className="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm space-y-5"
+                className="bg-[#151515] rounded-2xl border border-[#292929] p-6 shadow-sm space-y-5"
               >
                 {/* Top Info */}
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                   <div>
-                    <h3 className="text-lg sm:text-xl font-bold font-serif text-slate-900">
+                    <h3 className="text-lg sm:text-xl font-bold font-serif text-[#F5F5F5]">
                       {opp.title || 'Role'}
                     </h3>
-                    <p className="text-xs sm:text-sm text-stone-600 font-medium">
+                    <p className="text-xs sm:text-sm text-[#A3A3A3] font-medium">
                       {opp.organisationName || app.employerId?.employerProfile?.companyName || 'Employer'} •{' '}
                       {opp.location || 'Location'}
                     </p>
-                    <span className="text-[11px] text-stone-600">
+                    <span className="text-[11px] text-[#A3A3A3]">
                       Applied on {new Date(app.createdAt).toLocaleDateString()}
                     </span>
                   </div>
@@ -199,23 +199,23 @@ export const ApplicationsPage: React.FC = () => {
                 )}
 
                 {/* Status Timeline History */}
-                <div className="space-y-2 pt-2 border-t border-stone-100">
-                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wider block">
+                <div className="space-y-2 pt-2 border-t border-[#222222]">
+                  <span className="text-xs font-bold text-[#E5E5E5] uppercase tracking-wider block">
                     Status History & Activity Audit:
                   </span>
 
-                  <div className="space-y-2 pl-2 border-l-2 border-stone-200">
+                  <div className="space-y-2 pl-2 border-l-2 border-[#292929]">
                     {app.timeline?.map((step: any, sIdx: number) => (
                       <div key={sIdx} className="relative pl-3 space-y-0.5">
-                        <div className="absolute -left-[19px] top-1.5 w-2.5 h-2.5 rounded-full bg-orange-500 ring-4 ring-white" />
+                        <div className="absolute -left-[19px] top-1.5 w-2.5 h-2.5 rounded-full bg-[#1C1C1C]0 ring-4 ring-white" />
                         <div className="flex items-center space-x-2">
-                          <span className="text-xs font-bold text-slate-900">{step.status}</span>
-                          <span className="text-[10px] text-stone-600">
+                          <span className="text-xs font-bold text-[#F5F5F5]">{step.status}</span>
+                          <span className="text-[10px] text-[#A3A3A3]">
                             {new Date(step.timestamp).toLocaleString()}
                           </span>
                         </div>
                         {step.note && (
-                          <p className="text-xs text-stone-600 italic">"{step.note}"</p>
+                          <p className="text-xs text-[#A3A3A3] italic">"{step.note}"</p>
                         )}
                       </div>
                     ))}
@@ -224,17 +224,17 @@ export const ApplicationsPage: React.FC = () => {
 
                 {/* Portfolio Snapshot */}
                 {app.portfolioProjectsSnapshot?.length > 0 && (
-                  <div className="pt-2 border-t border-stone-100 text-xs">
-                    <span className="font-semibold text-stone-600 block mb-1">
+                  <div className="pt-2 border-t border-[#222222] text-xs">
+                    <span className="font-semibold text-[#A3A3A3] block mb-1">
                       Portfolio Projects Shared:
                     </span>
                     <div className="flex flex-wrap gap-2">
                       {app.portfolioProjectsSnapshot.map((proj: any, pIdx: number) => (
                         <span
                           key={pIdx}
-                          className="px-2.5 py-1 rounded-md bg-stone-100 text-stone-800 font-medium flex items-center space-x-1"
+                          className="px-2.5 py-1 rounded-md bg-[#1C1C1C] text-[#E5E5E5] font-medium flex items-center space-x-1"
                         >
-                          <FileText className="w-3 h-3 text-stone-600" />
+                          <FileText className="w-3 h-3 text-[#A3A3A3]" />
                           <span>{proj.title}</span>
                         </span>
                       ))}

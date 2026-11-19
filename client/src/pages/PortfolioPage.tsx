@@ -133,8 +133,8 @@ export const PortfolioPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-16 text-center text-stone-600">
-        <div className="inline-block animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full mb-3"></div>
+      <div className="max-w-6xl mx-auto px-4 py-16 text-center text-[#A3A3A3]">
+        <div className="inline-block animate-spin w-8 h-8 border-4 border-[#FF5A1F] border-t-transparent rounded-full mb-3"></div>
         <p className="text-sm font-medium">Loading portfolio projects...</p>
       </div>
     );
@@ -143,23 +143,23 @@ export const PortfolioPage: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-stone-200 gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#292929] gap-4">
         <div>
-          <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-orange-700">
+          <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-[#FF7847]">
             <Layers className="w-4 h-4" />
             <span>Stage 5: Build Portfolio</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold font-serif text-slate-900">
+          <h1 className="text-2xl sm:text-3xl font-bold font-serif text-[#F5F5F5]">
             {language === 'hi' ? 'मेरा व्यावहारिक पोर्टफोलियो' : 'My Practical Work Portfolio'}
           </h1>
-          <p className="text-xs sm:text-sm text-stone-600 max-w-2xl mt-0.5">
+          <p className="text-xs sm:text-sm text-[#A3A3A3] max-w-2xl mt-0.5">
             Demonstrate your capabilities through real projects and completed assignments. Employers review these directly when you apply on SETU.
           </p>
         </div>
 
         <button
           onClick={openCreateModal}
-          className="px-4 py-2.5 rounded-xl bg-[#E65100] hover:bg-orange-700 text-white font-bold text-xs sm:text-sm transition flex items-center space-x-1.5 shadow-sm self-start sm:self-auto"
+          className="px-4 py-2.5 rounded-xl bg-[#E65100] hover:bg-[#FF7847] text-white font-bold text-xs sm:text-sm transition flex items-center space-x-1.5 shadow-sm self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
           <span>Add Project</span>
@@ -168,13 +168,13 @@ export const PortfolioPage: React.FC = () => {
 
       {/* Projects List */}
       {projects.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-dashed border-stone-300 p-12 text-center space-y-4">
-          <div className="w-12 h-12 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center mx-auto">
+        <div className="bg-[#151515] rounded-2xl border border-dashed border-[#333333] p-12 text-center space-y-4">
+          <div className="w-12 h-12 rounded-full bg-[#241A14] text-[#FF5A1F] flex items-center justify-center mx-auto">
             <FileText className="w-6 h-6" />
           </div>
           <div>
-            <h4 className="font-bold text-slate-900 text-base">Your portfolio is currently empty</h4>
-            <p className="text-xs text-stone-600 max-w-md mx-auto mt-1">
+            <h4 className="font-bold text-[#F5F5F5] text-base">Your portfolio is currently empty</h4>
+            <p className="text-xs text-[#A3A3A3] max-w-md mx-auto mt-1">
               Complete a practical assignment in the Learn section or manually add work you've created outside SETU.
             </p>
           </div>
@@ -187,7 +187,7 @@ export const PortfolioPage: React.FC = () => {
             </button>
             <a
               href="/learn?tab=assignments"
-              className="px-4 py-2 rounded-lg border border-stone-300 text-stone-700 font-semibold text-xs hover:bg-stone-50"
+              className="px-4 py-2 rounded-lg border border-[#333333] text-[#D4D4D4] font-semibold text-xs hover:bg-[#101010]"
             >
               Take Practical Assignment
             </a>
@@ -198,15 +198,15 @@ export const PortfolioPage: React.FC = () => {
           {projects.map((p) => (
             <div
               key={p._id}
-              className="bg-white rounded-2xl border border-stone-200 p-5 shadow-sm hover:border-orange-300 transition flex flex-col justify-between space-y-4"
+              className="bg-[#151515] rounded-2xl border border-[#292929] p-5 shadow-sm hover:border-orange-300 transition flex flex-col justify-between space-y-4"
             >
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span
                     className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                       p.source === 'practice_assignment'
-                        ? 'bg-orange-100 text-orange-900 border border-orange-200'
-                        : 'bg-stone-100 text-stone-700'
+                        ? 'bg-[#241A14] text-[#FF7847] border border-orange-200'
+                        : 'bg-[#1C1C1C] text-[#D4D4D4]'
                     }`}
                   >
                     {p.source === 'practice_assignment' ? 'Practice Deliverable' : 'Self Created'}
@@ -218,9 +218,9 @@ export const PortfolioPage: React.FC = () => {
                   )}
                 </div>
 
-                <h4 className="font-bold text-slate-900 text-base leading-snug">{p.title}</h4>
+                <h4 className="font-bold text-[#F5F5F5] text-base leading-snug">{p.title}</h4>
 
-                <p className="text-xs text-stone-600 leading-relaxed line-clamp-4">
+                <p className="text-xs text-[#A3A3A3] leading-relaxed line-clamp-4">
                   {p.description}
                 </p>
 
@@ -228,7 +228,7 @@ export const PortfolioPage: React.FC = () => {
                   {p.skills?.map((s: string, sIdx: number) => (
                     <span
                       key={sIdx}
-                      className="bg-stone-100 text-stone-700 px-2 py-0.5 rounded text-[11px] font-medium"
+                      className="bg-[#1C1C1C] text-[#D4D4D4] px-2 py-0.5 rounded text-[11px] font-medium"
                     >
                       {s}
                     </span>
@@ -236,32 +236,32 @@ export const PortfolioPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-stone-100 flex items-center justify-between text-xs">
+              <div className="pt-3 border-t border-[#222222] flex items-center justify-between text-xs">
                 {p.workSampleUrl ? (
                   <a
                     href={p.workSampleUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="font-bold text-orange-700 hover:underline flex items-center space-x-1"
+                    className="font-bold text-[#FF7847] hover:underline flex items-center space-x-1"
                   >
                     <span>View Work Sample</span>
                     <ExternalLink className="w-3.5 h-3.5" />
                   </a>
                 ) : (
-                  <span className="text-stone-400 italic">No link attached</span>
+                  <span className="text-[#555555] italic">No link attached</span>
                 )}
 
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={() => openEditModal(p)}
-                    className="p-1.5 text-stone-500 hover:text-slate-900 hover:bg-stone-100 rounded-lg transition"
+                    className="p-1.5 text-[#737373] hover:text-[#F5F5F5] hover:bg-[#1C1C1C] rounded-lg transition"
                     title="Edit Project"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={() => handleDelete(p._id)}
-                    className="p-1.5 text-stone-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                    className="p-1.5 text-[#737373] hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
                     title="Delete Project"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -276,14 +276,14 @@ export const PortfolioPage: React.FC = () => {
       {/* Add / Edit Project Modal */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-stone-200 animate-in zoom-in-95">
-            <div className="p-5 border-b border-stone-200 flex items-center justify-between">
-              <h3 className="font-bold text-slate-900 text-base font-serif">
+          <div className="bg-[#151515] rounded-2xl max-w-lg w-full shadow-2xl border border-[#292929] animate-in zoom-in-95">
+            <div className="p-5 border-b border-[#292929] flex items-center justify-between">
+              <h3 className="font-bold text-[#F5F5F5] text-base font-serif">
                 {editingProject ? 'Edit Portfolio Project' : 'Add New Portfolio Project'}
               </h3>
               <button
                 onClick={() => setModalOpen(false)}
-                className="p-1.5 rounded-lg text-stone-500 hover:bg-stone-100"
+                className="p-1.5 rounded-lg text-[#737373] hover:bg-[#1C1C1C]"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -297,7 +297,7 @@ export const PortfolioPage: React.FC = () => {
               )}
 
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">
+                <label className="block text-xs font-semibold text-[#D4D4D4] mb-1">
                   Project Title *
                 </label>
                 <input
@@ -306,12 +306,12 @@ export const PortfolioPage: React.FC = () => {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g. Canva Recruitment Campaign Poster"
-                  className="w-full px-3.5 py-2 rounded-lg border border-stone-300 text-sm outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-3.5 py-2 rounded-lg border border-[#333333] text-sm outline-none focus:ring-2 focus:ring-[#FF5A1F]"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">
+                <label className="block text-xs font-semibold text-[#D4D4D4] mb-1">
                   Skills & Tools Used (comma separated)
                 </label>
                 <input
@@ -319,12 +319,12 @@ export const PortfolioPage: React.FC = () => {
                   value={skills}
                   onChange={(e) => setSkills(e.target.value)}
                   placeholder="e.g. Canva, Graphic Design, Social Media"
-                  className="w-full px-3.5 py-2 rounded-lg border border-stone-300 text-sm outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-3.5 py-2 rounded-lg border border-[#333333] text-sm outline-none focus:ring-2 focus:ring-[#FF5A1F]"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">
+                <label className="block text-xs font-semibold text-[#D4D4D4] mb-1">
                   Work Sample Link (Canva, Drive, GitHub, Figma, etc.)
                 </label>
                 <input
@@ -332,12 +332,12 @@ export const PortfolioPage: React.FC = () => {
                   value={workSampleUrl}
                   onChange={(e) => setWorkSampleUrl(e.target.value)}
                   placeholder="e.g. https://www.canva.com/design/..."
-                  className="w-full px-3.5 py-2 rounded-lg border border-stone-300 text-sm outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-3.5 py-2 rounded-lg border border-[#333333] text-sm outline-none focus:ring-2 focus:ring-[#FF5A1F]"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">
+                <label className="block text-xs font-semibold text-[#D4D4D4] mb-1">
                   Project Description & Outcomes *
                 </label>
                 <textarea
@@ -346,7 +346,7 @@ export const PortfolioPage: React.FC = () => {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Describe what you built, the audience, and key highlights..."
-                  className="w-full px-3.5 py-2 rounded-lg border border-stone-300 text-sm outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-3.5 py-2 rounded-lg border border-[#333333] text-sm outline-none focus:ring-2 focus:ring-[#FF5A1F]"
                 />
               </div>
 
@@ -356,25 +356,25 @@ export const PortfolioPage: React.FC = () => {
                   id="feat"
                   checked={featured}
                   onChange={(e) => setFeatured(e.target.checked)}
-                  className="rounded text-orange-600 focus:ring-orange-500 w-4 h-4"
+                  className="rounded text-[#FF5A1F] focus:ring-[#FF5A1F] w-4 h-4"
                 />
-                <label htmlFor="feat" className="text-xs text-stone-700 font-medium cursor-pointer">
+                <label htmlFor="feat" className="text-xs text-[#D4D4D4] font-medium cursor-pointer">
                   Feature this project prominently on top of my applications
                 </label>
               </div>
 
-              <div className="flex justify-end space-x-2 pt-3 border-t border-stone-200">
+              <div className="flex justify-end space-x-2 pt-3 border-t border-[#292929]">
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="px-4 py-2 rounded-lg border border-stone-300 text-xs font-semibold text-stone-700 hover:bg-stone-100"
+                  className="px-4 py-2 rounded-lg border border-[#333333] text-xs font-semibold text-[#D4D4D4] hover:bg-[#1C1C1C]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 rounded-lg bg-[#E65100] hover:bg-orange-700 text-white font-bold text-xs shadow-sm transition disabled:opacity-50"
+                  className="px-5 py-2 rounded-lg bg-[#E65100] hover:bg-[#FF7847] text-white font-bold text-xs shadow-sm transition disabled:opacity-50"
                 >
                   {submitting ? 'Saving...' : 'Save Project'}
                 </button>

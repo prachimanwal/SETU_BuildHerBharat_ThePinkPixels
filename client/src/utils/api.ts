@@ -44,31 +44,45 @@ export const apiFetch = async (
 
     const contentType = res.headers.get('content-type') || '';
 
-    // Guard against HTML error pages (e.g. Netlify index.html fallback)
+    // Guard against non-JSON responses (e.g. Netlify index.html fallback, 404 text/plain, 502 Bad Gateway)
     if (!contentType.includes('application/json')) {
-      const text = await res.text();
-      const isHtml = text.trim().startsWith('<') || text.includes('<!DOCTYPE');
-
-      let fallbackMessage = 'Server returned an invalid response format.';
-      if (isHtml) {
-        fallbackMessage =
-          'Received HTML instead of JSON. The backend server URL is not configured or currently unreachable on Netlify. Please configure VITE_API_URL or Netlify API proxy.';
+      let friendlyMessage = 'Unable to connect to the server. Please try again.';
+      if (res.status === 404 || res.status === 502 || res.status === 503 || res.status === 504) {
+        friendlyMessage = 'Unable to connect to the server. Please try again.';
+      } else if (res.status === 500) {
+        friendlyMessage = 'The server encountered an issue. Please try again shortly.';
       }
 
       return {
         ok: false,
         status: res.status,
         data: null,
-        error: fallbackMessage
+        error: friendlyMessage
       };
     }
 
     // Safely parse JSON
     const data = await res.json();
-    const errorMsg =
-      data.message && !data.success
-        ? data.message
-        : data.error || (res.ok ? undefined : 'Request failed');
+
+    let errorMsg: string | undefined;
+    if (!res.ok || data.success === false) {
+      if (res.status === 409 || (data.message && data.message.toLowerCase().includes('already exists'))) {
+        errorMsg = 'An account with this email already exists.';
+      } else if (res.status === 401) {
+        if (endpoint.includes('/me')) {
+          localStorage.removeItem('setu_auth_token');
+          errorMsg = 'Session expired. Please log in again.';
+        } else {
+          errorMsg = 'Invalid email or password. Please try again.';
+        }
+      } else if (res.status === 400 && data.errors && Array.isArray(data.errors) && data.errors.length > 0) {
+        errorMsg = data.errors[0].message || data.message || 'Registration was unsuccessful. Please check your inputs.';
+      } else if (data.message && !data.success) {
+        errorMsg = data.message;
+      } else {
+        errorMsg = data.error || (endpoint.includes('register') ? 'Registration was unsuccessful. Please try again.' : 'Request failed. Please try again.');
+      }
+    }
 
     return {
       ok: res.ok && data.success !== false,
@@ -81,7 +95,7 @@ export const apiFetch = async (
       ok: false,
       status: 0,
       data: null,
-      error: err.message || 'Network connection failed'
+      error: 'Unable to connect to the server. Please try again.'
     };
   }
 };

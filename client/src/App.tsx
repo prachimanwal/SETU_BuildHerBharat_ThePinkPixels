@@ -32,8 +32,8 @@ const ProtectedDashboardRoute: React.FC<{
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FAF8F5]">
-        <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full" />
+      <div className="min-h-screen flex items-center justify-center bg-[#080808]">
+        <div className="animate-spin w-8 h-8 border-4 border-[#FF5A1F] border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -59,8 +59,8 @@ const HybridRoute: React.FC<{
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FAF8F5]">
-        <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full" />
+      <div className="min-h-screen flex items-center justify-center bg-[#080808]">
+        <div className="animate-spin w-8 h-8 border-4 border-[#FF5A1F] border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -70,7 +70,7 @@ const HybridRoute: React.FC<{
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#FAF8F5]">
+    <div className="flex flex-col min-h-screen bg-[#080808] text-[#F5F5F5]">
       <Navbar />
       <main className="flex-1">{children}</main>
       <Footer />
@@ -86,8 +86,8 @@ const AuthOnlyRoute: React.FC<{
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FAF8F5]">
-        <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full" />
+      <div className="min-h-screen flex items-center justify-center bg-[#080808]">
+        <div className="animate-spin w-8 h-8 border-4 border-[#FF5A1F] border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -99,7 +99,7 @@ const AuthOnlyRoute: React.FC<{
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#FAF8F5]">
+    <div className="flex flex-col min-h-screen bg-[#080808] text-[#F5F5F5]">
       <main className="flex-1">{children}</main>
       <Footer />
     </div>
@@ -112,8 +112,8 @@ const HomeRoute: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FAF8F5]">
-        <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full" />
+      <div className="min-h-screen flex items-center justify-center bg-[#080808]">
+        <div className="animate-spin w-8 h-8 border-4 border-[#FF5A1F] border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -125,7 +125,7 @@ const HomeRoute: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#FAF8F5]">
+    <div className="flex flex-col min-h-screen bg-[#080808] text-[#F5F5F5]">
       <Navbar />
       <main className="flex-1">
         <HomePage />

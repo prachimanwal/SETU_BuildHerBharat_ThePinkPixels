@@ -1,37 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
-  Compass,
-  Award,
-  BookOpen,
-  Briefcase,
-  Layers,
-  Heart,
-  Landmark,
-  TrendingUp,
   Menu,
   X,
   Globe,
+  ChevronDown,
+  Sparkles,
   User as UserIcon,
   LogOut,
-  ShieldAlert,
-  ChevronDown,
-  Building,
-  CheckCircle,
-  Clock,
-  Sparkles
+  LayoutDashboard,
+  ArrowRight
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 
 export const Navbar: React.FC = () => {
   const { user, logout, login } = useAuth();
-  const { language, toggleLanguage, t } = useLanguage();
+  const { language, toggleLanguage } = useLanguage();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [demoMenuOpen, setDemoMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const demoRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setUserDropdownOpen(false);
+      }
+      if (demoRef.current && !demoRef.current.contains(e.target as Node)) {
+        setDemoMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -49,296 +54,198 @@ export const Navbar: React.FC = () => {
     }
   };
 
-  const isActive = (path: string) => location.pathname === path;
+  const getDashboardPath = () => {
+    if (!user) return '/login';
+    if (user.role === 'admin') return '/admin';
+    if (user.role === 'employer') return '/employer';
+    return '/dashboard';
+  };
+
+  const getInitials = (name?: string) => {
+    if (!name) return 'U';
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    return name.slice(0, 2).toUpperCase();
+  };
+
+  const isActive = (path: string) => {
+    if (path === '/') return location.pathname === '/';
+    return location.pathname.startsWith(path);
+  };
+
+  const navLinks = [
+    { label: language === 'hi' ? 'मुख्य पृष्ठ' : 'Home', path: '/' },
+    { label: language === 'hi' ? 'अवसर खोजें' : 'Explore Opportunities', path: '/opportunities' },
+    { label: language === 'hi' ? 'सीखें' : 'Learn', path: '/learn' },
+    { label: language === 'hi' ? 'मेंटरशिप' : 'Mentorship', path: '/build-her' },
+    { label: language === 'hi' ? 'समुदाय' : 'Community', path: '/schemes' },
+    { label: language === 'hi' ? 'परिचय' : 'About', path: '/#about' }
+  ];
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200">
-      {/* Top institution & builder announcement strip */}
-      <div className="bg-[#1E1B4B] text-slate-100 text-[11px] sm:text-xs py-1.5 px-4 font-medium flex items-center justify-between border-b border-indigo-950">
-        <div className="flex items-center space-x-2 truncate">
-          <span className="bg-orange-500 text-white font-bold px-1.5 py-0.5 rounded text-[10px] tracking-wide uppercase">
-            Builder Bharat 2026
-          </span>
-          <span className="hidden md:inline text-indigo-200">|</span>
-          <span className="truncate text-indigo-100 font-semibold">
-            Build Her Bharat – K.R. Mangalam University, Gurugram
-          </span>
-        </div>
-        <div className="flex items-center space-x-3 shrink-0">
-          <span className="hidden sm:inline text-amber-300 font-serif">
-            {language === 'hi' ? 'हुनर से हक़ की कमाई तक।' : 'हुनर से हक़ की कमाई तक।'}
-          </span>
-          {/* Quick Demo Switcher Button */}
-          <div className="relative">
-            <button
-              onClick={() => setDemoMenuOpen(!demoMenuOpen)}
-              className="flex items-center space-x-1 bg-white/10 hover:bg-white/20 text-white px-2 py-0.5 rounded text-xs transition"
-              aria-label="Quick Demo Logins for judges"
-            >
-              <Sparkles className="w-3 h-3 text-amber-300" />
-              <span>Demo Logins</span>
-              <ChevronDown className="w-3 h-3" />
-            </button>
-
-            {demoMenuOpen && (
-              <div className="absolute right-0 mt-1 w-64 bg-white rounded-xl shadow-xl border border-stone-200 text-slate-800 p-2 z-50 animate-in fade-in zoom-in-95">
-                <div className="text-[11px] font-bold text-stone-600 px-2 py-1 uppercase tracking-wider border-b border-stone-100 mb-1">
-                  1-Click Demo Profiles (Judges)
-                </div>
-                <button
-                  onClick={() => handleQuickDemoLogin('seeker@setu.demo', 'SetuDemo@2026')}
-                  className="w-full text-left px-2.5 py-2 hover:bg-orange-50 rounded-lg text-xs flex flex-col"
-                >
-                  <span className="font-semibold text-slate-900">Job Seeker: Priya Sharma</span>
-                  <span className="text-[11px] text-stone-600">Career restart, assessment completed</span>
-                </button>
-                <button
-                  onClick={() => handleQuickDemoLogin('pending@startup.demo', 'SetuDemo@2026')}
-                  className="w-full text-left px-2.5 py-2 hover:bg-amber-50 rounded-lg text-xs flex flex-col"
-                >
-                  <span className="font-semibold text-slate-900">Pending Employer: BharatTech</span>
-                  <span className="text-[11px] text-amber-700">Verification pending admin approval</span>
-                </button>
-                <button
-                  onClick={() => handleQuickDemoLogin('employer@techcorp.demo', 'SetuDemo@2026')}
-                  className="w-full text-left px-2.5 py-2 hover:bg-emerald-50 rounded-lg text-xs flex flex-col"
-                >
-                  <span className="font-semibold text-slate-900">Approved Employer: Gramin Digital</span>
-                  <span className="text-[11px] text-emerald-700">Verified badge, active job postings</span>
-                </button>
-                <button
-                  onClick={() => handleQuickDemoLogin('admin@setu.gov.in', 'SetuAdmin@2026')}
-                  className="w-full text-left px-2.5 py-2 hover:bg-indigo-50 rounded-lg text-xs flex flex-col border-t border-stone-100 mt-1 pt-1.5"
-                >
-                  <span className="font-semibold text-indigo-900">Platform Administrator</span>
-                  <span className="text-[11px] text-indigo-600">Verification & moderation desk</span>
-                </button>
+    <header className="sticky top-0 z-50 bg-[#080808]/95 backdrop-blur-md border-b border-[#292929] transition-all">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-20">
+          {/* LEFT SECTION: Logo and Brand Name */}
+          <div className="flex items-center">
+            <Link to="/" className="flex items-center gap-3 group">
+              <div className="relative">
+                <img
+                  src="/setu-logo.png"
+                  alt="SETU Logo"
+                  className="h-10 w-auto object-contain brightness-110 drop-shadow-[0_0_12px_rgba(255,90,31,0.25)] group-hover:scale-105 transition-transform duration-200"
+                />
               </div>
-            )}
+              <div className="flex flex-col">
+                <span className="text-xl font-black tracking-tight text-[#F5F5F5] font-display flex items-center gap-1.5">
+                  SETU
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#FF5A1F]"></span>
+                </span>
+                <span className="text-[10px] text-[#A3A3A3] font-medium tracking-wide hidden sm:block">
+                  {language === 'hi' ? 'हुनर से हक़ की कमाई तक' : 'Empowering Futures'}
+                </span>
+              </div>
+            </Link>
           </div>
 
-          {/* English / Hindi Toggle */}
-          <button
-            onClick={toggleLanguage}
-            className="flex items-center space-x-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-400/30 px-2 py-0.5 rounded text-xs transition font-semibold"
-            title="Switch Language / भाषा बदलें"
-          >
-            <Globe className="w-3 h-3 text-amber-300" />
-            <span>{language === 'en' ? 'हिंदी' : 'English'}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Main Nav Header */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo with official SETU brand */}
-          <Link to="/" className="flex items-center space-x-2.5 group">
-            <img
-              src="/setu-logo.png"
-              alt="SETU – Connect • Empower • Grow"
-              className="h-10 w-auto object-contain"
-            />
-          </Link>
-
-          {/* Desktop Navigation Links */}
-          <nav className="hidden lg:flex items-center space-x-1">
-            <Link
-              to="/opportunities"
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
-                isActive('/opportunities')
-                  ? 'bg-orange-50 text-orange-900 font-semibold'
-                  : 'text-stone-700 hover:text-slate-950 hover:bg-stone-50'
-              }`}
-            >
-              {t('navOpportunities')}
-            </Link>
-
-            <Link
-              to="/schemes"
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
-                isActive('/schemes')
-                  ? 'bg-orange-50 text-orange-900 font-semibold'
-                  : 'text-stone-700 hover:text-slate-950 hover:bg-stone-50'
-              }`}
-            >
-              {t('navSchemes')}
-            </Link>
-
-            <Link
-              to="/build-her"
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center space-x-1.5 ${
-                isActive('/build-her')
-                  ? 'bg-pink-50 text-pink-900 font-semibold border border-pink-200'
-                  : 'text-pink-700 hover:bg-pink-50/70'
-              }`}
-            >
-              <Heart className="w-3.5 h-3.5 fill-pink-500 text-pink-500" />
-              <span>{t('navBuildHer')}</span>
-            </Link>
-
-            {user?.role === 'seeker' && (
-              <>
+          {/* CENTER SECTION: Clean, minimal navigation links */}
+          <nav className="hidden lg:flex items-center space-x-1 xl:space-x-2">
+            {navLinks.map((link) => {
+              const active = isActive(link.path);
+              return (
                 <Link
-                  to="/dashboard"
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
-                    isActive('/dashboard')
-                      ? 'bg-orange-50 text-orange-900 font-semibold'
-                      : 'text-stone-700 hover:text-slate-950 hover:bg-stone-50'
+                  key={link.path}
+                  to={link.path}
+                  className={`px-3.5 py-2 rounded-xl text-sm font-medium transition-colors relative ${
+                    active
+                      ? 'text-[#F5F5F5] font-semibold'
+                      : 'text-[#A3A3A3] hover:text-[#F5F5F5] hover:bg-[#151515]'
                   }`}
                 >
-                  {t('navDashboard')}
+                  {link.label}
+                  {active && (
+                    <span className="absolute bottom-0.5 left-3.5 right-3.5 h-[2px] bg-[#FF5A1F] rounded-full shadow-[0_0_8px_rgba(255,90,31,0.8)]" />
+                  )}
                 </Link>
-
-                <Link
-                  to="/assess"
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
-                    isActive('/assess')
-                      ? 'bg-orange-50 text-orange-900 font-semibold'
-                      : 'text-stone-700 hover:text-slate-950 hover:bg-stone-50'
-                  }`}
-                >
-                  {t('navAssess')}
-                </Link>
-
-                <Link
-                  to="/learn"
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
-                    isActive('/learn')
-                      ? 'bg-orange-50 text-orange-900 font-semibold'
-                      : 'text-stone-700 hover:text-slate-950 hover:bg-stone-50'
-                  }`}
-                >
-                  {t('navLearn')}
-                </Link>
-
-                <Link
-                  to="/portfolio"
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
-                    isActive('/portfolio')
-                      ? 'bg-orange-50 text-orange-900 font-semibold'
-                      : 'text-stone-700 hover:text-slate-950 hover:bg-stone-50'
-                  }`}
-                >
-                  {t('navPortfolio')}
-                </Link>
-
-                <Link
-                  to="/applications"
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
-                    isActive('/applications')
-                      ? 'bg-orange-50 text-orange-900 font-semibold'
-                      : 'text-stone-700 hover:text-slate-950 hover:bg-stone-50'
-                  }`}
-                >
-                  {t('navApplications')}
-                </Link>
-
-                <Link
-                  to="/progress"
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
-                    isActive('/progress')
-                      ? 'bg-orange-50 text-orange-900 font-semibold'
-                      : 'text-stone-700 hover:text-slate-950 hover:bg-stone-50'
-                  }`}
-                >
-                  {t('navProgress')}
-                </Link>
-              </>
-            )}
-
-            {user?.role === 'employer' && (
-              <Link
-                to="/employer"
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
-                  isActive('/employer')
-                    ? 'bg-indigo-50 text-indigo-900 font-semibold'
-                    : 'text-stone-700 hover:text-slate-950 hover:bg-stone-50'
-                }`}
-              >
-                Employer Portal
-              </Link>
-            )}
-
-            {user?.role === 'admin' && (
-              <Link
-                to="/admin"
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
-                  isActive('/admin')
-                    ? 'bg-purple-50 text-purple-900 font-semibold'
-                    : 'text-stone-700 hover:text-slate-950 hover:bg-stone-50'
-                }`}
-              >
-                Admin Control
-              </Link>
-            )}
+              );
+            })}
           </nav>
 
-          {/* Right Action buttons */}
-          <div className="hidden sm:flex items-center space-x-3">
+          {/* RIGHT SECTION: Controls, Language, Demo switcher, Auth */}
+          <div className="hidden lg:flex items-center space-x-3">
+            {/* Language Selector */}
+            <button
+              onClick={toggleLanguage}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#292929] bg-[#101010] hover:bg-[#151515] text-[#A3A3A3] hover:text-[#F5F5F5] text-xs font-semibold transition"
+              title="Switch Language / भाषा बदलें"
+            >
+              <Globe className="w-3.5 h-3.5 text-[#FF5A1F]" />
+              <span>{language === 'en' ? 'हिन्दी' : 'English'}</span>
+            </button>
+
+            {/* Quick Demo Logins Dropdown (For Evaluators) */}
+            <div className="relative" ref={demoRef}>
+              <button
+                onClick={() => setDemoMenuOpen(!demoMenuOpen)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#292929] bg-[#151515] hover:border-[#FF5A1F]/50 text-xs font-semibold text-[#F5F5F5] transition"
+                aria-label="Quick Demo Logins"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-[#FF5A1F]" />
+                <span>Demo Access</span>
+                <ChevronDown className={`w-3 h-3 text-[#A3A3A3] transition-transform ${demoMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {demoMenuOpen && (
+                <div className="absolute right-0 mt-2 w-72 rounded-2xl bg-[#151515] border border-[#292929] shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95">
+                  <div className="px-3 py-2 border-b border-[#292929] mb-1">
+                    <p className="text-[11px] font-bold text-[#A3A3A3] uppercase tracking-wider">
+                      1-Click Evaluator Profiles
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleQuickDemoLogin('seeker@setu.demo', 'SetuDemo@2026')}
+                    className="w-full text-left px-3 py-2.5 hover:bg-[#1C1C1C] rounded-xl text-xs flex flex-col gap-0.5 group transition"
+                  >
+                    <span className="font-semibold text-[#F5F5F5] group-hover:text-[#FF5A1F]">Job Seeker: Priya Sharma</span>
+                    <span className="text-[11px] text-[#A3A3A3]">Career restart, verified Canva skill, scheduled interview</span>
+                  </button>
+                  <button
+                    onClick={() => handleQuickDemoLogin('employer@techcorp.demo', 'SetuDemo@2026')}
+                    className="w-full text-left px-3 py-2.5 hover:bg-[#1C1C1C] rounded-xl text-xs flex flex-col gap-0.5 group transition"
+                  >
+                    <span className="font-semibold text-[#F5F5F5] group-hover:text-emerald-400">Approved Employer: Gramin Digital</span>
+                    <span className="text-[11px] text-[#A3A3A3]">Verified enterprise, publish jobs & review applicants</span>
+                  </button>
+                  <button
+                    onClick={() => handleQuickDemoLogin('pending@startup.demo', 'SetuDemo@2026')}
+                    className="w-full text-left px-3 py-2.5 hover:bg-[#1C1C1C] rounded-xl text-xs flex flex-col gap-0.5 group transition"
+                  >
+                    <span className="font-semibold text-[#F5F5F5] group-hover:text-amber-400">Pending Employer: BharatTech</span>
+                    <span className="text-[11px] text-[#A3A3A3]">Awaiting platform admin verification</span>
+                  </button>
+                  <button
+                    onClick={() => handleQuickDemoLogin('admin@setu.gov.in', 'SetuAdmin@2026')}
+                    className="w-full text-left px-3 py-2.5 hover:bg-[#1C1C1C] rounded-xl text-xs flex flex-col gap-0.5 group transition border-t border-[#292929] mt-1 pt-2"
+                  >
+                    <span className="font-semibold text-[#F5F5F5] group-hover:text-blue-400">Platform Administrator</span>
+                    <span className="text-[11px] text-[#A3A3A3]">Full moderation, verification & safety reports</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Authentication Buttons / Profile */}
             {user ? (
-              <div className="relative">
+              <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                  className="flex items-center space-x-2 py-1.5 px-3 rounded-full border border-stone-200 bg-stone-50 hover:bg-stone-100 transition text-sm font-medium text-slate-800"
+                  className="flex items-center gap-2.5 p-1.5 pl-2.5 pr-3 rounded-full bg-[#151515] border border-[#292929] hover:border-[#383838] transition focus:outline-none"
                 >
-                  <div className="w-6 h-6 rounded-full bg-[#1E1B4B] text-amber-300 font-bold text-xs flex items-center justify-center">
-                    {user.name.charAt(0)}
+                  <div className="w-8 h-8 rounded-full bg-[#FF5A1F] text-white font-bold text-xs flex items-center justify-center">
+                    {getInitials(user.name)}
                   </div>
-                  <span className="max-w-[120px] truncate">{user.name}</span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold bg-stone-200 text-stone-700 uppercase">
-                    {user.role}
+                  <span className="text-xs font-semibold text-[#F5F5F5] max-w-[100px] truncate">
+                    {user.name}
                   </span>
-                  <ChevronDown className="w-3.5 h-3.5 text-stone-600" />
+                  <ChevronDown className={`w-3.5 h-3.5 text-[#A3A3A3] transition-transform ${userDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 {userDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-stone-200 py-1.5 z-50 animate-in fade-in">
-                    <div className="px-4 py-2 border-b border-stone-100">
-                      <p className="text-xs text-stone-600 font-medium">Signed in as</p>
-                      <p className="text-sm font-semibold text-slate-900 truncate">{user.email}</p>
+                  <div className="absolute right-0 mt-2 w-60 rounded-2xl bg-[#151515] border border-[#292929] shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95">
+                    <div className="px-4 py-3 border-b border-[#292929]">
+                      <p className="text-xs font-bold text-[#F5F5F5] truncate">{user.name}</p>
+                      <p className="text-[11px] text-[#A3A3A3] truncate">{user.email}</p>
+                      <span className="inline-block mt-1 text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-[#1C1C1C] text-[#FF5A1F] border border-[#292929]">
+                        {user.role}
+                      </span>
                     </div>
 
-                    {user.role === 'seeker' && (
+                    <div className="py-1">
+                      <Link
+                        to={getDashboardPath()}
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-[#F5F5F5] hover:bg-[#1C1C1C] transition"
+                      >
+                        <LayoutDashboard className="w-4 h-4 text-[#FF5A1F]" />
+                        <span>Go to Dashboard</span>
+                      </Link>
                       <Link
                         to="/profile"
                         onClick={() => setUserDropdownOpen(false)}
-                        className="flex items-center px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
+                        className="flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-[#A3A3A3] hover:text-[#F5F5F5] hover:bg-[#1C1C1C] transition"
                       >
-                        <UserIcon className="w-4 h-4 mr-2 text-stone-600" />
-                        My Profile & Resume
+                        <UserIcon className="w-4 h-4 text-[#A3A3A3]" />
+                        <span>My Profile</span>
                       </Link>
-                    )}
+                    </div>
 
-                    {user.role === 'employer' && (
-                      <Link
-                        to="/employer"
-                        onClick={() => setUserDropdownOpen(false)}
-                        className="flex items-center px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
-                      >
-                        <Building className="w-4 h-4 mr-2 text-stone-600" />
-                        Company & Applicants
-                      </Link>
-                    )}
-
-                    {user.role === 'admin' && (
-                      <Link
-                        to="/admin"
-                        onClick={() => setUserDropdownOpen(false)}
-                        className="flex items-center px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
-                      >
-                        <ShieldAlert className="w-4 h-4 mr-2 text-stone-600" />
-                        Admin Moderation Desk
-                      </Link>
-                    )}
-
-                    <div className="border-t border-stone-100 mt-1 pt-1">
+                    <div className="pt-1 border-t border-[#292929]">
                       <button
                         onClick={handleLogout}
-                        className="flex items-center w-full px-4 py-2 text-sm text-rose-600 hover:bg-rose-50"
+                        className="w-full flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-red-400 hover:bg-red-950/30 transition text-left"
                       >
-                        <LogOut className="w-4 h-4 mr-2" />
-                        {t('navLogout')}
+                        <LogOut className="w-4 h-4" />
+                        <span>Sign Out</span>
                       </button>
                     </div>
                   </div>
@@ -348,158 +255,99 @@ export const Navbar: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <Link
                   to="/login"
-                  className="px-3 py-1.5 text-sm font-medium text-stone-700 hover:text-slate-900 transition"
+                  className="px-4 py-2 text-xs font-semibold text-[#F5F5F5] hover:text-white hover:bg-[#151515] rounded-xl transition"
                 >
-                  {t('navLogin')}
+                  Login
                 </Link>
                 <Link
                   to="/register"
-                  className="px-4 py-1.5 text-sm font-semibold bg-[#E65100] hover:bg-orange-700 text-white rounded-lg shadow-sm transition"
+                  className="px-4 py-2 text-xs font-bold text-white bg-[#FF5A1F] hover:bg-[#FF7847] rounded-xl transition shadow-[0_2px_12px_rgba(255,90,31,0.35)] flex items-center gap-1.5"
                 >
-                  {t('navRegister')}
+                  <span>Get Started</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
             )}
           </div>
 
-          {/* Mobile menu button */}
-          <div className="lg:hidden flex items-center space-x-2">
+          {/* MOBILE HAMBURGER BUTTON */}
+          <div className="flex items-center gap-2 lg:hidden">
+            <button
+              onClick={toggleLanguage}
+              className="p-2 rounded-xl border border-[#292929] bg-[#101010] text-[#A3A3A3] text-xs font-semibold"
+            >
+              {language === 'en' ? 'हि' : 'EN'}
+            </button>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-lg text-stone-600 hover:bg-stone-100"
-              aria-label="Open Navigation Menu"
+              className="p-2.5 rounded-xl border border-[#292929] bg-[#101010] text-[#F5F5F5] hover:bg-[#151515] transition"
+              aria-label="Toggle navigation menu"
             >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Mobile Drawer */}
+      {/* MOBILE DRAWER */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-white border-b border-stone-200 px-4 pt-2 pb-6 space-y-2 animate-in slide-in-from-top">
-          <Link
-            to="/opportunities"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-lg text-base font-medium text-slate-800 hover:bg-stone-100"
-          >
-            {t('navOpportunities')}
-          </Link>
-          <Link
-            to="/schemes"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-lg text-base font-medium text-slate-800 hover:bg-stone-100"
-          >
-            {t('navSchemes')}
-          </Link>
-          <Link
-            to="/build-her"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-lg text-base font-medium text-pink-700 hover:bg-pink-50"
-          >
-            {t('navBuildHer')}
-          </Link>
+        <div className="lg:hidden bg-[#0A0A0A] border-b border-[#292929] px-4 pt-3 pb-6 space-y-4 animate-in slide-in-from-top duration-200">
+          <nav className="flex flex-col space-y-1">
+            {navLinks.map((link) => {
+              const active = isActive(link.path);
+              return (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`px-3.5 py-2.5 rounded-xl text-sm font-medium transition ${
+                    active
+                      ? 'bg-[#151515] text-[#FF5A1F] font-semibold border border-[#292929]'
+                      : 'text-[#A3A3A3] hover:text-[#F5F5F5]'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
+          </nav>
 
-          {user?.role === 'seeker' && (
-            <>
-              <Link
-                to="/dashboard"
-                onClick={() => setMobileMenuOpen(false)}
-                className="block px-3 py-2 rounded-lg text-base font-medium text-slate-800 hover:bg-stone-100"
-              >
-                {t('navDashboard')}
-              </Link>
-              <Link
-                to="/assess"
-                onClick={() => setMobileMenuOpen(false)}
-                className="block px-3 py-2 rounded-lg text-base font-medium text-slate-800 hover:bg-stone-100"
-              >
-                {t('navAssess')}
-              </Link>
-              <Link
-                to="/learn"
-                onClick={() => setMobileMenuOpen(false)}
-                className="block px-3 py-2 rounded-lg text-base font-medium text-slate-800 hover:bg-stone-100"
-              >
-                {t('navLearn')}
-              </Link>
-              <Link
-                to="/portfolio"
-                onClick={() => setMobileMenuOpen(false)}
-                className="block px-3 py-2 rounded-lg text-base font-medium text-slate-800 hover:bg-stone-100"
-              >
-                {t('navPortfolio')}
-              </Link>
-              <Link
-                to="/applications"
-                onClick={() => setMobileMenuOpen(false)}
-                className="block px-3 py-2 rounded-lg text-base font-medium text-slate-800 hover:bg-stone-100"
-              >
-                {t('navApplications')}
-              </Link>
-              <Link
-                to="/progress"
-                onClick={() => setMobileMenuOpen(false)}
-                className="block px-3 py-2 rounded-lg text-base font-medium text-slate-800 hover:bg-stone-100"
-              >
-                {t('navProgress')}
-              </Link>
-              <Link
-                to="/profile"
-                onClick={() => setMobileMenuOpen(false)}
-                className="block px-3 py-2 rounded-lg text-base font-medium text-slate-800 hover:bg-stone-100"
-              >
-                My Profile & Skills
-              </Link>
-            </>
-          )}
-
-          {user?.role === 'employer' && (
-            <Link
-              to="/employer"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block px-3 py-2 rounded-lg text-base font-medium text-indigo-700 hover:bg-indigo-50"
-            >
-              Employer Dashboard
-            </Link>
-          )}
-
-          {user?.role === 'admin' && (
-            <Link
-              to="/admin"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block px-3 py-2 rounded-lg text-base font-medium text-purple-700 hover:bg-purple-50"
-            >
-              Admin Dashboard
-            </Link>
-          )}
-
-          <div className="pt-3 border-t border-stone-200">
+          <div className="pt-3 border-t border-[#292929] space-y-2">
             {user ? (
-              <button
-                onClick={() => {
-                  handleLogout();
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full text-left px-3 py-2 rounded-lg text-base font-medium text-rose-600 hover:bg-rose-50"
-              >
-                {t('navLogout')} ({user.name})
-              </button>
+              <div className="space-y-2">
+                <Link
+                  to={getDashboardPath()}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full py-2.5 px-4 bg-[#FF5A1F] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2"
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  <span>Go to Dashboard</span>
+                </Link>
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full py-2 px-4 rounded-xl border border-red-900/40 text-red-400 text-xs font-semibold"
+                >
+                  Sign Out ({user.name})
+                </button>
+              </div>
             ) : (
-              <div className="flex flex-col space-y-2 pt-2">
+              <div className="grid grid-cols-2 gap-2">
                 <Link
                   to="/login"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="w-full text-center py-2.5 rounded-lg border border-stone-300 font-medium text-slate-800"
+                  className="py-2.5 text-center rounded-xl border border-[#292929] text-xs font-semibold text-[#F5F5F5] hover:bg-[#151515]"
                 >
-                  {t('navLogin')}
+                  Login
                 </Link>
                 <Link
                   to="/register"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="w-full text-center py-2.5 rounded-lg bg-[#E65100] text-white font-medium"
+                  className="py-2.5 text-center rounded-xl bg-[#FF5A1F] text-white text-xs font-bold shadow-[0_2px_12px_rgba(255,90,31,0.35)]"
                 >
-                  {t('navRegister')}
+                  Get Started
                 </Link>
               </div>
             )}

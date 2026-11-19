@@ -17,6 +17,7 @@ async function runAllTests() {
   try {
     await mongoose.connect(ENV.MONGODB_URI);
     console.log('✓ Connected to MongoDB for verification');
+    await Application.syncIndexes();
 
     // 1. Verify Demo Seeker
     const seeker = await User.findOne({ email: 'seeker@setu.demo' });

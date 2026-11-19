@@ -80,24 +80,24 @@ export const ProfilePage: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
-      <div className="space-y-1 pb-4 border-b border-stone-200">
-        <h1 className="text-xl sm:text-2xl font-bold text-stone-900 tracking-tight">
+      <div className="space-y-1 pb-4 border-b border-[#292929]">
+        <h1 className="text-xl sm:text-2xl font-bold text-[#F5F5F5] tracking-tight">
           Profile & Account Management
         </h1>
-        <p className="text-xs sm:text-sm text-stone-500">
+        <p className="text-xs sm:text-sm text-[#737373]">
           Manage your personal details, verified skill proficiencies, and career preferences
         </p>
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-stone-200 pb-1">
+      <div className="flex items-center gap-2 border-b border-[#292929] pb-1">
         <button
           type="button"
           onClick={() => handleTabChange('profile')}
           className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl transition ${
             activeTab === 'profile'
-              ? 'bg-orange-50 text-orange-600 border border-orange-200'
-              : 'text-stone-600 hover:text-stone-900 hover:bg-stone-50'
+              ? 'bg-[#1C1C1C] text-[#FF5A1F] border border-orange-200'
+              : 'text-[#A3A3A3] hover:text-[#F5F5F5] hover:bg-[#101010]'
           }`}
         >
           <User className="w-3.5 h-3.5" />
@@ -109,8 +109,8 @@ export const ProfilePage: React.FC = () => {
           onClick={() => handleTabChange('skills')}
           className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl transition ${
             activeTab === 'skills'
-              ? 'bg-orange-50 text-orange-600 border border-orange-200'
-              : 'text-stone-600 hover:text-stone-900 hover:bg-stone-50'
+              ? 'bg-[#1C1C1C] text-[#FF5A1F] border border-orange-200'
+              : 'text-[#A3A3A3] hover:text-[#F5F5F5] hover:bg-[#101010]'
           }`}
         >
           <Award className="w-3.5 h-3.5" />
@@ -122,8 +122,8 @@ export const ProfilePage: React.FC = () => {
           onClick={() => handleTabChange('settings')}
           className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl transition ${
             activeTab === 'settings'
-              ? 'bg-orange-50 text-orange-600 border border-orange-200'
-              : 'text-stone-600 hover:text-stone-900 hover:bg-stone-50'
+              ? 'bg-[#1C1C1C] text-[#FF5A1F] border border-orange-200'
+              : 'text-[#A3A3A3] hover:text-[#F5F5F5] hover:bg-[#101010]'
           }`}
         >
           <Settings className="w-3.5 h-3.5" />
@@ -144,77 +144,77 @@ export const ProfilePage: React.FC = () => {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-stone-200/90 p-6 sm:p-8 shadow-xs space-y-6">
+      <form onSubmit={handleSubmit} className="bg-[#151515] rounded-2xl border border-[#292929] p-6 sm:p-8 shadow-xs space-y-6">
         {/* TAB 1: My Profile */}
         {activeTab === 'profile' && (
           <div className="space-y-5">
-            <h3 className="text-sm font-bold text-stone-900 uppercase tracking-wider pb-2 border-b border-stone-100">
+            <h3 className="text-sm font-bold text-[#F5F5F5] uppercase tracking-wider pb-2 border-b border-[#222222]">
               Personal & Location Details
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1.5">Full Name</label>
+                <label className="block text-xs font-semibold text-[#D4D4D4] mb-1.5">Full Name</label>
                 <input
                   type="text"
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:ring-2 focus:ring-orange-500 outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#333333] text-sm focus:ring-2 focus:ring-[#FF5A1F] outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1.5">Email Address</label>
+                <label className="block text-xs font-semibold text-[#D4D4D4] mb-1.5">Email Address</label>
                 <input
                   type="text"
                   disabled
                   value={user?.email || ''}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 bg-stone-50 text-stone-500 text-sm cursor-not-allowed"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#292929] bg-[#101010] text-[#737373] text-sm cursor-not-allowed"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1.5">Phone Number</label>
+                <label className="block text-xs font-semibold text-[#D4D4D4] mb-1.5">Phone Number</label>
                 <input
                   type="text"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="+91 98765 43210"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:ring-2 focus:ring-orange-500 outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#333333] text-sm focus:ring-2 focus:ring-[#FF5A1F] outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1.5">Professional Headline</label>
+                <label className="block text-xs font-semibold text-[#D4D4D4] mb-1.5">Professional Headline</label>
                 <input
                   type="text"
                   value={headline}
                   onChange={(e) => setHeadline(e.target.value)}
                   placeholder="e.g. Canva Creative Designer | Social Media Specialist"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:ring-2 focus:ring-orange-500 outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#333333] text-sm focus:ring-2 focus:ring-[#FF5A1F] outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1.5">City / District</label>
+                <label className="block text-xs font-semibold text-[#D4D4D4] mb-1.5">City / District</label>
                 <input
                   type="text"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                   placeholder="e.g. Gurugram, Sonipat"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:ring-2 focus:ring-orange-500 outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#333333] text-sm focus:ring-2 focus:ring-[#FF5A1F] outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1.5">State</label>
+                <label className="block text-xs font-semibold text-[#D4D4D4] mb-1.5">State</label>
                 <input
                   type="text"
                   value={state}
                   onChange={(e) => setState(e.target.value)}
                   placeholder="e.g. Haryana"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:ring-2 focus:ring-orange-500 outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#333333] text-sm focus:ring-2 focus:ring-[#FF5A1F] outline-none"
                 />
               </div>
             </div>
@@ -225,21 +225,21 @@ export const ProfilePage: React.FC = () => {
                 id="rural"
                 checked={isRural}
                 onChange={(e) => setIsRural(e.target.checked)}
-                className="rounded text-orange-600 focus:ring-orange-500 w-4 h-4"
+                className="rounded text-[#FF5A1F] focus:ring-[#FF5A1F] w-4 h-4"
               />
-              <label htmlFor="rural" className="text-xs text-stone-700 cursor-pointer">
+              <label htmlFor="rural" className="text-xs text-[#D4D4D4] cursor-pointer">
                 I reside in a rural or semi-urban area (Enhances matching for rural development roles and regional initiatives)
               </label>
             </div>
 
             <div className="pt-2">
-              <label className="block text-xs font-semibold text-stone-700 mb-1.5">Optional Resume Link / Portfolio Document</label>
+              <label className="block text-xs font-semibold text-[#D4D4D4] mb-1.5">Optional Resume Link / Portfolio Document</label>
               <input
                 type="url"
                 value={resumeUrl}
                 onChange={(e) => setResumeUrl(e.target.value)}
                 placeholder="https://drive.google.com/... or resume URL"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:ring-2 focus:ring-orange-500 outline-none"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#333333] text-sm focus:ring-2 focus:ring-[#FF5A1F] outline-none"
               />
             </div>
           </div>
@@ -248,12 +248,12 @@ export const ProfilePage: React.FC = () => {
         {/* TAB 2: My Skills */}
         {activeTab === 'skills' && (
           <div className="space-y-5">
-            <h3 className="text-sm font-bold text-stone-900 uppercase tracking-wider pb-2 border-b border-stone-100">
+            <h3 className="text-sm font-bold text-[#F5F5F5] uppercase tracking-wider pb-2 border-b border-[#222222]">
               Skills & Education Background
             </h3>
 
             <div>
-              <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+              <label className="block text-xs font-semibold text-[#D4D4D4] mb-1.5">
                 Skills & Practical Competencies (comma separated)
               </label>
               <input
@@ -261,20 +261,20 @@ export const ProfilePage: React.FC = () => {
                 value={skills}
                 onChange={(e) => setSkills(e.target.value)}
                 placeholder="Canva, Hindi Typing, Social Media, Spreadsheet Formulas, Python, Tailwind"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:ring-2 focus:ring-orange-500 outline-none"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#333333] text-sm focus:ring-2 focus:ring-[#FF5A1F] outline-none"
               />
-              <p className="text-[11px] text-stone-400 mt-1">
+              <p className="text-[11px] text-[#555555] mt-1">
                 Tip: Skills verified by SETU assessments will automatically receive verified badges on your job applications.
               </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1.5">Education Level</label>
+                <label className="block text-xs font-semibold text-[#D4D4D4] mb-1.5">Education Level</label>
                 <select
                   value={educationLevel}
                   onChange={(e) => setEducationLevel(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:ring-2 focus:ring-orange-500 outline-none bg-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#333333] text-sm focus:ring-2 focus:ring-[#FF5A1F] outline-none bg-[#151515]"
                 >
                   <option value="No formal degree">No formal degree / Self-taught</option>
                   <option value="10th Pass">10th Standard Pass</option>
@@ -286,11 +286,11 @@ export const ProfilePage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1.5">Experience Level</label>
+                <label className="block text-xs font-semibold text-[#D4D4D4] mb-1.5">Experience Level</label>
                 <select
                   value={experienceLevel}
                   onChange={(e) => setExperienceLevel(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:ring-2 focus:ring-orange-500 outline-none bg-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#333333] text-sm focus:ring-2 focus:ring-[#FF5A1F] outline-none bg-[#151515]"
                 >
                   <option value="No previous experience / Fresher">No previous experience / Fresher</option>
                   <option value="1-2 years">1-2 years</option>
@@ -301,24 +301,24 @@ export const ProfilePage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-stone-700 mb-1.5">Languages Known (comma separated)</label>
+              <label className="block text-xs font-semibold text-[#D4D4D4] mb-1.5">Languages Known (comma separated)</label>
               <input
                 type="text"
                 value={languages}
                 onChange={(e) => setLanguages(e.target.value)}
                 placeholder="Hindi, English, Haryanvi, Punjabi"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:ring-2 focus:ring-orange-500 outline-none"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#333333] text-sm focus:ring-2 focus:ring-[#FF5A1F] outline-none"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-stone-700 mb-1.5">Career Goals & Aspirations</label>
+              <label className="block text-xs font-semibold text-[#D4D4D4] mb-1.5">Career Goals & Aspirations</label>
               <textarea
                 rows={3}
                 value={careerGoals}
                 onChange={(e) => setCareerGoals(e.target.value)}
                 placeholder="Describe what kind of projects or employment opportunities you are looking for..."
-                className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:ring-2 focus:ring-orange-500 outline-none"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#333333] text-sm focus:ring-2 focus:ring-[#FF5A1F] outline-none"
               />
             </div>
           </div>
@@ -327,16 +327,16 @@ export const ProfilePage: React.FC = () => {
         {/* TAB 3: Account Settings */}
         {activeTab === 'settings' && (
           <div className="space-y-5">
-            <h3 className="text-sm font-bold text-stone-900 uppercase tracking-wider pb-2 border-b border-stone-100">
+            <h3 className="text-sm font-bold text-[#F5F5F5] uppercase tracking-wider pb-2 border-b border-[#222222]">
               Work Preferences & Support Options
             </h3>
 
             <div>
-              <label className="block text-xs font-semibold text-stone-700 mb-1.5">Preferred Work Mode</label>
+              <label className="block text-xs font-semibold text-[#D4D4D4] mb-1.5">Preferred Work Mode</label>
               <select
                 value={preferredWorkMode}
                 onChange={(e: any) => setPreferredWorkMode(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:ring-2 focus:ring-orange-500 outline-none bg-white"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#333333] text-sm focus:ring-2 focus:ring-[#FF5A1F] outline-none bg-[#151515]"
               >
                 <option value="any">Any (Flexible - Remote, Hybrid, or On-site)</option>
                 <option value="remote">100% Remote / Work from Home</option>
@@ -364,19 +364,19 @@ export const ProfilePage: React.FC = () => {
               </div>
             </div>
 
-            <div className="pt-2 text-xs text-stone-500">
-              <p>Account Type: <strong className="text-stone-800 uppercase font-semibold">{user?.role}</strong></p>
+            <div className="pt-2 text-xs text-[#737373]">
+              <p>Account Type: <strong className="text-[#E5E5E5] uppercase font-semibold">{user?.role}</strong></p>
               <p className="mt-1">For password changes or email updates, please contact platform support at contact@setu.gov.in.</p>
             </div>
           </div>
         )}
 
         {/* Save Button */}
-        <div className="pt-4 border-t border-stone-200 flex justify-end">
+        <div className="pt-4 border-t border-[#292929] flex justify-end">
           <button
             type="submit"
             disabled={saving}
-            className="px-6 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-xl transition text-xs shadow-xs flex items-center gap-2 disabled:opacity-50"
+            className="px-6 py-2.5 bg-[#FF5A1F] hover:bg-[#FF7847] text-white font-semibold rounded-xl transition text-xs shadow-xs flex items-center gap-2 disabled:opacity-50"
           >
             <Save className="w-4 h-4" />
             <span>{saving ? 'Saving...' : 'Save Profile Changes'}</span>

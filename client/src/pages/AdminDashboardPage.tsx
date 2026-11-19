@@ -150,7 +150,7 @@ export const AdminDashboardPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-16 text-center text-stone-600">
+      <div className="max-w-6xl mx-auto px-4 py-16 text-center text-[#A3A3A3]">
         <div className="inline-block animate-spin w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full mb-3"></div>
         <p className="text-sm font-medium">Loading SETU administrator controls...</p>
       </div>
@@ -160,16 +160,16 @@ export const AdminDashboardPage: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-stone-200 gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#292929] gap-4">
         <div>
           <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-purple-700">
             <ShieldAlert className="w-4 h-4" />
             <span>National Platform Governance</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold font-serif text-slate-900">
+          <h1 className="text-2xl sm:text-3xl font-bold font-serif text-[#F5F5F5]">
             Administrator Moderation & Verification Desk
           </h1>
-          <p className="text-xs sm:text-sm text-stone-600 mt-0.5">
+          <p className="text-xs sm:text-sm text-[#A3A3A3] mt-0.5">
             Review employer business documentation, moderate suspicious listing reports, and handle private Build Her safety tickets.
           </p>
         </div>
@@ -188,55 +188,55 @@ export const AdminDashboardPage: React.FC = () => {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl border border-stone-200 p-4 shadow-sm space-y-1">
+        <div className="bg-[#151515] rounded-xl border border-[#292929] p-4 shadow-sm space-y-1">
           <span className="text-[11px] font-bold text-amber-700 uppercase tracking-wider block">
             Pending Employers
           </span>
           <div className="text-2xl font-black text-amber-600 font-serif">
             {stats?.pendingEmployers || 0}
           </div>
-          <p className="text-[11px] text-stone-500">Require document review</p>
+          <p className="text-[11px] text-[#737373]">Require document review</p>
         </div>
 
-        <div className="bg-white rounded-xl border border-stone-200 p-4 shadow-sm space-y-1">
+        <div className="bg-[#151515] rounded-xl border border-[#292929] p-4 shadow-sm space-y-1">
           <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider block">
             Approved Employers
           </span>
           <div className="text-2xl font-black text-emerald-700 font-serif">
             {stats?.approvedEmployers || 0}
           </div>
-          <p className="text-[11px] text-stone-500">Verified badge granted</p>
+          <p className="text-[11px] text-[#737373]">Verified badge granted</p>
         </div>
 
-        <div className="bg-white rounded-xl border border-stone-200 p-4 shadow-sm space-y-1">
+        <div className="bg-[#151515] rounded-xl border border-[#292929] p-4 shadow-sm space-y-1">
           <span className="text-[11px] font-bold text-rose-700 uppercase tracking-wider block">
             Reported Listings
           </span>
           <div className="text-2xl font-black text-rose-600 font-serif">
             {stats?.pendingReports || 0}
           </div>
-          <p className="text-[11px] text-stone-500">Seeker fraud reports</p>
+          <p className="text-[11px] text-[#737373]">Seeker fraud reports</p>
         </div>
 
-        <div className="bg-white rounded-xl border border-stone-200 p-4 shadow-sm space-y-1">
+        <div className="bg-[#151515] rounded-xl border border-[#292929] p-4 shadow-sm space-y-1">
           <span className="text-[11px] font-bold text-pink-700 uppercase tracking-wider block">
             Build Her Safety Desk
           </span>
           <div className="text-2xl font-black text-pink-700 font-serif">
             {stats?.openSafetyTickets || 0}
           </div>
-          <p className="text-[11px] text-stone-500">Confidential tickets</p>
+          <p className="text-[11px] text-[#737373]">Confidential tickets</p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center space-x-2 border-b border-stone-200">
+      <div className="flex items-center space-x-2 border-b border-[#292929]">
         <button
           onClick={() => setActiveTab('verification')}
           className={`py-3 px-4 font-bold text-xs sm:text-sm border-b-2 transition ${
             activeTab === 'verification'
               ? 'border-purple-600 text-purple-900'
-              : 'border-transparent text-stone-500 hover:text-slate-900'
+              : 'border-transparent text-[#737373] hover:text-[#F5F5F5]'
           }`}
         >
           Employer Verifications ({employers.length})
@@ -246,7 +246,7 @@ export const AdminDashboardPage: React.FC = () => {
           className={`py-3 px-4 font-bold text-xs sm:text-sm border-b-2 transition ${
             activeTab === 'reports'
               ? 'border-purple-600 text-purple-900'
-              : 'border-transparent text-stone-500 hover:text-slate-900'
+              : 'border-transparent text-[#737373] hover:text-[#F5F5F5]'
           }`}
         >
           Reported Listings ({reports.length})
@@ -256,7 +256,7 @@ export const AdminDashboardPage: React.FC = () => {
           className={`py-3 px-4 font-bold text-xs sm:text-sm border-b-2 transition ${
             activeTab === 'listings'
               ? 'border-purple-600 text-purple-900'
-              : 'border-transparent text-stone-500 hover:text-slate-900'
+              : 'border-transparent text-[#737373] hover:text-[#F5F5F5]'
           }`}
         >
           All Listings Moderation ({listings.length})
@@ -266,7 +266,7 @@ export const AdminDashboardPage: React.FC = () => {
           className={`py-3 px-4 font-bold text-xs sm:text-sm border-b-2 transition ${
             activeTab === 'support'
               ? 'border-purple-600 text-purple-900'
-              : 'border-transparent text-stone-500 hover:text-slate-900'
+              : 'border-transparent text-[#737373] hover:text-[#F5F5F5]'
           }`}
         >
           Safety & Support Desk ({supportTickets.length})
@@ -284,12 +284,12 @@ export const AdminDashboardPage: React.FC = () => {
             return (
               <div
                 key={emp._id}
-                className="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm space-y-4"
+                className="bg-[#151515] rounded-2xl border border-[#292929] p-6 shadow-sm space-y-4"
               >
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                   <div>
                     <div className="flex items-center space-x-2">
-                      <h3 className="text-lg font-bold text-slate-900 font-serif">
+                      <h3 className="text-lg font-bold text-[#F5F5F5] font-serif">
                         {prof.companyName || emp.name}
                       </h3>
                       <span
@@ -304,7 +304,7 @@ export const AdminDashboardPage: React.FC = () => {
                         {prof.verificationStatus}
                       </span>
                     </div>
-                    <p className="text-xs text-stone-600 mt-0.5">
+                    <p className="text-xs text-[#A3A3A3] mt-0.5">
                       Recruiter: {emp.name} ({emp.email}) • Industry: {prof.industry}
                     </p>
                   </div>
@@ -357,9 +357,9 @@ export const AdminDashboardPage: React.FC = () => {
                 </div>
 
                 {/* Submitted Docs Preview */}
-                <div className="p-3.5 bg-stone-50 rounded-xl border border-stone-200 text-xs space-y-1">
-                  <span className="font-bold text-slate-900 block">Verification Submission:</span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-stone-700">
+                <div className="p-3.5 bg-[#101010] rounded-xl border border-[#292929] text-xs space-y-1">
+                  <span className="font-bold text-[#F5F5F5] block">Verification Submission:</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-[#D4D4D4]">
                     <div>
                       <strong>Document Type:</strong> {prof.verificationDocs?.docType || 'Not specified'}
                     </div>
@@ -368,12 +368,12 @@ export const AdminDashboardPage: React.FC = () => {
                     </div>
                   </div>
                   {prof.verificationDocs?.notes && (
-                    <p className="text-stone-600 italic text-[11px] pt-1">
+                    <p className="text-[#A3A3A3] italic text-[11px] pt-1">
                       "{prof.verificationDocs.notes}"
                     </p>
                   )}
                   {prof.adminReviewNotes && (
-                    <div className="pt-2 border-t border-stone-200 text-purple-900 font-medium">
+                    <div className="pt-2 border-t border-[#292929] text-purple-900 font-medium">
                       Admin Audit Note: {prof.adminReviewNotes}
                     </div>
                   )}
@@ -388,7 +388,7 @@ export const AdminDashboardPage: React.FC = () => {
       {activeTab === 'reports' && (
         <div className="space-y-4">
           {reports.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-dashed border-stone-300 p-12 text-center text-stone-500">
+            <div className="bg-[#151515] rounded-2xl border border-dashed border-[#333333] p-12 text-center text-[#737373]">
               No reported listings in moderation queue.
             </div>
           ) : (
@@ -396,28 +396,28 @@ export const AdminDashboardPage: React.FC = () => {
               {reports.map((rep) => (
                 <div
                   key={rep._id}
-                  className="bg-white rounded-2xl border border-rose-200 p-6 shadow-sm space-y-3"
+                  className="bg-[#151515] rounded-2xl border border-rose-200 p-6 shadow-sm space-y-3"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
                     <div>
                       <span className="text-xs font-bold text-rose-700 uppercase bg-rose-50 px-2 py-0.5 rounded">
                         Reason: {rep.reason.replace('_', ' ')}
                       </span>
-                      <h4 className="font-bold text-slate-900 text-base mt-1">
+                      <h4 className="font-bold text-[#F5F5F5] text-base mt-1">
                         Reported Listing: {rep.opportunityId?.title || 'Unknown Opportunity'}
                       </h4>
-                      <p className="text-xs text-stone-600">
+                      <p className="text-xs text-[#A3A3A3]">
                         Reported by seeker: {rep.reporterId?.name || 'Anonymous Seeker'} (
                         {rep.reporterId?.email})
                       </p>
                     </div>
 
-                    <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-stone-100 text-stone-800">
+                    <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-[#1C1C1C] text-[#E5E5E5]">
                       Status: {rep.status}
                     </span>
                   </div>
 
-                  <div className="p-3 bg-stone-50 rounded-xl text-xs text-stone-700 border border-stone-200">
+                  <div className="p-3 bg-[#101010] rounded-xl text-xs text-[#D4D4D4] border border-[#292929]">
                     <span className="font-bold block mb-1">Seeker Description:</span>
                     <p className="leading-relaxed">{rep.description}</p>
                   </div>
@@ -432,7 +432,7 @@ export const AdminDashboardPage: React.FC = () => {
                       </button>
                       <button
                         onClick={() => handleResolveReport(rep._id, 'dismissed')}
-                        className="px-4 py-2 border border-stone-300 text-stone-700 font-bold text-xs rounded-lg hover:bg-stone-50 transition"
+                        className="px-4 py-2 border border-[#333333] text-[#D4D4D4] font-bold text-xs rounded-lg hover:bg-[#101010] transition"
                       >
                         Dismiss Report
                       </button>
@@ -452,7 +452,7 @@ export const AdminDashboardPage: React.FC = () => {
             {listings.map((opp) => (
               <div
                 key={opp._id}
-                className="bg-white rounded-2xl border border-stone-200 p-5 shadow-sm space-y-3"
+                className="bg-[#151515] rounded-2xl border border-[#292929] p-5 shadow-sm space-y-3"
               >
                 <div className="flex items-center justify-between">
                   <span
@@ -461,19 +461,19 @@ export const AdminDashboardPage: React.FC = () => {
                         ? 'bg-emerald-100 text-emerald-800'
                         : opp.status === 'hidden_by_admin'
                         ? 'bg-rose-100 text-rose-800'
-                        : 'bg-stone-100 text-stone-700'
+                        : 'bg-[#1C1C1C] text-[#D4D4D4]'
                     }`}
                   >
                     {opp.status}
                   </span>
-                  <span className="text-xs text-stone-500">{opp.workMode.toUpperCase()}</span>
+                  <span className="text-xs text-[#737373]">{opp.workMode.toUpperCase()}</span>
                 </div>
 
-                <h4 className="font-bold text-slate-900 text-base">{opp.title}</h4>
-                <p className="text-xs text-stone-600 font-medium">{opp.organisationName}</p>
+                <h4 className="font-bold text-[#F5F5F5] text-base">{opp.title}</h4>
+                <p className="text-xs text-[#A3A3A3] font-medium">{opp.organisationName}</p>
 
-                <div className="pt-3 border-t border-stone-100 flex items-center justify-between text-xs">
-                  <span className="text-stone-500">{opp.location}</span>
+                <div className="pt-3 border-t border-[#222222] flex items-center justify-between text-xs">
+                  <span className="text-[#737373]">{opp.location}</span>
                   <button
                     onClick={() => handleToggleListingVisibility(opp._id, opp.status)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1 ${
@@ -505,7 +505,7 @@ export const AdminDashboardPage: React.FC = () => {
       {activeTab === 'support' && (
         <div className="space-y-4">
           {supportTickets.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-dashed border-stone-300 p-12 text-center text-stone-500">
+            <div className="bg-[#151515] rounded-2xl border border-dashed border-[#333333] p-12 text-center text-[#737373]">
               No confidential support tickets received.
             </div>
           ) : (
@@ -513,7 +513,7 @@ export const AdminDashboardPage: React.FC = () => {
               {supportTickets.map((t) => (
                 <div
                   key={t._id}
-                  className="bg-white rounded-2xl border border-pink-200 p-6 shadow-sm space-y-3"
+                  className="bg-[#151515] rounded-2xl border border-pink-200 p-6 shadow-sm space-y-3"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
                     <div>
@@ -521,12 +521,12 @@ export const AdminDashboardPage: React.FC = () => {
                         <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-pink-100 text-pink-900">
                           {t.category.replace('_', ' ').toUpperCase()}
                         </span>
-                        <span className="text-xs font-bold text-stone-600">
+                        <span className="text-xs font-bold text-[#A3A3A3]">
                           Confidential Ticket
                         </span>
                       </div>
-                      <h4 className="font-bold text-slate-900 text-base mt-1">{t.subject}</h4>
-                      <p className="text-xs text-stone-600">
+                      <h4 className="font-bold text-[#F5F5F5] text-base mt-1">{t.subject}</h4>
+                      <p className="text-xs text-[#A3A3A3]">
                         From: <strong>{t.name}</strong> • Contact: <strong>{t.contactEmailOrPhone}</strong>
                       </p>
                     </div>
@@ -542,7 +542,7 @@ export const AdminDashboardPage: React.FC = () => {
                     </span>
                   </div>
 
-                  <div className="p-3 bg-stone-50 rounded-xl text-xs text-stone-800 border border-stone-200 leading-relaxed whitespace-pre-line">
+                  <div className="p-3 bg-[#101010] rounded-xl text-xs text-[#E5E5E5] border border-[#292929] leading-relaxed whitespace-pre-line">
                     {t.message}
                   </div>
 
