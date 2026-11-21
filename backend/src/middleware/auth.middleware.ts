@@ -1,8 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 import { ENV } from '../config/env';
 import { User, IUser } from '../models/User';
 import { sendError } from '../utils/response';
+import { isDemoUser } from '../utils/userSerializer';
 
 export interface AuthenticatedRequest extends Request {
   user?: IUser;
@@ -14,7 +16,9 @@ export const generateToken = (user: IUser): string => {
     {
       id: user._id.toString(),
       email: user.email,
-      role: user.role
+      role: user.role,
+      authProvider: user.authProvider || 'local',
+      isDemoAccount: isDemoUser(user)
     },
     ENV.JWT_SECRET,
     { expiresIn: '7d' }
@@ -42,39 +46,62 @@ export const clearAuthCookie = (res: Response): void => {
   });
 };
 
+const extractRequestToken = (req: Request): string | undefined => {
+  // Prefer HttpOnly cookie first, then Bearer header (supports both same-origin proxy & cross-origin Render)
+  if (req.cookies && req.cookies.setu_token) {
+    return req.cookies.setu_token;
+  }
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const bearer = authHeader.split(' ')[1]?.trim();
+    if (bearer) return bearer;
+  }
+  return undefined;
+};
+
 export const authenticate = async (
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    let token: string | undefined;
-
-    // 1. Check Bearer token in Authorization header
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      token = authHeader.split(' ')[1];
-    }
-
-    // 2. Fallback to HttpOnly cookie
-    if (!token && req.cookies && req.cookies.setu_token) {
-      token = req.cookies.setu_token;
-    }
+    const token = extractRequestToken(req);
 
     if (!token) {
-      sendError(res, 'Authentication required. Please log in.', 401);
+      sendError(res, 'Authentication required. Please sign in.', 401);
       return;
     }
 
-    const decoded = jwt.verify(token, ENV.JWT_SECRET) as {
-      id: string;
-      email: string;
-      role: string;
-    };
+    let decoded: { id: string; email: string; role: string };
+    try {
+      decoded = jwt.verify(token, ENV.JWT_SECRET) as {
+        id: string;
+        email: string;
+        role: string;
+      };
+    } catch (jwtErr: any) {
+      clearAuthCookie(res);
+      if (jwtErr?.name === 'TokenExpiredError') {
+        sendError(res, 'Your authentication session has expired. Please sign in again.', 401);
+        return;
+      }
+      sendError(res, 'Invalid authentication session. Please sign in again.', 401);
+      return;
+    }
+
+    if (mongoose.connection.readyState !== 1) {
+      sendError(
+        res,
+        'Database connection is currently unavailable. Please try again shortly.',
+        503
+      );
+      return;
+    }
 
     const user = await User.findById(decoded.id).select('-passwordHash');
     if (!user) {
-      sendError(res, 'Account not found or session has expired.', 401);
+      clearAuthCookie(res);
+      sendError(res, 'Account not found or session has expired. Please sign in again.', 401);
       return;
     }
 
@@ -82,7 +109,18 @@ export const authenticate = async (
     req.token = token;
     next();
   } catch (error: any) {
-    sendError(res, 'Invalid or expired session token.', 401);
+    if (
+      error?.name === 'MongoNetworkError' ||
+      error?.name === 'MongooseServerSelectionError'
+    ) {
+      sendError(
+        res,
+        'Database connection is currently unavailable. Please try again shortly.',
+        503
+      );
+      return;
+    }
+    sendError(res, 'Invalid or expired authentication session.', 401);
   }
 };
 
@@ -92,15 +130,9 @@ export const optionalAuthenticate = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    let token: string | undefined;
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      token = authHeader.split(' ')[1];
-    } else if (req.cookies && req.cookies.setu_token) {
-      token = req.cookies.setu_token;
-    }
+    const token = extractRequestToken(req);
 
-    if (token) {
+    if (token && mongoose.connection.readyState === 1) {
       const decoded = jwt.verify(token, ENV.JWT_SECRET) as { id: string };
       const user = await User.findById(decoded.id).select('-passwordHash');
       if (user) {

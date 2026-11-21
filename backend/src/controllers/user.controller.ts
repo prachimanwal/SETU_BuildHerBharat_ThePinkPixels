@@ -9,23 +9,9 @@ import { Opportunity } from '../models/Opportunity';
 import { LearningResource } from '../models/LearningResource';
 import { sendSuccess, sendError } from '../utils/response';
 import { profileUpdateSchema } from '../utils/validators';
+import { calculateProfileCompletion, serializeUser } from '../utils/userSerializer';
 
-export const calculateProfileCompletion = (user: any): number => {
-  const profile = user.seekerProfile || {};
-  let score = 0;
-
-  if (user.name && user.name.trim().length > 0) score += 10;
-  if (profile.headline && profile.headline.trim().length > 0) score += 15;
-  if (profile.location?.city && profile.location.city.trim().length > 0) score += 15;
-  if (profile.educationLevel && profile.educationLevel !== 'No formal degree') score += 15;
-  if (profile.skills && profile.skills.length > 0) score += 15;
-  if (profile.experienceLevel && profile.experienceLevel.trim().length > 0) score += 10;
-  if (profile.languages && profile.languages.length > 0) score += 10;
-  if (profile.resumeUrl && profile.resumeUrl.trim().length > 0) score += 10;
-  else if (profile.phone && profile.phone.trim().length > 0) score += 10;
-
-  return Math.min(100, Math.max(15, score));
-};
+export { calculateProfileCompletion };
 
 export const getProfile = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   if (!req.user) {
@@ -34,15 +20,7 @@ export const getProfile = async (req: AuthenticatedRequest, res: Response): Prom
   }
 
   sendSuccess(res, 'User profile fetched successfully', {
-    user: {
-      id: req.user._id,
-      name: req.user.name,
-      email: req.user.email,
-      role: req.user.role,
-      avatar: req.user.avatar,
-      seekerProfile: req.user.seekerProfile,
-      employerProfile: req.user.employerProfile
-    }
+    user: serializeUser(req.user)
   });
 };
 
@@ -62,8 +40,14 @@ export const updateProfile = async (req: AuthenticatedRequest, res: Response): P
     const { name, avatar, seekerProfile, employerProfile } = parseResult.data;
     const user = req.user;
 
-    if (name) user.name = name;
-    if (avatar !== undefined) user.avatar = avatar;
+    if (name) {
+      user.name = name;
+      user.fullName = name;
+    }
+    if (avatar !== undefined) {
+      user.avatar = avatar;
+      user.profilePicture = avatar;
+    }
 
     if (user.role === 'seeker' && seekerProfile) {
       user.seekerProfile = {
@@ -79,20 +63,12 @@ export const updateProfile = async (req: AuthenticatedRequest, res: Response): P
       } as any;
     }
 
+    const completionPercentage = calculateProfileCompletion(user);
+    user.profileCompletion = completionPercentage;
     await user.save();
 
-    const completionPercentage = calculateProfileCompletion(user);
-
     sendSuccess(res, 'Profile updated successfully', {
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        avatar: user.avatar,
-        seekerProfile: user.seekerProfile,
-        employerProfile: user.employerProfile
-      },
+      user: serializeUser(user),
       profileCompletionPercentage: completionPercentage
     });
   } catch (error: any) {
@@ -311,7 +287,9 @@ export const getDashboard = async (req: AuthenticatedRequest, res: Response): Pr
     const journeyPercentage = Math.round((completedStagesCount / 7) * 100);
 
     const dashboardData = {
+      user: serializeUser(req.user),
       profileCompletionPercentage,
+      savedSkills: req.user.seekerProfile?.skills || [],
       skillsVerifiedCount,
       verifiedSkills: passedDomains,
       learningCompletedCount: completedLearning.length,
@@ -330,10 +308,12 @@ export const getDashboard = async (req: AuthenticatedRequest, res: Response): Pr
       journeyPercentage,
       learning: {
         startedCount: startedLearning.length,
-        completedCount: completedLearning.length
+        completedCount: completedLearning.length,
+        items: learningProgress.slice(0, 6)
       },
       portfolio: {
-        totalCount: portfolioProjects.length
+        totalCount: portfolioProjects.length,
+        recent: portfolioProjects.slice(0, 4)
       },
       assessments: {
         totalAttempts: attempts.length,

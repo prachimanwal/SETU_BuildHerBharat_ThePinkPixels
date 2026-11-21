@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { UserAvatar } from './UserAvatar';
 
 export const Navbar: React.FC = () => {
   const { user, logout, login } = useAuth();
@@ -59,13 +60,6 @@ export const Navbar: React.FC = () => {
     if (user.role === 'admin') return '/admin';
     if (user.role === 'employer') return '/employer';
     return '/dashboard';
-  };
-
-  const getInitials = (name?: string) => {
-    if (!name) return 'U';
-    const parts = name.trim().split(' ');
-    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-    return name.slice(0, 2).toUpperCase();
   };
 
   const isActive = (path: string) => {
@@ -201,9 +195,11 @@ export const Navbar: React.FC = () => {
                   onClick={() => setUserDropdownOpen(!userDropdownOpen)}
                   className="flex items-center gap-2.5 p-1.5 pl-2.5 pr-3 rounded-full bg-[#151515] border border-[#292929] hover:border-[#383838] transition focus:outline-none"
                 >
-                  <div className="w-8 h-8 rounded-full bg-[#FF5A1F] text-white font-bold text-xs flex items-center justify-center">
-                    {getInitials(user.name)}
-                  </div>
+                  <UserAvatar
+                    name={user.name}
+                    src={user.profilePicture || user.avatar}
+                    size="sm"
+                  />
                   <span className="text-xs font-semibold text-[#F5F5F5] max-w-[100px] truncate">
                     {user.name}
                   </span>
@@ -211,13 +207,20 @@ export const Navbar: React.FC = () => {
                 </button>
 
                 {userDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-60 rounded-2xl bg-[#151515] border border-[#292929] shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95">
-                    <div className="px-4 py-3 border-b border-[#292929]">
-                      <p className="text-xs font-bold text-[#F5F5F5] truncate">{user.name}</p>
-                      <p className="text-[11px] text-[#A3A3A3] truncate">{user.email}</p>
-                      <span className="inline-block mt-1 text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-[#1C1C1C] text-[#FF5A1F] border border-[#292929]">
-                        {user.role}
-                      </span>
+                  <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-[#151515] border border-[#292929] shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95">
+                    <div className="px-4 py-3 border-b border-[#292929] flex items-center gap-3">
+                      <UserAvatar
+                        name={user.name}
+                        src={user.profilePicture || user.avatar}
+                        size="md"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold text-[#F5F5F5] truncate">{user.name}</p>
+                        <p className="text-[11px] text-[#A3A3A3] truncate">{user.email}</p>
+                        <span className="inline-block mt-1 text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-[#1C1C1C] text-[#FF5A1F] border border-[#292929]">
+                          {user.role === 'seeker' ? 'Job Seeker' : user.role}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="py-1">

@@ -6,6 +6,7 @@ import { Opportunity } from '../models/Opportunity';
 import { Application } from '../models/Application';
 import { Report } from '../models/Report';
 import { sendSuccess, sendError } from '../utils/response';
+import { isDemoUser } from '../utils/userSerializer';
 
 export const getAdminStats = async (
   _req: AuthenticatedRequest,
@@ -54,6 +55,11 @@ export const getEmployers = async (
   try {
     const { status } = req.query;
     const filter: any = { role: 'employer' };
+
+    // Demo administrator accounts must never access real users' private data
+    if (isDemoUser(req.user)) {
+      filter.$or = [{ isDemoAccount: true }, { email: { $regex: /\.demo$/i } }];
+    }
 
     if (status && status !== 'all') {
       filter['employerProfile.verificationStatus'] = status;

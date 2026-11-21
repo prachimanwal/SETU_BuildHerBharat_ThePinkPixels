@@ -29,7 +29,7 @@ export const apiFetch = async (
     ...(options.headers as Record<string, string>)
   };
 
-  // Attach stored JWT Bearer token if present (vital for cross-origin Netlify <-> Render requests)
+  // Attach stored JWT Bearer token if present (fallback for cross-origin Netlify <-> Render requests)
   const token = localStorage.getItem('setu_auth_token');
   if (token && !headers['Authorization']) {
     headers['Authorization'] = `Bearer ${token}`;
@@ -39,17 +39,15 @@ export const apiFetch = async (
     const res = await fetch(url, {
       ...options,
       headers,
-      credentials: 'include' // Required for cross-origin cookies
+      credentials: 'include' // Required for HttpOnly cookies
     });
 
     const contentType = res.headers.get('content-type') || '';
 
-    // Guard against non-JSON responses (e.g. Netlify index.html fallback, 404 text/plain, 502 Bad Gateway)
+    // Guard against non-JSON responses (e.g. Netlify index.html fallback, 502/503 Render cold-start or outage)
     if (!contentType.includes('application/json')) {
-      let friendlyMessage = 'Unable to connect to the server. Please try again.';
-      if (res.status === 404 || res.status === 502 || res.status === 503 || res.status === 504) {
-        friendlyMessage = 'Unable to connect to the server. Please try again.';
-      } else if (res.status === 500) {
+      let friendlyMessage = 'Backend server is currently unavailable. Please try again in a moment.';
+      if (res.status === 500) {
         friendlyMessage = 'The server encountered an issue. Please try again shortly.';
       }
 
@@ -66,21 +64,45 @@ export const apiFetch = async (
 
     let errorMsg: string | undefined;
     if (!res.ok || data.success === false) {
-      if (res.status === 409 || (data.message && data.message.toLowerCase().includes('already exists'))) {
-        errorMsg = 'An account with this email already exists.';
-      } else if (res.status === 401) {
-        if (endpoint.includes('/me')) {
+      const serverMessage =
+        typeof data.message === 'string' && data.message.trim().length > 0
+          ? data.message.trim()
+          : typeof data.error === 'string' && data.error.trim().length > 0
+          ? data.error.trim()
+          : undefined;
+
+      if (res.status === 401) {
+        if (endpoint.includes('/auth/me')) {
           localStorage.removeItem('setu_auth_token');
-          errorMsg = 'Session expired. Please log in again.';
+          errorMsg = serverMessage || 'Your authentication session has expired. Please sign in again.';
+        } else if (endpoint.includes('/auth/google')) {
+          errorMsg = serverMessage || 'Invalid Google credential. Please try signing in again.';
+        } else if (endpoint.includes('/auth/login')) {
+          errorMsg = serverMessage || 'Invalid email or password. Please try again.';
         } else {
-          errorMsg = 'Invalid email or password. Please try again.';
+          errorMsg = serverMessage || 'Your authentication session has expired. Please sign in again.';
         }
-      } else if (res.status === 400 && data.errors && Array.isArray(data.errors) && data.errors.length > 0) {
-        errorMsg = data.errors[0].message || data.message || 'Registration was unsuccessful. Please check your inputs.';
-      } else if (data.message && !data.success) {
-        errorMsg = data.message;
+      } else if (res.status === 409) {
+        errorMsg = serverMessage || 'An account with this email already exists.';
+      } else if (res.status === 503) {
+        errorMsg =
+          serverMessage ||
+          'The authentication service or database is temporarily unavailable. Please try again shortly.';
+      } else if (
+        res.status === 400 &&
+        Array.isArray(data.errors) &&
+        data.errors.length > 0
+      ) {
+        errorMsg =
+          data.errors[0].message ||
+          serverMessage ||
+          'Request validation failed. Please check your inputs.';
+      } else if (serverMessage) {
+        errorMsg = serverMessage;
       } else {
-        errorMsg = data.error || (endpoint.includes('register') ? 'Registration was unsuccessful. Please try again.' : 'Request failed. Please try again.');
+        errorMsg = endpoint.includes('register')
+          ? 'Registration was unsuccessful. Please try again.'
+          : 'Request failed. Please try again.';
       }
     }
 
@@ -90,12 +112,15 @@ export const apiFetch = async (
       data,
       error: errorMsg
     };
-  } catch (err: any) {
+  } catch {
     return {
       ok: false,
       status: 0,
       data: null,
-      error: 'Unable to connect to the server. Please try again.'
+      error:
+        typeof navigator !== 'undefined' && navigator.onLine === false
+          ? 'Network connection failed. Please check your internet connection and try again.'
+          : 'Unable to reach the SETU backend server. Please check your connection or try again shortly.'
     };
   }
 };

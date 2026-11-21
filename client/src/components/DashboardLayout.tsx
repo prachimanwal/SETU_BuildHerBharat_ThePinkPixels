@@ -4,6 +4,7 @@ import { Menu, ChevronDown, User as UserIcon, Award, Settings, LogOut } from 'lu
 import { useAuth } from '../context/AuthContext';
 import { Sidebar } from './Sidebar';
 import { Footer } from './Footer';
+import { UserAvatar } from './UserAvatar';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -48,13 +49,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
     if (p.startsWith('/employer')) return 'Employer Desk';
     if (p.startsWith('/admin')) return 'Administrator Console';
     return 'SETU Platform';
-  };
-
-  const getInitials = (name?: string) => {
-    if (!name) return 'U';
-    const parts = name.trim().split(' ');
-    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-    return name.slice(0, 2).toUpperCase();
   };
 
   const getRoleBadge = (role?: string) => {
@@ -104,17 +98,11 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
               aria-expanded={dropdownOpen}
               aria-haspopup="true"
             >
-              {user?.avatar ? (
-                <img
-                  src={user.avatar}
-                  alt={user.name}
-                  className="w-9 h-9 rounded-full object-cover ring-1 ring-[#FF5A1F]"
-                />
-              ) : (
-                <div className="w-9 h-9 rounded-full bg-[#FF5A1F] text-white font-bold text-xs flex items-center justify-center ring-1 ring-[#292929] shadow-sm">
-                  {getInitials(user?.name)}
-                </div>
-              )}
+              <UserAvatar
+                name={user?.name}
+                src={user?.profilePicture || user?.avatar}
+                size="md"
+              />
 
               <div className="text-left hidden md:block">
                 <div className="text-xs font-semibold text-[#F5F5F5] leading-tight">
@@ -139,19 +127,31 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
             {/* Dropdown Menu */}
             {dropdownOpen && (
               <div className="absolute right-0 mt-2 w-64 bg-[#151515] rounded-2xl shadow-2xl border border-[#292929] py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                <div className="px-4 py-3 border-b border-[#242424]">
-                  <p className="text-sm font-bold text-[#F5F5F5] truncate">
-                    {user?.name}
-                  </p>
-                  <p className="text-xs text-[#737373] truncate mt-0.5">
-                    {user?.email}
-                  </p>
-                  <div className="mt-2">
-                    <span
-                      className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${roleInfo.bg}`}
-                    >
-                      {roleInfo.text}
-                    </span>
+                <div className="px-4 py-3 border-b border-[#242424] flex items-center gap-3">
+                  <UserAvatar
+                    name={user?.name}
+                    src={user?.profilePicture || user?.avatar}
+                    size="md"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-[#F5F5F5] truncate">
+                      {user?.name}
+                    </p>
+                    <p className="text-xs text-[#737373] truncate mt-0.5">
+                      {user?.email}
+                    </p>
+                    <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+                      <span
+                        className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${roleInfo.bg}`}
+                      >
+                        {roleInfo.text}
+                      </span>
+                      {user?.authProvider === 'google' && (
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded border bg-blue-950/40 text-blue-300 border-blue-800/50">
+                          Google
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 

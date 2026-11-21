@@ -2,6 +2,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 import bcrypt from 'bcryptjs';
 
 export type UserRole = 'seeker' | 'employer' | 'admin';
+export type AuthProvider = 'local' | 'google' | 'demo';
 
 export interface ISeekerProfile {
   headline?: string;
@@ -47,11 +48,18 @@ export interface IEmployerProfile {
 export interface IUser extends Document {
   _id: mongoose.Types.ObjectId;
   name: string;
+  fullName?: string;
   email: string;
-  passwordHash: string;
+  passwordHash?: string;
   role: UserRole;
   avatar?: string;
+  profilePicture?: string;
   googleId?: string;
+  authProvider: AuthProvider;
+  emailVerified: boolean;
+  isDemoAccount: boolean;
+  profileCompletion: number;
+  lastLogin?: Date;
   seekerProfile?: ISeekerProfile;
   employerProfile?: IEmployerProfile;
   createdAt: Date;
@@ -62,6 +70,7 @@ export interface IUser extends Document {
 const UserSchema = new Schema<IUser>(
   {
     name: { type: String, required: true, trim: true },
+    fullName: { type: String, trim: true },
     email: {
       type: String,
       required: true,
@@ -70,7 +79,7 @@ const UserSchema = new Schema<IUser>(
       trim: true,
       index: true
     },
-    passwordHash: { type: String, required: true },
+    passwordHash: { type: String, required: false },
     role: {
       type: String,
       enum: ['seeker', 'employer', 'admin'],
@@ -78,7 +87,17 @@ const UserSchema = new Schema<IUser>(
       required: true
     },
     avatar: { type: String, default: '' },
-    googleId: { type: String, sparse: true },
+    profilePicture: { type: String, default: '' },
+    googleId: { type: String, unique: true, sparse: true, index: true },
+    authProvider: {
+      type: String,
+      enum: ['local', 'google', 'demo'],
+      default: 'local'
+    },
+    emailVerified: { type: Boolean, default: false },
+    isDemoAccount: { type: Boolean, default: false },
+    profileCompletion: { type: Number, default: 15, min: 0, max: 100 },
+    lastLogin: { type: Date },
     seekerProfile: {
       headline: { type: String, default: '' },
       phone: { type: String, default: '' },
@@ -87,8 +106,8 @@ const UserSchema = new Schema<IUser>(
         state: { type: String, default: '' },
         isRural: { type: Boolean, default: false }
       },
-      languages: { type: [String], default: ['Hindi', 'English'] },
-      educationLevel: { type: String, default: 'No formal degree' },
+      languages: { type: [String], default: [] },
+      educationLevel: { type: String, default: '' },
       qualifications: [
         {
           title: { type: String, required: true },
@@ -99,7 +118,7 @@ const UserSchema = new Schema<IUser>(
       skills: { type: [String], default: [] },
       experienceLevel: {
         type: String,
-        default: 'No previous experience / Fresher'
+        default: ''
       },
       careerGoals: { type: String, default: '' },
       interests: { type: [String], default: [] },
@@ -135,9 +154,31 @@ const UserSchema = new Schema<IUser>(
   { timestamps: true }
 );
 
+// Keep name/fullName and avatar/profilePicture synchronized
+UserSchema.pre('save', function () {
+  if (this.name && (!this.fullName || this.isModified('name'))) {
+    this.fullName = this.name;
+  } else if (this.fullName && !this.name) {
+    this.name = this.fullName;
+  }
+
+  if (this.isModified('profilePicture') && !this.isModified('avatar')) {
+    this.avatar = this.profilePicture || '';
+  } else if (this.isModified('avatar') && !this.isModified('profilePicture')) {
+    this.profilePicture = this.avatar || '';
+  } else if (this.avatar && !this.profilePicture) {
+    this.profilePicture = this.avatar;
+  } else if (this.profilePicture && !this.avatar) {
+    this.avatar = this.profilePicture;
+  }
+});
+
 UserSchema.methods.comparePassword = async function (
   candidatePassword: string
 ): Promise<boolean> {
+  if (!this.passwordHash) {
+    return false;
+  }
   return bcrypt.compare(candidatePassword, this.passwordHash);
 };
 

@@ -15,11 +15,10 @@ exports.loginSchema = zod_1.z.object({
     password: zod_1.z.string().min(1, 'Password is required')
 });
 exports.googleAuthSchema = zod_1.z.object({
-    credential: zod_1.z.string().optional(),
-    email: zod_1.z.string().trim().email().optional(),
-    name: zod_1.z.string().trim().optional(),
-    avatar: zod_1.z.string().optional(),
-    role: zod_1.z.enum(['seeker', 'employer']).optional()
+    credential: zod_1.z
+        .string({ required_error: 'Google authentication credential is required' })
+        .trim()
+        .min(1, 'Google authentication credential is required')
 });
 exports.profileUpdateSchema = zod_1.z.object({
     name: zod_1.z.string().trim().min(2).optional(),

@@ -1,12 +1,36 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { apiFetch } from '../utils/api';
 
+declare global {
+  interface Window {
+    google?: {
+      accounts?: {
+        id?: {
+          initialize: (config: Record<string, any>) => void;
+          renderButton: (parent: HTMLElement, options: Record<string, any>) => void;
+          prompt: (momentListener?: (notification: any) => void) => void;
+          disableAutoSelect: () => void;
+          cancel: () => void;
+        };
+      };
+    };
+  }
+}
+
 export interface User {
   id: string;
   name: string;
+  fullName?: string;
   email: string;
   role: 'seeker' | 'employer' | 'admin';
   avatar?: string;
+  profilePicture?: string;
+  authProvider?: 'local' | 'google' | 'demo';
+  emailVerified?: boolean;
+  isDemoAccount?: boolean;
+  profileCompletion?: number;
+  lastLogin?: string;
+  createdAt?: string;
   seekerProfile?: {
     headline?: string;
     phone?: string;
@@ -48,12 +72,21 @@ export interface User {
   };
 }
 
+interface AuthResult {
+  success: boolean;
+  user?: User;
+  isNewUser?: boolean;
+  error?: string;
+}
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  loginWithGoogle: (data: { credential?: string; email?: string; name?: string; avatar?: string; role?: string }) => Promise<{ success: boolean; error?: string }>;
-  register: (data: any) => Promise<{ success: boolean; error?: string }>;
+  sessionNotice: string;
+  clearSessionNotice: () => void;
+  login: (email: string, password: string) => Promise<AuthResult>;
+  loginWithGoogle: (credential: string) => Promise<AuthResult>;
+  register: (data: any) => Promise<AuthResult>;
   logout: () => Promise<void>;
   updateProfile: (data: any) => Promise<{ success: boolean; error?: string }>;
   refreshUser: () => Promise<void>;
@@ -61,9 +94,12 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const SESSION_MARKER_KEY = 'setu_had_session';
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [sessionNotice, setSessionNotice] = useState<string>('');
 
   const extractUser = (resData: any): User | null => {
     if (!resData) return null;
@@ -80,13 +116,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const fetchCurrentUser = async () => {
+    const hadPriorSession =
+      Boolean(localStorage.getItem('setu_auth_token')) ||
+      sessionStorage.getItem(SESSION_MARKER_KEY) === '1';
+
     try {
       const res = await apiFetch('/api/auth/me');
       if (res.ok && res.data) {
         const u = extractUser(res.data);
         setUser(u);
+        if (u) {
+          sessionStorage.setItem(SESSION_MARKER_KEY, '1');
+        }
       } else {
         setUser(null);
+        if (res.status === 401) {
+          localStorage.removeItem('setu_auth_token');
+          sessionStorage.removeItem(SESSION_MARKER_KEY);
+          if (hadPriorSession) {
+            setSessionNotice(
+              res.error || 'Your authentication session has expired. Please sign in again.'
+            );
+          }
+        }
       }
     } catch {
       setUser(null);
@@ -99,15 +151,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     fetchCurrentUser();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const clearSessionNotice = () => setSessionNotice('');
+
+  const login = async (email: string, password: string): Promise<AuthResult> => {
     try {
+      setSessionNotice('');
       const res = await apiFetch('/api/auth/login', {
         method: 'POST',
         body: JSON.stringify({ email, password })
       });
 
       if (!res.ok) {
-        return { success: false, error: res.error || 'Login failed' };
+        return { success: false, error: res.error || 'Login failed. Please try again.' };
       }
 
       const userData = extractUser(res.data);
@@ -115,47 +170,78 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (token) {
         localStorage.setItem('setu_auth_token', token);
       }
+      sessionStorage.setItem(SESSION_MARKER_KEY, '1');
 
       setUser(userData);
-      return { success: true };
+      return { success: true, user: userData || undefined };
     } catch (err: any) {
-      return { success: false, error: err.message || 'Network error' };
+      return {
+        success: false,
+        error: err.message || 'Network connection failed. Please try again.'
+      };
     }
   };
 
-  const loginWithGoogle = async (data: { credential?: string; email?: string; name?: string; avatar?: string; role?: string }) => {
+  const loginWithGoogle = async (credential: string): Promise<AuthResult> => {
+    if (!credential || !credential.trim()) {
+      return {
+        success: false,
+        error: 'Google sign-in was cancelled or did not return a valid credential.'
+      };
+    }
+
     try {
+      setSessionNotice('');
       const res = await apiFetch('/api/auth/google', {
         method: 'POST',
-        body: JSON.stringify(data)
+        body: JSON.stringify({ credential })
       });
 
       if (!res.ok) {
-        return { success: false, error: res.error || 'Google sign-in failed' };
+        return {
+          success: false,
+          error: res.error || 'Google authentication failed. Please try again.'
+        };
       }
 
       const userData = extractUser(res.data);
+      if (!userData) {
+        return {
+          success: false,
+          error: 'Could not retrieve your verified account details. Please try again.'
+        };
+      }
+
       const token = extractToken(res.data);
       if (token) {
         localStorage.setItem('setu_auth_token', token);
       }
+      sessionStorage.setItem(SESSION_MARKER_KEY, '1');
 
       setUser(userData);
-      return { success: true };
+      return {
+        success: true,
+        user: userData,
+        isNewUser: Boolean(res.data?.data?.isNewUser)
+      };
     } catch (err: any) {
-      return { success: false, error: err.message || 'Network error' };
+      return {
+        success: false,
+        error: err.message || 'Network connection failed during Google sign-in. Please try again.'
+      };
     }
   };
 
-  const register = async (data: any) => {
+  const register = async (data: any): Promise<AuthResult> => {
     try {
+      setSessionNotice('');
       const res = await apiFetch('/api/auth/register', {
         method: 'POST',
         body: JSON.stringify(data)
       });
 
       if (!res.ok) {
-        return { success: false, error: res.error || 'Registration failed' };
+        return { success: false, error: res.error || 'Registration failed. Please try again.' };
       }
 
       const userData = extractUser(res.data);
@@ -163,11 +249,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (token) {
         localStorage.setItem('setu_auth_token', token);
       }
+      sessionStorage.setItem(SESSION_MARKER_KEY, '1');
 
       setUser(userData);
-      return { success: true };
+      return { success: true, user: userData || undefined };
     } catch (err: any) {
-      return { success: false, error: err.message || 'Network error' };
+      return {
+        success: false,
+        error: err.message || 'Network connection failed. Please try again.'
+      };
     }
   };
 
@@ -176,6 +266,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await apiFetch('/api/auth/logout', { method: 'POST' });
     } finally {
       localStorage.removeItem('setu_auth_token');
+      sessionStorage.removeItem(SESSION_MARKER_KEY);
+      setSessionNotice('');
+      try {
+        window.google?.accounts?.id?.disableAutoSelect();
+      } catch {
+        // Ignore if Google Identity Services script isn't loaded
+      }
       setUser(null);
     }
   };
@@ -207,7 +304,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, login, loginWithGoogle, register, logout, updateProfile, refreshUser }}
+      value={{
+        user,
+        loading,
+        sessionNotice,
+        clearSessionNotice,
+        login,
+        loginWithGoogle,
+        register,
+        logout,
+        updateProfile,
+        refreshUser
+      }}
     >
       {children}
     </AuthContext.Provider>

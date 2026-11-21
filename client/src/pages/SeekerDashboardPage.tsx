@@ -1,26 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   Award,
   BookOpen,
   FolderGit2,
   FileText,
   ArrowRight,
-  Briefcase,
   MapPin,
-  Clock,
-  ExternalLink,
   ChevronRight,
   CheckCircle2,
-  Calendar,
-  Sparkles
+  Sparkles,
+  Mail,
+  ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiFetch } from '../utils/api';
+import { UserAvatar } from '../components/UserAvatar';
 
 export const SeekerDashboardPage: React.FC = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
 
   const [progressData, setProgressData] = useState<any>(null);
   const [opportunities, setOpportunities] = useState<any[]>([]);
@@ -28,6 +26,10 @@ export const SeekerDashboardPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setProgressData(null);
+
     const fetchDashboard = async () => {
       try {
         const [progressRes, oppsRes, learnRes] = await Promise.all([
@@ -35,6 +37,8 @@ export const SeekerDashboardPage: React.FC = () => {
           apiFetch('/api/opportunities?limit=3'),
           apiFetch('/api/learning')
         ]);
+
+        if (!active) return;
 
         if (progressRes.ok && progressRes.data) {
           setProgressData(progressRes.data.data || progressRes.data);
@@ -53,29 +57,45 @@ export const SeekerDashboardPage: React.FC = () => {
       } catch (err) {
         console.error('Failed to load dashboard:', err);
       } finally {
-        setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchDashboard();
-  }, []);
+    if (user?.id) {
+      fetchDashboard();
+    } else {
+      setLoading(false);
+    }
+
+    return () => {
+      active = false;
+    };
+  }, [user?.id]);
 
   // Compute profile completion percentage dynamically
   const calculateProfilePct = () => {
     if (progressData?.profileCompletionPercentage !== undefined) {
       return progressData.profileCompletionPercentage;
     }
+    if (user?.profileCompletion !== undefined) {
+      return user.profileCompletion;
+    }
     const profile = user?.seekerProfile;
     let score = 0;
     if (user?.name) score += 10;
+    if (user?.profilePicture || user?.avatar) score += 5;
     if (profile?.headline && profile.headline.trim()) score += 15;
     if (profile?.location?.city && profile.location.city.trim()) score += 15;
     if (profile?.educationLevel && profile.educationLevel !== 'No formal degree') score += 15;
     if (profile?.skills && profile.skills.length > 0) score += 15;
     if (profile?.experienceLevel) score += 10;
-    if (profile?.phone && profile.phone.trim()) score += 10;
-    if (profile?.resumeUrl && profile.resumeUrl.trim()) score += 10;
-    return Math.min(100, Math.max(20, score));
+    if (profile?.languages && profile.languages.length > 0) score += 5;
+    if ((profile?.phone && profile.phone.trim()) || (profile?.resumeUrl && profile.resumeUrl.trim())) {
+      score += 10;
+    }
+    return Math.min(100, Math.max(10, score));
   };
 
   const profilePct = calculateProfilePct();
@@ -88,28 +108,66 @@ export const SeekerDashboardPage: React.FC = () => {
     );
   }
 
-  // Database Overview Counts
+  // Database Overview Counts (strictly scoped to the currently authenticated user)
   const skillsVerified = progressData?.skillsVerifiedCount ?? (progressData?.assessments?.skillsVerifiedCount ?? 0);
   const learningCompleted = progressData?.learning?.completedCount ?? 0;
+  const learningStarted = progressData?.learning?.startedCount ?? 0;
   const portfolioProjects = progressData?.portfolio?.totalCount ?? 0;
   const activeApplications = progressData?.applications?.total ?? 0;
+  const savedSkills: string[] =
+    progressData?.savedSkills ?? user?.seekerProfile?.skills ?? [];
+  const verifiedSkills: string[] = progressData?.verifiedSkills ?? [];
 
   // Recent Activity Feed
   const recentActivities = progressData?.recentActivity || [];
 
+  const roleLabel =
+    user?.role === 'employer'
+      ? 'Employer'
+      : user?.role === 'admin'
+      ? 'Administrator'
+      : 'Job Seeker';
+
   return (
     <div className="space-y-8 max-w-6xl mx-auto pb-8">
-      {/* SECTION A: Welcome Section */}
+      {/* SECTION A: Welcome Section with Real Authenticated User Identity */}
       <section className="bg-[#151515] rounded-2xl p-6 sm:p-7 border border-[#292929] shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-[#F5F5F5] tracking-tight">
-            Welcome back, {user?.name || 'Seeker'}!
-          </h2>
-          <p className="text-sm text-[#737373] mt-1">
-            Your journey towards better opportunities starts here.
-          </p>
+        <div className="flex items-center gap-4 min-w-0">
+          <UserAvatar
+            name={user?.name}
+            src={user?.profilePicture || user?.avatar}
+            size="xl"
+          />
+          <div className="min-w-0">
+            <h2 className="text-xl sm:text-2xl font-bold text-[#F5F5F5] tracking-tight truncate">
+              Welcome back, {user?.name || 'Member'}!
+            </h2>
+            <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs text-[#A3A3A3]">
+              <span className="inline-flex items-center gap-1.5 truncate">
+                <Mail className="w-3.5 h-3.5 text-[#737373] shrink-0" />
+                <span className="truncate">{user?.email}</span>
+              </span>
+              {user?.emailVerified && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-950/50 border border-emerald-800/50 text-emerald-400 text-[10px] font-semibold">
+                  <ShieldCheck className="w-3 h-3" />
+                  <span>Verified</span>
+                </span>
+              )}
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#1C1C1C] border border-[#292929] text-[#FF7847] text-[10px] font-semibold">
+                {roleLabel}
+              </span>
+              {user?.authProvider === 'google' && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-950/40 border border-blue-800/50 text-blue-300 text-[10px] font-semibold">
+                  Google Account
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-[#737373] mt-1.5">
+              Your journey towards better opportunities starts here.
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <Link
             to="/opportunities"
             className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#FF5A1F] hover:bg-[#FF7847] text-white shadow-[0_2px_12px_rgba(255,90,31,0.35)] text-xs font-semibold rounded-xl shadow-xs transition"
@@ -120,35 +178,75 @@ export const SeekerDashboardPage: React.FC = () => {
         </div>
       </section>
 
-      {/* SECTION B: Complete Your Profile */}
-      <section className="bg-[#151515] rounded-2xl p-6 sm:p-7 border border-[#292929] shadow-xl">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-base font-bold text-[#F5F5F5]">Complete Your Profile</h3>
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-100 text-[#FF7847]">
-                {profilePct}% Done
-              </span>
+      {/* SECTION B: Complete Your Profile & Saved Skills */}
+      <section className="bg-[#151515] rounded-2xl p-6 sm:p-7 border border-[#292929] shadow-xl space-y-5">
+        <div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold text-[#F5F5F5]">Complete Your Profile</h3>
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-950/60 border border-orange-800/50 text-[#FF7847]">
+                  {profilePct}% Done
+                </span>
+              </div>
+              <p className="text-xs text-[#737373] mt-1">
+                {profilePct < 100
+                  ? `Your profile is ${profilePct}% complete. Add your headline, location, education, and skills to unlock personalized job matches.`
+                  : 'Your SETU profile is 100% complete and ready for employer discovery!'}
+              </p>
             </div>
-            <p className="text-xs text-[#737373] mt-1">
-              Your profile is {profilePct}% complete. Complete your profile to receive better opportunity matches.
-            </p>
+            <Link
+              to="/profile"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#1C1C1C] hover:bg-[#252525] text-[#F5F5F5] border border-[#292929] text-xs font-medium rounded-xl transition shadow-xs shrink-0"
+            >
+              <span>{profilePct < 100 ? 'Complete Profile' : 'Edit Profile'}</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
-          <Link
-            to="/profile"
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#1C1C1C] hover:bg-[#252525] text-[#F5F5F5] border border-[#292929] text-xs font-medium rounded-xl transition shadow-xs shrink-0"
-          >
-            <span>Complete Profile</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </Link>
+
+          {/* Dynamic Progress Bar */}
+          <div className="w-full bg-[#1C1C1C] h-2.5 rounded-full overflow-hidden">
+            <div
+              className="bg-gradient-to-r from-orange-500 to-amber-500 h-2.5 rounded-full transition-all duration-500 ease-out"
+              style={{ width: `${profilePct}%` }}
+            />
+          </div>
         </div>
 
-        {/* Dynamic Progress Bar */}
-        <div className="w-full bg-[#1C1C1C] h-2.5 rounded-full overflow-hidden">
-          <div
-            className="bg-gradient-to-r from-orange-500 to-amber-500 h-2.5 rounded-full transition-all duration-500 ease-out"
-            style={{ width: `${profilePct}%` }}
-          />
+        {/* Saved Skills Row */}
+        <div className="pt-4 border-t border-[#242424] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-[#D4D4D4]">Saved Skills</span>
+              <span className="text-[11px] text-[#737373]">({savedSkills.length})</span>
+            </div>
+            {savedSkills.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {savedSkills.map((skill, idx) => (
+                  <span
+                    key={`${skill}-${idx}`}
+                    className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-lg bg-[#1C1C1C] border border-[#292929] text-[#E5E5E5]"
+                  >
+                    {verifiedSkills.some((v) => v.toLowerCase() === skill.toLowerCase()) && (
+                      <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                    )}
+                    <span>{skill}</span>
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-[#737373]">
+                No skills saved yet. Add your practical skills so SETU can match you with verified opportunities.
+              </p>
+            )}
+          </div>
+          <Link
+            to="/profile?tab=skills"
+            className="text-xs font-semibold text-[#FF5A1F] hover:text-[#FF7847] inline-flex items-center gap-1 shrink-0"
+          >
+            <span>{savedSkills.length > 0 ? 'Manage Skills' : 'Add Skills'}</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
       </section>
 
@@ -156,7 +254,10 @@ export const SeekerDashboardPage: React.FC = () => {
       <section>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Card 1: Skills Verified */}
-          <div className="bg-[#151515] p-5 rounded-2xl border border-[#292929] shadow-md card-hover-effect">
+          <Link
+            to="/assess"
+            className="bg-[#151515] p-5 rounded-2xl border border-[#292929] hover:border-[#383838] shadow-md card-hover-effect block"
+          >
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-[#737373]">Skills Verified</span>
               <div className="w-8 h-8 rounded-xl bg-[#1C1C1C] flex items-center justify-center text-[#FF5A1F]">
@@ -167,27 +268,35 @@ export const SeekerDashboardPage: React.FC = () => {
               <span className="text-2xl font-bold text-[#F5F5F5]">{skillsVerified}</span>
               <span className="text-[11px] text-[#555555]">assessments passed</span>
             </div>
-          </div>
+          </Link>
 
-          {/* Card 2: Learning Completed */}
-          <div className="bg-[#151515] p-5 rounded-2xl border border-[#292929] shadow-md card-hover-effect">
+          {/* Card 2: Learning Progress */}
+          <Link
+            to="/learn"
+            className="bg-[#151515] p-5 rounded-2xl border border-[#292929] hover:border-[#383838] shadow-md card-hover-effect block"
+          >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-[#737373]">Learning Completed</span>
-              <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+              <span className="text-xs font-semibold text-[#737373]">Learning Progress</span>
+              <div className="w-8 h-8 rounded-xl bg-blue-950/50 flex items-center justify-center text-blue-400">
                 <BookOpen className="w-4 h-4" />
               </div>
             </div>
             <div className="mt-3 flex items-baseline gap-2">
               <span className="text-2xl font-bold text-[#F5F5F5]">{learningCompleted}</span>
-              <span className="text-[11px] text-[#555555]">modules completed</span>
+              <span className="text-[11px] text-[#555555]">
+                completed{learningStarted > 0 ? ` • ${learningStarted} active` : ''}
+              </span>
             </div>
-          </div>
+          </Link>
 
           {/* Card 3: Portfolio Projects */}
-          <div className="bg-[#151515] p-5 rounded-2xl border border-[#292929] shadow-md card-hover-effect">
+          <Link
+            to="/portfolio"
+            className="bg-[#151515] p-5 rounded-2xl border border-[#292929] hover:border-[#383838] shadow-md card-hover-effect block"
+          >
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-[#737373]">Portfolio Projects</span>
-              <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600">
+              <div className="w-8 h-8 rounded-xl bg-purple-950/50 flex items-center justify-center text-purple-400">
                 <FolderGit2 className="w-4 h-4" />
               </div>
             </div>
@@ -195,13 +304,16 @@ export const SeekerDashboardPage: React.FC = () => {
               <span className="text-2xl font-bold text-[#F5F5F5]">{portfolioProjects}</span>
               <span className="text-[11px] text-[#555555]">published projects</span>
             </div>
-          </div>
+          </Link>
 
-          {/* Card 4: Active Applications */}
-          <div className="bg-[#151515] p-5 rounded-2xl border border-[#292929] shadow-md card-hover-effect">
+          {/* Card 4: Job Applications */}
+          <Link
+            to="/applications"
+            className="bg-[#151515] p-5 rounded-2xl border border-[#292929] hover:border-[#383838] shadow-md card-hover-effect block"
+          >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-[#737373]">Active Applications</span>
-              <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+              <span className="text-xs font-semibold text-[#737373]">Job Applications</span>
+              <div className="w-8 h-8 rounded-xl bg-emerald-950/50 flex items-center justify-center text-emerald-400">
                 <FileText className="w-4 h-4" />
               </div>
             </div>
@@ -209,7 +321,7 @@ export const SeekerDashboardPage: React.FC = () => {
               <span className="text-2xl font-bold text-[#F5F5F5]">{activeApplications}</span>
               <span className="text-[11px] text-[#555555]">live submissions</span>
             </div>
-          </div>
+          </Link>
         </div>
       </section>
 

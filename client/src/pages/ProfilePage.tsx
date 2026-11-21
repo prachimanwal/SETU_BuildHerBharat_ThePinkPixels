@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { User, Award, Settings, CheckCircle, Save, Sparkles, Heart } from 'lucide-react';
+import { User, Award, Settings, CheckCircle, Save, ShieldCheck, Mail } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { UserAvatar } from '../components/UserAvatar';
 
 export const ProfilePage: React.FC = () => {
   const { user, updateProfile } = useAuth();
@@ -29,16 +30,52 @@ export const ProfilePage: React.FC = () => {
   const [headline, setHeadline] = useState(seeker.headline || '');
   const [phone, setPhone] = useState(seeker.phone || '');
   const [city, setCity] = useState(seeker.location?.city || '');
-  const [state, setState] = useState(seeker.location?.state || 'Haryana');
+  const [state, setState] = useState(seeker.location?.state || '');
   const [isRural, setIsRural] = useState(seeker.location?.isRural || false);
   const [educationLevel, setEducationLevel] = useState(seeker.educationLevel || 'No formal degree');
-  const [languages, setLanguages] = useState((seeker.languages || ['Hindi', 'English']).join(', '));
+  const [languages, setLanguages] = useState((seeker.languages || []).join(', '));
   const [skills, setSkills] = useState((seeker.skills || []).join(', '));
-  const [experienceLevel, setExperienceLevel] = useState(seeker.experienceLevel || 'No previous experience / Fresher');
+  const [experienceLevel, setExperienceLevel] = useState(
+    seeker.experienceLevel || 'No previous experience / Fresher'
+  );
   const [careerGoals, setCareerGoals] = useState(seeker.careerGoals || '');
   const [preferredWorkMode, setPreferredWorkMode] = useState<any>(seeker.preferredWorkMode || 'any');
   const [resumeUrl, setResumeUrl] = useState(seeker.resumeUrl || '');
   const [isCareerRestart, setIsCareerRestart] = useState(seeker.isCareerRestart || false);
+
+  // Sync form fields whenever authenticated user changes
+  useEffect(() => {
+    if (!user) return;
+    const sp = user.seekerProfile || {};
+    setName(user.name || '');
+    setHeadline(sp.headline || '');
+    setPhone(sp.phone || '');
+    setCity(sp.location?.city || '');
+    setState(sp.location?.state || '');
+    setIsRural(Boolean(sp.location?.isRural));
+    setEducationLevel(sp.educationLevel || 'No formal degree');
+    setLanguages((sp.languages || []).join(', '));
+    setSkills((sp.skills || []).join(', '));
+    setExperienceLevel(sp.experienceLevel || 'No previous experience / Fresher');
+    setCareerGoals(sp.careerGoals || '');
+    setPreferredWorkMode(sp.preferredWorkMode || 'any');
+    setResumeUrl(sp.resumeUrl || '');
+    setIsCareerRestart(Boolean(sp.isCareerRestart));
+  }, [user]);
+
+  const roleLabel =
+    user?.role === 'employer'
+      ? 'Employer'
+      : user?.role === 'admin'
+      ? 'Administrator'
+      : 'Job Seeker';
+
+  const authProviderLabel =
+    user?.authProvider === 'google'
+      ? 'Google Account'
+      : user?.authProvider === 'demo'
+      ? 'Demonstration Account'
+      : 'Email & Password';
 
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
@@ -148,6 +185,40 @@ export const ProfilePage: React.FC = () => {
         {/* TAB 1: My Profile */}
         {activeTab === 'profile' && (
           <div className="space-y-5">
+            {/* Authenticated User Identity & Profile Picture Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-xl bg-[#101010] border border-[#242424]">
+              <UserAvatar
+                name={user?.name}
+                src={user?.profilePicture || user?.avatar}
+                size="xl"
+              />
+              <div className="min-w-0 flex-1 space-y-1">
+                <h3 className="text-base font-bold text-[#F5F5F5] truncate">
+                  {user?.name || 'SETU Member'}
+                </h3>
+                <div className="flex flex-wrap items-center gap-2 text-xs text-[#A3A3A3]">
+                  <span className="inline-flex items-center gap-1.5 truncate">
+                    <Mail className="w-3.5 h-3.5 text-[#737373]" />
+                    <span className="truncate">{user?.email}</span>
+                  </span>
+                  {user?.emailVerified && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-950/50 border border-emerald-800/50 text-emerald-400 text-[10px] font-semibold">
+                      <ShieldCheck className="w-3 h-3" />
+                      <span>Verified Email</span>
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded border bg-[#1C1C1C] text-[#FF7847] border-[#292929]">
+                    {roleLabel}
+                  </span>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded border bg-blue-950/40 text-blue-300 border-blue-800/50">
+                    {authProviderLabel}
+                  </span>
+                </div>
+              </div>
+            </div>
+
             <h3 className="text-sm font-bold text-[#F5F5F5] uppercase tracking-wider pb-2 border-b border-[#222222]">
               Personal & Location Details
             </h3>
@@ -327,6 +398,41 @@ export const ProfilePage: React.FC = () => {
         {/* TAB 3: Account Settings */}
         {activeTab === 'settings' && (
           <div className="space-y-5">
+            {/* Connected Account Summary with Google Profile Picture */}
+            <div className="p-4 rounded-xl bg-[#101010] border border-[#242424] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5 min-w-0">
+                <UserAvatar
+                  name={user?.name}
+                  src={user?.profilePicture || user?.avatar}
+                  size="lg"
+                />
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-[#F5F5F5] truncate">{user?.name}</p>
+                  <p className="text-xs text-[#A3A3A3] truncate">{user?.email}</p>
+                  <div className="flex flex-wrap items-center gap-2 mt-1">
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded border bg-[#1C1C1C] text-[#FF7847] border-[#292929]">
+                      {roleLabel}
+                    </span>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded border bg-blue-950/40 text-blue-300 border-blue-800/50">
+                      Signed in via {authProviderLabel}
+                    </span>
+                    {user?.emailVerified && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded border bg-emerald-950/50 text-emerald-400 border-emerald-800/50">
+                        <ShieldCheck className="w-3 h-3" />
+                        <span>Verified</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              {user?.lastLogin && (
+                <div className="text-[11px] text-[#737373] sm:text-right shrink-0">
+                  <p className="font-semibold text-[#A3A3A3]">Last Sign-In</p>
+                  <p>{new Date(user.lastLogin).toLocaleString()}</p>
+                </div>
+              )}
+            </div>
+
             <h3 className="text-sm font-bold text-[#F5F5F5] uppercase tracking-wider pb-2 border-b border-[#222222]">
               Work Preferences & Support Options
             </h3>

@@ -9,45 +9,15 @@ const Opportunity_1 = require("../models/Opportunity");
 const LearningResource_1 = require("../models/LearningResource");
 const response_1 = require("../utils/response");
 const validators_1 = require("../utils/validators");
-const calculateProfileCompletion = (user) => {
-    const profile = user.seekerProfile || {};
-    let score = 0;
-    if (user.name && user.name.trim().length > 0)
-        score += 10;
-    if (profile.headline && profile.headline.trim().length > 0)
-        score += 15;
-    if (profile.location?.city && profile.location.city.trim().length > 0)
-        score += 15;
-    if (profile.educationLevel && profile.educationLevel !== 'No formal degree')
-        score += 15;
-    if (profile.skills && profile.skills.length > 0)
-        score += 15;
-    if (profile.experienceLevel && profile.experienceLevel.trim().length > 0)
-        score += 10;
-    if (profile.languages && profile.languages.length > 0)
-        score += 10;
-    if (profile.resumeUrl && profile.resumeUrl.trim().length > 0)
-        score += 10;
-    else if (profile.phone && profile.phone.trim().length > 0)
-        score += 10;
-    return Math.min(100, Math.max(15, score));
-};
-exports.calculateProfileCompletion = calculateProfileCompletion;
+const userSerializer_1 = require("../utils/userSerializer");
+Object.defineProperty(exports, "calculateProfileCompletion", { enumerable: true, get: function () { return userSerializer_1.calculateProfileCompletion; } });
 const getProfile = async (req, res) => {
     if (!req.user) {
         (0, response_1.sendError)(res, 'Authentication required', 401);
         return;
     }
     (0, response_1.sendSuccess)(res, 'User profile fetched successfully', {
-        user: {
-            id: req.user._id,
-            name: req.user.name,
-            email: req.user.email,
-            role: req.user.role,
-            avatar: req.user.avatar,
-            seekerProfile: req.user.seekerProfile,
-            employerProfile: req.user.employerProfile
-        }
+        user: (0, userSerializer_1.serializeUser)(req.user)
     });
 };
 exports.getProfile = getProfile;
@@ -64,10 +34,14 @@ const updateProfile = async (req, res) => {
         }
         const { name, avatar, seekerProfile, employerProfile } = parseResult.data;
         const user = req.user;
-        if (name)
+        if (name) {
             user.name = name;
-        if (avatar !== undefined)
+            user.fullName = name;
+        }
+        if (avatar !== undefined) {
             user.avatar = avatar;
+            user.profilePicture = avatar;
+        }
         if (user.role === 'seeker' && seekerProfile) {
             user.seekerProfile = {
                 ...user.seekerProfile,
@@ -82,18 +56,11 @@ const updateProfile = async (req, res) => {
                 verificationStatus: user.employerProfile?.verificationStatus || 'pending'
             };
         }
+        const completionPercentage = (0, userSerializer_1.calculateProfileCompletion)(user);
+        user.profileCompletion = completionPercentage;
         await user.save();
-        const completionPercentage = (0, exports.calculateProfileCompletion)(user);
         (0, response_1.sendSuccess)(res, 'Profile updated successfully', {
-            user: {
-                id: user._id,
-                name: user.name,
-                email: user.email,
-                role: user.role,
-                avatar: user.avatar,
-                seekerProfile: user.seekerProfile,
-                employerProfile: user.employerProfile
-            },
+            user: (0, userSerializer_1.serializeUser)(user),
             profileCompletionPercentage: completionPercentage
         });
     }
@@ -107,7 +74,7 @@ const getProfileCompletion = async (req, res) => {
         (0, response_1.sendError)(res, 'Authentication required', 401);
         return;
     }
-    const completionPercentage = (0, exports.calculateProfileCompletion)(req.user);
+    const completionPercentage = (0, userSerializer_1.calculateProfileCompletion)(req.user);
     (0, response_1.sendSuccess)(res, 'Profile completion calculated', {
         completionPercentage,
         message: `Your profile is ${completionPercentage}% complete. Complete your profile to receive better opportunity matches.`
@@ -239,7 +206,7 @@ const getDashboard = async (req, res) => {
         const recentActivity = recentActivityList
             .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
             .slice(0, 6);
-        const profileCompletionPercentage = (0, exports.calculateProfileCompletion)(req.user);
+        const profileCompletionPercentage = (0, userSerializer_1.calculateProfileCompletion)(req.user);
         // 7-Stage Journey calculation
         const profile = req.user.seekerProfile;
         const stage1_discover = !!(profile?.skills?.length && profile?.location?.city);
@@ -261,7 +228,9 @@ const getDashboard = async (req, res) => {
         const completedStagesCount = journeyStages.filter((s) => s.completed).length;
         const journeyPercentage = Math.round((completedStagesCount / 7) * 100);
         const dashboardData = {
+            user: (0, userSerializer_1.serializeUser)(req.user),
             profileCompletionPercentage,
+            savedSkills: req.user.seekerProfile?.skills || [],
             skillsVerifiedCount,
             verifiedSkills: passedDomains,
             learningCompletedCount: completedLearning.length,
@@ -280,10 +249,12 @@ const getDashboard = async (req, res) => {
             journeyPercentage,
             learning: {
                 startedCount: startedLearning.length,
-                completedCount: completedLearning.length
+                completedCount: completedLearning.length,
+                items: learningProgress.slice(0, 6)
             },
             portfolio: {
-                totalCount: portfolioProjects.length
+                totalCount: portfolioProjects.length,
+                recent: portfolioProjects.slice(0, 4)
             },
             assessments: {
                 totalAttempts: attempts.length,

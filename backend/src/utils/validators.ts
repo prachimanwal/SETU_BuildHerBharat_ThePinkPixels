@@ -15,11 +15,10 @@ export const loginSchema = z.object({
 });
 
 export const googleAuthSchema = z.object({
-  credential: z.string().optional(),
-  email: z.string().trim().email().optional(),
-  name: z.string().trim().optional(),
-  avatar: z.string().optional(),
-  role: z.enum(['seeker', 'employer']).optional()
+  credential: z
+    .string({ required_error: 'Google authentication credential is required' })
+    .trim()
+    .min(1, 'Google authentication credential is required')
 });
 
 export const profileUpdateSchema = z.object({

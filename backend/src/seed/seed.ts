@@ -42,10 +42,15 @@ export const seedDatabase = async () => {
     // 1. Demo Job Seeker: Priya Sharma
     const seeker = await User.create({
       name: 'Priya Sharma',
+      fullName: 'Priya Sharma',
       email: 'seeker@setu.demo',
       passwordHash: seekerPasswordHash,
       role: 'seeker',
+      authProvider: 'demo',
+      isDemoAccount: true,
+      emailVerified: true,
       avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150',
+      profilePicture: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150',
       seekerProfile: {
         headline: 'Canva Creative Designer | Social Media Support',
         phone: '+91 98765 43210',
@@ -76,9 +81,13 @@ export const seedDatabase = async () => {
     // 2. Pending Employer: BharatTech Innovations
     const pendingEmployer = await User.create({
       name: 'BharatTech Innovations',
+      fullName: 'BharatTech Innovations',
       email: 'pending@startup.demo',
       passwordHash: employerPasswordHash,
       role: 'employer',
+      authProvider: 'demo',
+      isDemoAccount: true,
+      emailVerified: true,
       employerProfile: {
         companyName: 'BharatTech Innovations',
         industry: 'Information Technology',
@@ -106,10 +115,15 @@ export const seedDatabase = async () => {
     // 3. Approved Employer: Gramin Digital Services Pvt Ltd
     const approvedEmployer = await User.create({
       name: 'Gramin Digital Services Pvt Ltd',
+      fullName: 'Gramin Digital Services Pvt Ltd',
       email: 'employer@techcorp.demo',
       passwordHash: employerPasswordHash,
       role: 'employer',
+      authProvider: 'demo',
+      isDemoAccount: true,
+      emailVerified: true,
       avatar: 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=150',
+      profilePicture: 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=150',
       employerProfile: {
         companyName: 'Gramin Digital Services Pvt Ltd',
         industry: 'Digital Content & Operations',
@@ -139,10 +153,15 @@ export const seedDatabase = async () => {
     // 4. Platform Administrator
     await User.create({
       name: 'SETU Platform Admin',
+      fullName: 'SETU Platform Admin',
       email: 'admin@setu.gov.in',
       passwordHash: adminPasswordHash,
       role: 'admin',
-      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150'
+      authProvider: 'demo',
+      isDemoAccount: true,
+      emailVerified: true,
+      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
+      profilePicture: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150'
     });
 
     console.log('[Seed] Users seeded. Seeding assessments...');

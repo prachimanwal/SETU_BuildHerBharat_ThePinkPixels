@@ -23,35 +23,41 @@ const app = express();
 // Trust reverse proxies (important for Render, Netlify, and secure cookies)
 app.set('trust proxy', 1);
 
-// Allowed frontend origins (Netlify, localhost, custom preview domains)
-const allowedOrigins = [
-  ENV.CLIENT_URL,
-  'https://oursetu.netlify.app',
-  'http://localhost:5173',
-  'http://localhost:3000',
-  'http://127.0.0.1:5173'
-];
+// Allowed frontend origins (Netlify, localhost, configured CLIENT_URLs)
+const allowedOrigins = Array.from(
+  new Set([
+    ...ENV.CLIENT_URLS,
+    'https://oursetu.netlify.app',
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://127.0.0.1:5173'
+  ])
+);
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
+      // Allow requests with no origin (e.g. curl, server-to-server, same-origin proxy)
       if (!origin) return callback(null, true);
 
+      const normalizedOrigin = origin.replace(/\/$/, '');
+      const isLocalOrigin =
+        /^http:\/\/localhost:\d+$/.test(normalizedOrigin) ||
+        /^http:\/\/127\.0\.0\.1:\d+$/.test(normalizedOrigin);
+
       const isAllowed =
-        allowedOrigins.includes(origin) ||
-        /\.netlify\.app$/.test(origin) ||
-        /^http:\/\/localhost:\d+$/.test(origin) ||
-        /^http:\/\/127\.0\.0\.1:\d+$/.test(origin);
+        allowedOrigins.includes(normalizedOrigin) ||
+        /^https:\/\/[a-z0-9-]+(--[a-z0-9-]+)?\.netlify\.app$/i.test(normalizedOrigin) ||
+        (ENV.NODE_ENV !== 'production' && isLocalOrigin);
 
       if (isAllowed) {
         callback(null, true);
       } else {
-        callback(null, true); // Allow all during demo/evaluator testing with credentials
+        callback(null, false);
       }
     },
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
   })
 );
