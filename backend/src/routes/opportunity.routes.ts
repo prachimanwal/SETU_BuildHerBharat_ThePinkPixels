@@ -5,7 +5,9 @@ import {
   createOpportunity,
   updateOpportunity,
   deleteOpportunity,
-  getMatchedOpportunities
+  getMatchedOpportunities,
+  getSavedOpportunities,
+  toggleSaveOpportunity
 } from '../controllers/opportunity.controller';
 import { authenticate, optionalAuthenticate } from '../middleware/auth.middleware';
 import { requireRole, requireApprovedEmployer } from '../middleware/role.middleware';
@@ -14,6 +16,9 @@ const router = Router();
 
 router.get('/', optionalAuthenticate, getOpportunities);
 router.get('/matched', authenticate, getMatchedOpportunities);
+router.get('/recommended', authenticate, getMatchedOpportunities);
+router.get('/saved', authenticate, getSavedOpportunities);
+router.post('/:id/save', authenticate, toggleSaveOpportunity);
 router.get('/:id', optionalAuthenticate, getOpportunityById);
 router.post(
   '/',

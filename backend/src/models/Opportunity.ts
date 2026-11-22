@@ -20,6 +20,13 @@ export interface IOpportunity extends Document {
   opportunityType: OpportunityType;
   stipendOrSalary: string;
   duration?: string;
+  experienceRequired?: string;
+  minEducationLevel?: string;
+  minAcademicPercentage?: number | null;
+  minCgpa?: number | null;
+  minCgpaScale?: number | null;
+  applicationDeadline?: string;
+  externalApplyUrl?: string;
   isCareerRestart: boolean;
   status: OpportunityStatus;
   moderationStatus: 'clean' | 'flagged' | 'hidden';
@@ -58,6 +65,13 @@ const OpportunitySchema = new Schema<IOpportunity>(
     },
     stipendOrSalary: { type: String, default: 'Competitive' },
     duration: { type: String, default: 'Full-Time' },
+    experienceRequired: { type: String, default: 'Fresher / Entry-Level Welcome' },
+    minEducationLevel: { type: String, default: '' },
+    minAcademicPercentage: { type: Number, default: null },
+    minCgpa: { type: Number, default: null },
+    minCgpaScale: { type: Number, default: 10 },
+    applicationDeadline: { type: String, default: '' },
+    externalApplyUrl: { type: String, default: '' },
     isCareerRestart: { type: Boolean, default: false, index: true },
     status: {
       type: String,

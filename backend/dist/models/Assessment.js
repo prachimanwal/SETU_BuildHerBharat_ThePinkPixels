@@ -44,16 +44,25 @@ const QuestionSchema = new mongoose_1.Schema({
     skillTested: { type: String, required: true }
 }, { _id: false });
 const AssessmentSchema = new mongoose_1.Schema({
+    slug: { type: String, unique: true, sparse: true, index: true },
     title: { type: String, required: true },
+    category: {
+        type: String,
+        enum: ['Technical', 'Professional', 'Creative', 'Aptitude'],
+        default: 'Technical',
+        index: true
+    },
     domain: { type: String, required: true, index: true },
     description: { type: String, required: true },
-    durationMinutes: { type: Number, default: 20 },
+    durationMinutes: { type: Number, default: 15 },
     passingScore: { type: Number, default: 70 },
     difficulty: {
         type: String,
         enum: ['Beginner', 'Intermediate', 'Advanced'],
         default: 'Beginner'
     },
+    skillsEvaluated: { type: [String], default: [] },
+    timed: { type: Boolean, default: true },
     questions: [QuestionSchema]
 }, { timestamps: true });
 exports.Assessment = mongoose_1.default.model('Assessment', AssessmentSchema);

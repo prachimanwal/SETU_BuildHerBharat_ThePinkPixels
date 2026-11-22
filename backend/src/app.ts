@@ -14,7 +14,9 @@ import { completeLearning } from './controllers/learning.controller';
 import {
   createOpportunity,
   updateOpportunity,
-  deleteOpportunity
+  deleteOpportunity,
+  getSavedOpportunities,
+  toggleSaveOpportunity
 } from './controllers/opportunity.controller';
 import {
   getEmployerDashboard,
@@ -125,6 +127,7 @@ app.put('/api/profile', authenticate, updateProfile);
 app.get('/api/profile/completion', authenticate, getProfileCompletion);
 app.get('/api/dashboard', authenticate, getDashboard);
 app.use('/api/opportunities', opportunityRoutes);
+app.use('/api/jobs', opportunityRoutes);
 app.use('/api/assessments', assessmentRoutes);
 app.use('/api/learning', learningRoutes);
 app.use('/api/portfolio', portfolioRoutes);
@@ -171,13 +174,9 @@ app.post('/api/seeker/learning/progress', authenticate, (req: AuthenticatedReque
   completeLearning(req, res);
 });
 
-app.get('/api/seeker/saved-opportunities', authenticate, (_req, res) => {
-  sendSuccess(res, 'Saved opportunities retrieved', []);
-});
+app.get('/api/seeker/saved-opportunities', authenticate, getSavedOpportunities);
 
-app.post('/api/seeker/saved-opportunities/toggle', authenticate, (_req, res) => {
-  sendSuccess(res, 'Bookmark updated', { saved: true });
-});
+app.post('/api/seeker/saved-opportunities/toggle', authenticate, toggleSaveOpportunity);
 
 app.post('/api/seeker/report', authenticate, async (req: AuthenticatedRequest, res) => {
   try {

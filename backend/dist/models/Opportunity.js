@@ -65,6 +65,13 @@ const OpportunitySchema = new mongoose_1.Schema({
     },
     stipendOrSalary: { type: String, default: 'Competitive' },
     duration: { type: String, default: 'Full-Time' },
+    experienceRequired: { type: String, default: 'Fresher / Entry-Level Welcome' },
+    minEducationLevel: { type: String, default: '' },
+    minAcademicPercentage: { type: Number, default: null },
+    minCgpa: { type: Number, default: null },
+    minCgpaScale: { type: Number, default: 10 },
+    applicationDeadline: { type: String, default: '' },
+    externalApplyUrl: { type: String, default: '' },
     isCareerRestart: { type: Boolean, default: false, index: true },
     status: {
         type: String,

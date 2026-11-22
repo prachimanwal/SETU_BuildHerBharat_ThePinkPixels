@@ -6,12 +6,23 @@ export interface EducationEntry {
   degree?: string;
   specialization?: string;
   institution?: string;
+  schoolName?: string;
+  board?: string;
+  duration?: string;
+  currentYear?: string;
+  currentSemester?: string;
   currentYearOrSemester?: string;
   expectedGraduationYear?: string;
   graduationYear?: string;
   classCompleted?: string;
   stream?: string;
   status?: string;
+  scoreType?: 'Percentage' | 'CGPA' | 'Grade' | '';
+  percentage?: number | null;
+  cgpa?: number | null;
+  cgpaScale?: number | null;
+  grade?: string;
+  gradingSystem?: string;
 }
 
 export interface DetailedSkill {

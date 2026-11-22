@@ -58,7 +58,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
     if (p.startsWith('/onboarding')) return 'Career Profile Builder';
     if (p.startsWith('/opportunities')) return 'Opportunities';
     if (p.startsWith('/schemes')) return 'Government Schemes';
-    if (p.startsWith('/build-her')) return 'Build Her Sanctuary';
+    if (p.startsWith('/build-her')) return 'Build Her';
     if (p.startsWith('/assess')) return 'Skill Assessments';
     if (p.startsWith('/learn')) return 'Learn & Practice';
     if (p.startsWith('/portfolio')) return 'My Portfolio';

@@ -2,11 +2,15 @@ import { Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { User } from '../models/User';
 import { Application } from '../models/Application';
+import { Assessment } from '../models/Assessment';
 import { AssessmentResult } from '../models/AssessmentResult';
 import { LearningProgress } from '../models/LearningProgress';
 import { Portfolio } from '../models/Portfolio';
 import { Opportunity } from '../models/Opportunity';
 import { LearningResource } from '../models/LearningResource';
+import { GovernmentScheme } from '../models/GovernmentScheme';
+import { scoreOpportunityForUser } from './opportunity.controller';
+import { evaluateSchemeForUser } from './scheme.controller';
 import { sendSuccess, sendError } from '../utils/response';
 import { profileUpdateSchema } from '../utils/validators';
 import {
@@ -287,41 +291,85 @@ export const getDashboard = async (req: AuthenticatedRequest, res: Response): Pr
     // 4. Portfolio projects
     const portfolioProjects = await Portfolio.find({ userId }).sort({ createdAt: -1 });
 
-    // 5. Recommended opportunities based on user skills
-    const userSkills = (req.user.seekerProfile?.skills || []).map((s) => s.toLowerCase());
+    // 5. Recommended opportunities using profile-weighted matching
+    const savedOppSet = new Set<string>(
+      (req.user.savedOpportunities || []).map((id) => id.toString())
+    );
+    const appliedOppSet = new Set<string>(
+      applications.map((app) => String((app.opportunityId as any)?._id || app.opportunityId))
+    );
     const allPublishedOpps = await Opportunity.find({
       status: 'published',
       moderationStatus: 'clean'
     })
       .sort({ createdAt: -1 })
-      .limit(10);
+      .limit(20);
 
     const recommendedOpportunities = allPublishedOpps
-      .map((opp) => {
-        const oppSkills = (opp.requiredSkills || []).map((s) => s.toLowerCase());
-        const matchingSkills = opp.requiredSkills.filter((s) =>
-          userSkills.includes(s.toLowerCase())
-        );
-        const matchScore =
-          oppSkills.length > 0 ? Math.round((matchingSkills.length / oppSkills.length) * 100) : 50;
-
-        return {
-          ...opp.toObject(),
-          matchScore,
-          matchingSkills
-        };
-      })
-      .sort((a, b) => b.matchScore - a.matchScore)
+      .map((opp) => scoreOpportunityForUser(opp, req.user, savedOppSet, appliedOppSet))
+      .sort((a, b) => (b.matchScore ?? 0) - (a.matchScore ?? 0))
       .slice(0, 3);
 
-    // 6. Recommended learning resources
-    const allResources = await LearningResource.find().limit(6);
+    // 6. Recommended learning resources prioritizing assessment gaps & interests
+    const allResources = await LearningResource.find().limit(20);
     const completedResourceIds = new Set(
-      completedLearning.map((p) => p.resourceId?.toString())
+      completedLearning.map((p) => String((p.resourceId as any)?._id || p.resourceId))
     );
+    const recentGaps = Array.from(
+      new Set(attempts.slice(0, 4).flatMap((att) => (Array.isArray(att.gaps) ? att.gaps : [])))
+    ).map((g) => g.toLowerCase());
+
     const recommendedLearning = allResources
       .filter((r) => !completedResourceIds.has(r._id.toString()))
-      .slice(0, 2);
+      .map((r) => {
+        const text = `${r.title} ${r.skillTag} ${(r.skillsGained || []).join(' ')} ${r.category}`.toLowerCase();
+        const gapMatch = recentGaps.find((g) => g.length >= 2 && text.includes(g));
+        return {
+          ...r.toObject(),
+          recommendationReason: gapMatch
+            ? `Strengthens your gap in ${gapMatch}`
+            : `Builds practical ${r.category || r.skillTag} skills`,
+          _rank: gapMatch ? 100 : 20
+        };
+      })
+      .sort((a, b) => b._rank - a._rank)
+      .slice(0, 3);
+
+    // 6b. Recommended government schemes based on user profile
+    const savedSchemeSet = new Set<string>(
+      (req.user.savedSchemes || []).map((id) => id.toString())
+    );
+    const allSchemes = await GovernmentScheme.find().limit(15);
+    const recommendedSchemes = allSchemes
+      .map((s) => evaluateSchemeForUser(s, req.user, savedSchemeSet))
+      .filter((s) => s.eligibilityStatus !== 'Not Eligible Based on Available Information')
+      .sort((a, b) => b.recommendationScore - a.recommendationScore)
+      .slice(0, 3);
+
+    // 6c. Recommended skill assessments prioritizing unverified skills
+    const passedAssessmentIds = new Set(passedAttempts.map((a) => String((a.assessmentId as any)?._id || a.assessmentId)));
+    const unverifiedSkillNames = (req.user.seekerProfile?.detailedSkills || [])
+      .filter((s) => !s.verified && s.source !== 'assessment_verified')
+      .map((s) => s.name.toLowerCase());
+    const allAssessments = await Assessment.find()
+      .select('title category domain difficulty durationMinutes passingScore skillsEvaluated')
+      .limit(35);
+
+    const recommendedAssessments = allAssessments
+      .filter((a) => !passedAssessmentIds.has(a._id.toString()))
+      .map((a) => {
+        const hay = `${a.title} ${a.domain} ${(a.skillsEvaluated || []).join(' ')}`.toLowerCase();
+        const matchedSkill = unverifiedSkillNames.find((sk) => sk.length >= 2 && hay.includes(sk));
+        return {
+          ...a.toObject(),
+          recommendationReason: matchedSkill
+            ? `Verify your "${matchedSkill}" skill`
+            : `Build verified ${a.category} credentials`,
+          _rank: matchedSkill ? 100 : a.category === 'Aptitude' ? 35 : 20
+        };
+      })
+      .sort((a, b) => b._rank - a._rank)
+      .slice(0, 3);
 
     // 7. Recent activity chronological feed
     const recentActivityList: Array<{
@@ -393,7 +441,33 @@ export const getDashboard = async (req: AuthenticatedRequest, res: Response): Pr
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
       .slice(0, 6);
 
-    const profileCompletionPercentage = calculateProfileCompletion(req.user);
+    const completionDetails = getProfileCompletionDetails(req.user);
+    const profileCompletionPercentage = completionDetails.completionPercentage;
+
+    // Explainable Career Readiness Guidance Score (transparent breakdown)
+    const verifiedDetailedCount = (req.user.seekerProfile?.detailedSkills || []).filter(
+      (s) => s.verified || s.source === 'assessment_verified'
+    ).length;
+    const effectiveVerifiedCount = Math.max(skillsVerifiedCount, verifiedDetailedCount);
+    const readinessScore = Math.min(
+      100,
+      Math.round(
+        profileCompletionPercentage * 0.35 +
+          Math.min(25, effectiveVerifiedCount * 10) +
+          Math.min(20, completedLearning.length * 7) +
+          Math.min(20, portfolioProjects.length * 10)
+      )
+    );
+    const careerReadiness = {
+      score: readinessScore,
+      label:
+        readinessScore >= 80
+          ? 'Strong Readiness'
+          : readinessScore >= 50
+          ? 'Building Momentum'
+          : 'Getting Started',
+      note: 'Guidance indicator combining your profile completeness (35%), verified skills (25%), completed learning (20%), and portfolio work (20%).'
+    };
 
     // 7-Stage Journey calculation
     const profile = req.user.seekerProfile;
@@ -425,18 +499,24 @@ export const getDashboard = async (req: AuthenticatedRequest, res: Response): Pr
     const dashboardData = {
       user: serializeUser(req.user),
       profileCompletionPercentage,
+      missingSections: completionDetails.missingSections,
+      careerReadiness,
       savedSkills: req.user.seekerProfile?.skills || [],
-      skillsVerifiedCount,
+      skillsVerifiedCount: effectiveVerifiedCount,
       verifiedSkills: passedDomains,
       learningCompletedCount: completedLearning.length,
       portfolioProjectsCount: portfolioProjects.length,
       activeApplicationsCount: applications.length,
+      savedOpportunitiesCount: savedOppSet.size,
+      savedSchemesCount: savedSchemeSet.size,
       applications: {
         total: applications.length,
         statusCounts,
         recent: applications.slice(0, 5)
       },
       recommendedOpportunities,
+      recommendedSchemes,
+      recommendedAssessments,
       recommendedLearning,
       recentActivity,
       interviewUpdates,
@@ -453,7 +533,7 @@ export const getDashboard = async (req: AuthenticatedRequest, res: Response): Pr
       },
       assessments: {
         totalAttempts: attempts.length,
-        skillsVerifiedCount
+        skillsVerifiedCount: effectiveVerifiedCount
       }
     };
 

@@ -1,39 +1,291 @@
 import { Request, Response } from 'express';
-import { GovernmentScheme } from '../models/GovernmentScheme';
+import { AuthenticatedRequest } from '../middleware/auth.middleware';
+import { GovernmentScheme, IGovernmentScheme } from '../models/GovernmentScheme';
 import { sendSuccess, sendError } from '../utils/response';
 import { schemeSchema } from '../utils/validators';
 
-export const getSchemes = async (req: Request, res: Response): Promise<void> => {
+export type EligibilityStatus =
+  | 'Likely Eligible'
+  | 'More Information Required'
+  | 'Not Eligible Based on Available Information'
+  | 'Eligibility Not Assessed';
+
+const calculateAgeFromDob = (dob?: string): number | null => {
+  if (!dob || !dob.trim()) return null;
+  const parsed = new Date(dob);
+  if (Number.isNaN(parsed.getTime())) return null;
+  const today = new Date();
+  let age = today.getFullYear() - parsed.getFullYear();
+  const monthDiff = today.getMonth() - parsed.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < parsed.getDate())) {
+    age--;
+  }
+  return age >= 0 && age <= 110 ? age : null;
+};
+
+export const evaluateSchemeForUser = (
+  scheme: IGovernmentScheme | any,
+  user: any,
+  savedSet: Set<string>
+) => {
+  const obj = typeof scheme.toObject === 'function' ? scheme.toObject() : { ...scheme };
+  const isSaved = savedSet.has(String(obj._id));
+
+  if (!user || !user.seekerProfile) {
+    return {
+      ...obj,
+      isSaved,
+      eligibilityStatus: 'Eligibility Not Assessed' as EligibilityStatus,
+      eligibilityExplanation:
+        'Sign in and complete your SETU profile to see a personalized eligibility hint. Always confirm final criteria on the official portal.',
+      recommendationScore: 10
+    };
+  }
+
+  const sp = user.seekerProfile;
+  const rules = obj.eligibilityRules || {};
+  const age = calculateAgeFromDob(sp.dateOfBirth);
+
+  const eduEntries = Array.isArray(sp.education) ? sp.education : [];
+  const eduString = [
+    sp.educationLevel || '',
+    ...eduEntries.map((e: any) => `${e.level || ''} ${e.degree || ''} ${e.status || ''}`)
+  ]
+    .join(' ')
+    .toLowerCase();
+
+  const interests = Array.isArray(sp.interests) ? sp.interests : [];
+  const goals = Array.isArray(sp.careerGoalsList) ? sp.careerGoalsList : [];
+  const profileContext = [...interests, ...goals, sp.careerGoals || '', sp.bio || '']
+    .join(' ')
+    .toLowerCase();
+
+  let status: EligibilityStatus = 'Likely Eligible';
+  let score = 30;
+  const reasons: string[] = [];
+  const missingInfo: string[] = [];
+
+  // 1. Check strict age bounds if provided
+  if (typeof rules.minAge === 'number' || typeof rules.maxAge === 'number') {
+    if (age === null) {
+      missingInfo.push('Date of birth not added (optional) to verify age limits');
+    } else {
+      if (typeof rules.minAge === 'number' && age < rules.minAge) {
+        status = 'Not Eligible Based on Available Information';
+        score -= 40;
+        reasons.push(`Minimum age guideline is ${rules.minAge} years (profile indicates age ${age})`);
+      } else if (typeof rules.maxAge === 'number' && age > rules.maxAge) {
+        status = 'Not Eligible Based on Available Information';
+        score -= 40;
+        reasons.push(`Upper age guideline is ${rules.maxAge} years (profile indicates age ${age})`);
+      } else {
+        score += 15;
+        reasons.push(`Age (${age}) fits the stated age window`);
+      }
+    }
+  }
+
+  // 2. Check education alignment
+  const requiredEdu: string[] = Array.isArray(rules.educationLevels) ? rules.educationLevels : [];
+  if (requiredEdu.length > 0) {
+    if (!eduString.trim()) {
+      missingInfo.push('Add your educational qualifications to check qualification fit');
+    } else {
+      const eduMatched = requiredEdu.some((lvl) => eduString.includes(lvl.toLowerCase()));
+      if (eduMatched) {
+        score += 20;
+        reasons.push('Matches your educational qualification level');
+      } else if (
+        obj.slug === 'nats-apprenticeship' &&
+        (eduString.includes('class 10') || eduString.includes('class 12')) &&
+        !eduString.includes('diploma') &&
+        !eduString.includes('graduate')
+      ) {
+        status = 'Not Eligible Based on Available Information';
+        score -= 25;
+        reasons.push('NATS requires a completed Diploma or Degree qualification');
+      } else {
+        missingInfo.push('Confirm whether your specific qualification matches scheme guidelines');
+      }
+    }
+  }
+
+  // 3. Domain / Goal / Rural / Women / Entrepreneurship alignment
+  if (rules.entrepreneurshipFocused) {
+    if (
+      profileContext.includes('business') ||
+      profileContext.includes('entrepreneur') ||
+      profileContext.includes('startup') ||
+      profileContext.includes('freelance') ||
+      profileContext.includes('self')
+    ) {
+      score += 25;
+      reasons.push('Aligned with your entrepreneurship or business goals');
+    } else {
+      missingInfo.push('Intended for entrepreneurs or self-employment ventures');
+    }
+  }
+
+  if (rules.studentFriendly) {
+    const jobTypes = sp.employmentPreferences?.jobTypes || [];
+    const wantsInternship =
+      jobTypes.some((t: string) => t.toLowerCase().includes('intern') || t.toLowerCase().includes('apprentice')) ||
+      eduString.includes('student') ||
+      eduString.includes('pursuing') ||
+      profileContext.includes('first job') ||
+      profileContext.includes('skill');
+    if (wantsInternship) {
+      score += 22;
+      reasons.push('Strong fit for students, freshers, or skill-building goals');
+    }
+  }
+
+  if (rules.ruralFocused && sp.location?.isRural) {
+    score += 20;
+    reasons.push('Relevant to rural employment & livelihood profiles');
+  }
+
+  if (rules.womenFocused) {
+    missingInfo.push('Includes women-focused or category-specific eligibility criteria — verify on official portal');
+  }
+
+  if (obj.slug === 'pm-internship-scheme') {
+    missingInfo.push('Official income and full-time employment exclusions must be verified on pminternship.mca.gov.in');
+  }
+
+  // Final status resolution
+  if (status !== 'Not Eligible Based on Available Information') {
+    if (eduEntries.length === 0 && interests.length === 0 && goals.length === 0) {
+      status = 'Eligibility Not Assessed';
+    } else if (missingInfo.length > 0 && reasons.length === 0) {
+      status = 'More Information Required';
+    } else if (missingInfo.length > 0 && (rules.womenFocused || obj.slug === 'pm-internship-scheme')) {
+      status = 'More Information Required';
+    } else {
+      status = 'Likely Eligible';
+    }
+  }
+
+  const explanationParts = [...reasons, ...missingInfo].slice(0, 2);
+  return {
+    ...obj,
+    isSaved,
+    eligibilityStatus: status,
+    eligibilityExplanation:
+      explanationParts.length > 0
+        ? `${explanationParts.join('. ')}. Please verify final terms on the official portal.`
+        : 'Matches general citizen eligibility guidelines. Confirm details on the official portal.',
+    recommendationScore: Math.max(0, score)
+  };
+};
+
+export const getSchemes = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { category, audience, query } = req.query;
+    const { category, audience, query, search } = req.query;
     const filter: any = {};
 
-    if (category && category !== 'all') {
-      filter.category = category;
+    if (category && category !== 'all' && category !== 'All') {
+      filter.category = String(category);
     }
 
     if (audience && audience !== 'all') {
-      filter.targetAudience = new RegExp(audience as string, 'i');
+      filter.targetAudience = new RegExp(
+        String(audience).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+        'i'
+      );
     }
 
-    if (query && typeof query === 'string') {
-      const qRegex = new RegExp(query.trim(), 'i');
+    const qText = String(query || search || '').trim();
+    if (qText) {
+      const qRegex = new RegExp(qText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
       filter.$or = [
         { title: qRegex },
+        { hindiTitle: qRegex },
         { ministry: qRegex },
+        { description: qRegex },
         { benefitsSummary: qRegex },
-        { eligibilitySummary: qRegex }
+        { eligibilitySummary: qRegex },
+        { targetAudience: qRegex }
       ];
     }
 
     const schemes = await GovernmentScheme.find(filter).sort({ createdAt: 1 });
-    sendSuccess(res, 'Government schemes retrieved successfully', schemes);
+    const savedSet = new Set<string>(
+      (req.user?.savedSchemes || []).map((id) => id.toString())
+    );
+
+    const enriched = schemes.map((s) => evaluateSchemeForUser(s, req.user, savedSet));
+    sendSuccess(res, 'Government schemes retrieved successfully', enriched);
   } catch (error: any) {
     sendError(res, error.message || 'Failed to fetch government schemes', 500);
   }
 };
 
-export const getSchemeById = async (req: Request, res: Response): Promise<void> => {
+export const getRecommendedSchemes = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const schemes = await GovernmentScheme.find();
+    const savedSet = new Set<string>(
+      (req.user?.savedSchemes || []).map((id) => id.toString())
+    );
+
+    const ranked = schemes
+      .map((s) => evaluateSchemeForUser(s, req.user, savedSet))
+      .filter((s) => s.eligibilityStatus !== 'Not Eligible Based on Available Information')
+      .sort((a, b) => b.recommendationScore - a.recommendationScore)
+      .slice(0, 6);
+
+    sendSuccess(res, 'Recommended government schemes retrieved', ranked);
+  } catch (error: any) {
+    sendError(res, error.message || 'Failed to compute scheme recommendations', 500);
+  }
+};
+
+export const toggleSaveScheme = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      sendError(res, 'Authentication required', 401);
+      return;
+    }
+
+    const { id } = req.params;
+    const scheme = await GovernmentScheme.findById(id);
+    if (!scheme) {
+      sendError(res, 'Government scheme not found', 404);
+      return;
+    }
+
+    const existing = Array.isArray(req.user.savedSchemes) ? req.user.savedSchemes : [];
+    const idx = existing.findIndex((sId) => sId.toString() === scheme._id.toString());
+    let saved = false;
+
+    if (idx >= 0) {
+      existing.splice(idx, 1);
+      saved = false;
+    } else {
+      existing.push(scheme._id);
+      saved = true;
+    }
+
+    req.user.savedSchemes = existing;
+    await req.user.save();
+
+    sendSuccess(res, saved ? 'Scheme saved to your bookmarks' : 'Scheme removed from bookmarks', {
+      schemeId: scheme._id,
+      saved,
+      savedCount: existing.length
+    });
+  } catch (error: any) {
+    sendError(res, error.message || 'Failed to update saved scheme', 500);
+  }
+};
+
+export const getSchemeById = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const scheme = await GovernmentScheme.findById(id);
@@ -43,7 +295,10 @@ export const getSchemeById = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    sendSuccess(res, 'Scheme details retrieved', scheme);
+    const savedSet = new Set<string>(
+      (req.user?.savedSchemes || []).map((sid) => sid.toString())
+    );
+    sendSuccess(res, 'Scheme details retrieved', evaluateSchemeForUser(scheme, req.user, savedSet));
   } catch (error: any) {
     sendError(res, error.message || 'Failed to retrieve scheme', 500);
   }

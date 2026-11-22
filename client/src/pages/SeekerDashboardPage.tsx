@@ -11,131 +11,126 @@ import {
   CheckCircle2,
   Sparkles,
   Mail,
-  ShieldCheck
+  ShieldCheck,
+  Landmark,
+  Briefcase,
+  GraduationCap,
+  TrendingUp,
+  RefreshCw,
+  AlertCircle,
+  Bookmark,
+  ExternalLink
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { apiFetch, extractArray, unwrapData } from '../utils/api';
+import { apiFetch, extractArray, formatLocation, unwrapData } from '../utils/api';
 import { UserAvatar } from '../components/UserAvatar';
+import { formatAcademicScore, formatEducationTitle } from '../utils/educationHelpers';
 
 export const SeekerDashboardPage: React.FC = () => {
   const { user } = useAuth();
 
-  const [progressData, setProgressData] = useState<any>(null);
-  const [opportunities, setOpportunities] = useState<any[]>([]);
-  const [learningItems, setLearningItems] = useState<any[]>([]);
+  const [dashboard, setDashboard] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
-  useEffect(() => {
-    let active = true;
+  const fetchDashboard = async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
-    setProgressData(null);
-
-    const fetchDashboard = async () => {
-      try {
-        const [progressRes, oppsRes, learnRes] = await Promise.all([
-          apiFetch('/api/dashboard'),
-          apiFetch('/api/opportunities?limit=3'),
-          apiFetch('/api/learning')
-        ]);
-
-        if (!active) return;
-
-        if (progressRes.ok && progressRes.data) {
-          setProgressData(unwrapData(progressRes.data));
-        }
-
-        if (oppsRes.ok && oppsRes.data) {
-          setOpportunities(extractArray(oppsRes.data, ['results']).slice(0, 3));
-        }
-
-        if (learnRes.ok && learnRes.data) {
-          setLearningItems(extractArray(learnRes.data, ['resources', 'results']).slice(0, 2));
-        }
-      } catch (err) {
-        console.error('Failed to load dashboard:', err);
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
+    setLoadError('');
+    try {
+      const res = await apiFetch('/api/dashboard');
+      if (res.ok && res.data) {
+        setDashboard(unwrapData(res.data));
+      } else {
+        setDashboard(null);
+        setLoadError(res.error || 'Could not load your personalized dashboard right now.');
       }
-    };
-
-    if (user?.id) {
-      fetchDashboard();
-    } else {
+    } catch (err: any) {
+      setDashboard(null);
+      setLoadError(err?.message || 'Unable to connect to SETU Dashboard API.');
+    } finally {
       setLoading(false);
     }
-
-    return () => {
-      active = false;
-    };
-  }, [user?.id]);
-
-  // Compute profile completion percentage dynamically
-  const calculateProfilePct = () => {
-    if (progressData?.profileCompletionPercentage !== undefined) {
-      return progressData.profileCompletionPercentage;
-    }
-    if (user?.profileCompletion !== undefined) {
-      return user.profileCompletion;
-    }
-    const profile = user?.seekerProfile;
-    let score = 0;
-    if (user?.name) score += 10;
-    if (user?.profilePicture || user?.avatar) score += 5;
-    if (profile?.headline && profile.headline.trim()) score += 15;
-    if (profile?.location?.city && profile.location.city.trim()) score += 15;
-    if (profile?.educationLevel && profile.educationLevel !== 'No formal degree') score += 15;
-    if (profile?.skills && profile.skills.length > 0) score += 15;
-    if (profile?.experienceLevel) score += 10;
-    if (profile?.languages && profile.languages.length > 0) score += 5;
-    if ((profile?.phone && profile.phone.trim()) || (profile?.resumeUrl && profile.resumeUrl.trim())) {
-      score += 10;
-    }
-    return Math.min(100, Math.max(10, score));
   };
 
-  const profilePct = calculateProfilePct();
+  useEffect(() => {
+    fetchDashboard();
+  }, [user?.id, user?.profileCompletion]);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="animate-spin w-8 h-8 border-4 border-[#3B9EE8] border-t-transparent rounded-full" />
+      <div className="max-w-6xl mx-auto space-y-6 pb-8 animate-pulse">
+        <div className="h-32 bg-white rounded-3xl border border-[#D8ECFA]" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((n) => (
+            <div key={n} className="h-28 bg-white rounded-2xl border border-[#D8ECFA]" />
+          ))}
+        </div>
+        <div className="h-56 bg-white rounded-3xl border border-[#D8ECFA]" />
       </div>
     );
   }
 
-  // Database Overview Counts (strictly scoped to the currently authenticated user)
-  const skillsVerified = progressData?.skillsVerifiedCount ?? (progressData?.assessments?.skillsVerifiedCount ?? 0);
-  const learningCompleted = progressData?.learning?.completedCount ?? 0;
-  const learningStarted = progressData?.learning?.startedCount ?? 0;
-  const portfolioProjects = progressData?.portfolio?.totalCount ?? 0;
-  const activeApplications = progressData?.applications?.total ?? 0;
-  const savedSkills: string[] = Array.isArray(progressData?.savedSkills)
-    ? progressData.savedSkills
-    : Array.isArray(user?.seekerProfile?.skills)
-    ? user.seekerProfile.skills
-    : [];
-  const verifiedSkills: string[] = Array.isArray(progressData?.verifiedSkills)
-    ? progressData.verifiedSkills
+  if (loadError) {
+    return (
+      <div className="max-w-3xl mx-auto bg-white rounded-3xl border border-rose-200 p-8 text-center space-y-3 shadow-baby-sm">
+        <AlertCircle className="w-10 h-10 text-rose-500 mx-auto" />
+        <h2 className="text-lg font-bold text-[#334155]">Could Not Load Dashboard</h2>
+        <p className="text-xs text-[#64748B]">{loadError}</p>
+        <button
+          type="button"
+          onClick={fetchDashboard}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] text-[#1E3A5F] text-xs font-bold shadow-baby-sm"
+        >
+          <RefreshCw className="w-4 h-4" />
+          <span>Retry</span>
+        </button>
+      </div>
+    );
+  }
+
+  const sp = user?.seekerProfile || {};
+  const profilePct =
+    dashboard?.profileCompletionPercentage ?? user?.profileCompletion ?? 15;
+  const missingSections: string[] = Array.isArray(dashboard?.missingSections)
+    ? dashboard.missingSections
+    : Array.isArray(user?.missingSections)
+    ? user.missingSections
     : [];
 
-  // Recent Activity Feed
-  const recentActivities = Array.isArray(progressData?.recentActivity)
-    ? progressData.recentActivity
-    : [];
+  const skillsVerified = dashboard?.skillsVerifiedCount ?? 0;
+  const learningCompleted = dashboard?.learningCompletedCount ?? 0;
+  const learningStarted = dashboard?.learning?.startedCount ?? 0;
+  const portfolioProjects = dashboard?.portfolioProjectsCount ?? 0;
+  const activeApplications = dashboard?.activeApplicationsCount ?? 0;
+  const savedTotal =
+    (dashboard?.savedOpportunitiesCount ?? 0) + (dashboard?.savedSchemesCount ?? 0);
 
-  const roleLabel =
-    user?.role === 'employer'
-      ? 'Employer'
-      : user?.role === 'admin'
-      ? 'Administrator'
-      : 'Job Seeker';
+  const detailedSkills = Array.isArray(sp.detailedSkills) ? sp.detailedSkills : [];
+  const fallbackSkills: string[] = Array.isArray(sp.skills) ? sp.skills : [];
+  const educationList = Array.isArray(sp.education) ? sp.education : [];
+  const interests = Array.isArray(sp.interests) ? sp.interests : [];
+  const prefs = sp.employmentPreferences || {};
+
+  const recommendedJobs = extractArray(dashboard?.recommendedOpportunities);
+  const recommendedSchemes = extractArray(dashboard?.recommendedSchemes);
+  const recommendedAssessments = extractArray(dashboard?.recommendedAssessments);
+  const recommendedLearning = extractArray(dashboard?.recommendedLearning);
+  const journeyStages = extractArray(dashboard?.journeyStages);
+  const recentActivities = extractArray(dashboard?.recentActivity);
+  const readiness = dashboard?.careerReadiness || {
+    score: Math.round(profilePct * 0.35),
+    label: 'Getting Started',
+    note: 'Guidance indicator combining your profile completeness, verified skills, learning, and portfolio.'
+  };
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto pb-8">
-      {/* SECTION A: Welcome Section with Real Authenticated User Identity */}
-      <section className="bg-white rounded-2xl p-6 sm:p-7 border border-[#D8ECFA] shadow-baby flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-6 max-w-6xl mx-auto pb-10">
+      {/* Welcome Banner */}
+      <section className="bg-gradient-to-r from-[#EAF7FF] via-white to-[#D6EEFF]/70 rounded-3xl p-6 sm:p-8 border border-[#BDE0FE] shadow-baby flex flex-col sm:flex-row sm:items-center justify-between gap-5">
         <div className="flex items-center gap-4 min-w-0">
           <UserAvatar
             name={user?.name}
@@ -143,33 +138,39 @@ export const SeekerDashboardPage: React.FC = () => {
             size="xl"
           />
           <div className="min-w-0">
-            <h2 className="text-xl sm:text-2xl font-bold text-[#334155] tracking-tight truncate">
-              Welcome back, {user?.name || 'Member'}!
-            </h2>
-            <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs text-[#64748B]">
-              <span className="inline-flex items-center gap-1.5 truncate">
-                <Mail className="w-3.5 h-3.5 text-[#64748B] shrink-0" />
+            <h1 className="text-xl sm:text-2xl font-extrabold text-[#334155] font-display truncate">
+              Welcome Back, {user?.name || 'Member'}! 🩵
+            </h1>
+            <p className="text-xs sm:text-sm text-[#475569] mt-0.5 font-medium">
+              Your next opportunity is closer than you think.
+            </p>
+            <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-[#64748B]">
+              <span className="inline-flex items-center gap-1 truncate">
+                <Mail className="w-3.5 h-3.5 text-[#3B9EE8] shrink-0" />
                 <span className="truncate">{user?.email}</span>
               </span>
-              {user?.emailVerified && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 text-[10px] font-semibold">
-                  <ShieldCheck className="w-3 h-3" />
-                  <span>Verified</span>
+              {sp.location?.city && (
+                <span className="inline-flex items-center gap-1">
+                  <MapPin className="w-3.5 h-3.5 text-[#3B9EE8]" />
+                  <span>
+                    {[sp.location.city, sp.location.state].filter(Boolean).join(', ')}
+                  </span>
                 </span>
               )}
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#EAF7FF] border border-[#D8ECFA] text-[#2589D6] text-[10px] font-semibold">
-                {roleLabel}
-              </span>
             </div>
-            <p className="text-xs text-[#64748B] mt-1.5">
-              Your journey towards better opportunities starts here.
-            </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <Link
+            to={profilePct < 100 ? '/onboarding' : '/profile'}
+            className="px-4 py-2.5 rounded-2xl bg-white hover:bg-[#EAF7FF] text-[#1E3A5F] border border-[#BDE0FE] text-xs font-bold transition"
+          >
+            {profilePct < 100 ? 'Complete Profile' : 'Edit Profile'}
+          </Link>
           <Link
             to="/opportunities"
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] hover:from-[#8CC6FA] hover:to-[#A2D2FF] text-[#1E3A5F] shadow-baby-sm text-xs font-semibold rounded-xl shadow-xs transition"
+            className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] hover:from-[#8CC6FA] hover:to-[#A2D2FF] text-[#1E3A5F] shadow-baby-sm text-xs font-bold rounded-2xl transition"
           >
             <span>Explore Opportunities</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -177,353 +178,463 @@ export const SeekerDashboardPage: React.FC = () => {
         </div>
       </section>
 
-      {/* SECTION B: Complete Your Profile & Saved Skills */}
-      <section className="bg-white rounded-2xl p-6 sm:p-7 border border-[#D8ECFA] shadow-baby space-y-5">
-        <div>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+      {/* Profile Completion + Explainable Career Readiness */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <section className="lg:col-span-2 bg-white rounded-3xl p-6 border border-[#D8ECFA] shadow-baby-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-[#334155]">Complete Your Profile</h3>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#EAF7FF] border border-[#BDE0FE] text-[#2589D6]">
-                  {profilePct}% Done
+                <h2 className="text-base font-bold text-[#334155]">Your Career Overview</h2>
+                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-[#EAF7FF] text-[#1E3A5F] border border-[#BDE0FE]">
+                  {profilePct}% Profile Complete
                 </span>
               </div>
-              <p className="text-xs text-[#64748B] mt-1">
-                {profilePct < 100
-                  ? `Your profile is ${profilePct}% complete. Add your headline, location, education, and skills to unlock personalized job matches.`
-                  : 'Your SETU profile is 100% complete and ready for employer discovery!'}
-              </p>
+              {missingSections.length > 0 && (
+                <p className="text-[11px] text-[#64748B] mt-1">
+                  Add <strong className="text-[#334155]">{missingSections.join(' • ')}</strong> to
+                  sharpen your matches.
+                </p>
+              )}
             </div>
             <Link
-              to={profilePct < 100 ? '/onboarding' : '/profile'}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#EAF7FF] hover:bg-[#D6EEFF] text-[#1E3A5F] border border-[#BDE0FE] text-xs font-bold rounded-2xl transition shadow-baby-sm shrink-0"
+              to="/profile"
+              className="text-xs font-bold text-[#2589D6] hover:underline shrink-0"
             >
-              <span>{profilePct < 100 ? 'Complete Profile' : 'Edit Profile'}</span>
-              <ChevronRight className="w-3.5 h-3.5" />
+              Update Profile →
             </Link>
           </div>
 
-          {/* Dynamic Progress Bar */}
-          <div className="w-full bg-[#EAF7FF] h-2.5 rounded-full overflow-hidden">
+          <div className="w-full h-2.5 bg-[#EAF7FF] rounded-full overflow-hidden">
             <div
-              className="bg-gradient-to-r from-[#60B6F8] to-[#3B9EE8] h-2.5 rounded-full transition-all duration-500 ease-out"
+              className="h-full bg-gradient-to-r from-[#60B6F8] to-[#3B9EE8] rounded-full transition-all duration-500"
               style={{ width: `${profilePct}%` }}
             />
           </div>
-        </div>
 
-        {/* Saved Skills Row */}
-        <div className="pt-4 border-t border-[#EAF7FF] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-[#475569]">Saved Skills</span>
-              <span className="text-[11px] text-[#64748B]">({savedSkills.length})</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            {/* Education Snapshot */}
+            <div className="p-3.5 rounded-2xl bg-[#F8FCFF] border border-[#D8ECFA] space-y-1.5">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-[#1E3A5F]">
+                <GraduationCap className="w-4 h-4 text-[#3B9EE8]" />
+                <span>Education</span>
+              </div>
+              {educationList.length > 0 ? (
+                <div className="space-y-1">
+                  {educationList.slice(0, 2).map((ed, idx) => {
+                    const score = formatAcademicScore(ed);
+                    return (
+                      <div key={idx} className="text-xs text-[#334155]">
+                        <p className="font-semibold truncate">{formatEducationTitle(ed)}</p>
+                        {score && (
+                          <p className="text-[11px] text-[#2589D6] font-semibold">{score}</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-[#64748B]">
+                  Add your education &amp; percentage/CGPA in My Profile.
+                </p>
+              )}
             </div>
-            {savedSkills.length > 0 ? (
+
+            {/* Interests & Preferences */}
+            <div className="p-3.5 rounded-2xl bg-[#F8FCFF] border border-[#D8ECFA] space-y-1.5">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-[#1E3A5F]">
+                <Sparkles className="w-4 h-4 text-[#3B9EE8]" />
+                <span>Interests &amp; Preferences</span>
+              </div>
+              <p className="text-xs text-[#334155] line-clamp-2">
+                {interests.length > 0 ? interests.join(' • ') : 'No career interests selected yet'}
+              </p>
+              <p className="text-[11px] text-[#64748B]">
+                {(prefs.jobTypes || []).join(', ') || 'Open to opportunities'} •{' '}
+                {(prefs.workModes || []).join(', ') || 'Flexible work mode'}
+              </p>
+            </div>
+          </div>
+
+          {/* Skills Chips (Verified vs Self-Reported) */}
+          <div className="pt-2 border-t border-[#EAF7FF] space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-[#334155]">Your Top Skills</span>
+              <Link to="/assess" className="text-[11px] font-bold text-[#2589D6] hover:underline">
+                Verify via Assessments →
+              </Link>
+            </div>
+            {detailedSkills.length > 0 || fallbackSkills.length > 0 ? (
               <div className="flex flex-wrap gap-1.5">
-                {savedSkills.map((skill, idx) => (
-                  <span
-                    key={`${skill}-${idx}`}
-                    className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-lg bg-[#EAF7FF] border border-[#D8ECFA] text-[#334155]"
-                  >
-                    {verifiedSkills.some((v) => v.toLowerCase() === skill.toLowerCase()) && (
-                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                    )}
-                    <span>{skill}</span>
-                  </span>
-                ))}
+                {(detailedSkills.length > 0
+                  ? detailedSkills
+                  : fallbackSkills.map((name) => ({ name, verified: false, source: 'self_reported' }))
+                )
+                  .slice(0, 10)
+                  .map((sk: any, idx: number) => {
+                    const isVerified = Boolean(sk.verified || sk.source === 'assessment_verified');
+                    return (
+                      <span
+                        key={idx}
+                        className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full border ${
+                          isVerified
+                            ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                            : 'bg-[#F8FCFF] border-[#D8ECFA] text-[#475569]'
+                        }`}
+                      >
+                        {isVerified && <ShieldCheck className="w-3 h-3 text-emerald-600" />}
+                        <span>{sk.name}</span>
+                        <span className="text-[9px] opacity-75">
+                          {isVerified ? 'Verified' : 'Self-Reported'}
+                        </span>
+                      </span>
+                    );
+                  })}
               </div>
             ) : (
               <p className="text-xs text-[#64748B]">
-                No skills saved yet. Add your practical skills so SETU can match you with verified opportunities.
+                Add skills in your profile so SETU can personalize your assessments, learning, and job matches.
               </p>
             )}
           </div>
-          <Link
-            to="/profile?tab=skills"
-            className="text-xs font-semibold text-[#3B9EE8] hover:text-[#2589D6] inline-flex items-center gap-1 shrink-0"
-          >
-            <span>{savedSkills.length > 0 ? 'Manage Skills' : 'Add Skills'}</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-      </section>
+        </section>
 
-      {/* SECTION C: Quick Overview (4 small cards) */}
-      <section>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Card 1: Skills Verified */}
-          <Link
-            to="/assess"
-            className="bg-white p-5 rounded-2xl border border-[#D8ECFA] hover:border-[#A2D2FF] shadow-baby-sm card-hover-effect block"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-[#64748B]">Skills Verified</span>
-              <div className="w-8 h-8 rounded-xl bg-[#EAF7FF] flex items-center justify-center text-[#3B9EE8]">
-                <Award className="w-4 h-4" />
-              </div>
+        {/* Explainable Career Readiness Guidance Card */}
+        <section className="bg-gradient-to-b from-[#EAF7FF] to-white rounded-3xl p-6 border border-[#BDE0FE] shadow-baby-sm flex flex-col justify-between space-y-4">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#2589D6]">
+              <TrendingUp className="w-3.5 h-3.5" />
+              <span>Career Readiness Guidance</span>
             </div>
-            <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-[#334155]">{skillsVerified}</span>
-              <span className="text-[11px] text-[#64748B]">assessments passed</span>
-            </div>
-          </Link>
-
-          {/* Card 2: Learning Progress */}
-          <Link
-            to="/learn"
-            className="bg-white p-5 rounded-2xl border border-[#D8ECFA] hover:border-[#A2D2FF] shadow-baby-sm card-hover-effect block"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-[#64748B]">Learning Progress</span>
-              <div className="w-8 h-8 rounded-xl bg-[#EAF7FF] flex items-center justify-center text-blue-400">
-                <BookOpen className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-[#334155]">{learningCompleted}</span>
-              <span className="text-[11px] text-[#64748B]">
-                completed{learningStarted > 0 ? ` • ${learningStarted} active` : ''}
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl font-extrabold text-[#1E3A5F] font-display">
+                {readiness.score}%
+              </span>
+              <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-white border border-[#BDE0FE] text-[#1E3A5F]">
+                {readiness.label}
               </span>
             </div>
-          </Link>
+            <p className="text-[11px] text-[#64748B] leading-relaxed">{readiness.note}</p>
+          </div>
 
-          {/* Card 3: Portfolio Projects */}
-          <Link
-            to="/portfolio"
-            className="bg-white p-5 rounded-2xl border border-[#D8ECFA] hover:border-[#A2D2FF] shadow-baby-sm card-hover-effect block"
-          >
+          <div className="space-y-2 pt-3 border-t border-[#D8ECFA] text-xs">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-[#64748B]">Portfolio Projects</span>
-              <div className="w-8 h-8 rounded-xl bg-violet-50 flex items-center justify-center text-purple-400">
-                <FolderGit2 className="w-4 h-4" />
-              </div>
+              <span className="text-[#64748B]">Saved Bookmarks</span>
+              <span className="font-bold text-[#1E3A5F] inline-flex items-center gap-1">
+                <Bookmark className="w-3.5 h-3.5 text-[#3B9EE8]" />
+                {savedTotal}
+              </span>
             </div>
-            <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-[#334155]">{portfolioProjects}</span>
-              <span className="text-[11px] text-[#64748B]">published projects</span>
+            <div className="flex items-center justify-between">
+              <span className="text-[#64748B]">Journey Progress</span>
+              <span className="font-bold text-[#1E3A5F]">{dashboard?.journeyPercentage ?? 0}%</span>
             </div>
-          </Link>
+          </div>
+        </section>
+      </div>
 
-          {/* Card 4: Job Applications */}
-          <Link
-            to="/applications"
-            className="bg-white p-5 rounded-2xl border border-[#D8ECFA] hover:border-[#A2D2FF] shadow-baby-sm card-hover-effect block"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-[#64748B]">Job Applications</span>
-              <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
-                <FileText className="w-4 h-4" />
-              </div>
+      {/* 4 Key Stats */}
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Link
+          to="/assess"
+          className="bg-white p-5 rounded-3xl border border-[#D8ECFA] hover:border-[#60B6F8] shadow-baby-sm transition"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-[#64748B]">Verified Skills</span>
+            <div className="w-9 h-9 rounded-2xl bg-[#EAF7FF] flex items-center justify-center text-[#3B9EE8]">
+              <Award className="w-4 h-4" />
             </div>
-            <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-[#334155]">{activeApplications}</span>
-              <span className="text-[11px] text-[#64748B]">live submissions</span>
+          </div>
+          <p className="text-2xl font-extrabold text-[#334155] mt-3">{skillsVerified}</p>
+          <p className="text-[11px] text-[#64748B]">earned via assessments</p>
+        </Link>
+
+        <Link
+          to="/learn"
+          className="bg-white p-5 rounded-3xl border border-[#D8ECFA] hover:border-[#60B6F8] shadow-baby-sm transition"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-[#64748B]">Courses Completed</span>
+            <div className="w-9 h-9 rounded-2xl bg-[#EAF7FF] flex items-center justify-center text-[#2589D6]">
+              <BookOpen className="w-4 h-4" />
             </div>
-          </Link>
-        </div>
+          </div>
+          <p className="text-2xl font-extrabold text-[#334155] mt-3">{learningCompleted}</p>
+          <p className="text-[11px] text-[#64748B]">
+            {learningStarted > 0 ? `${learningStarted} in progress` : 'tutorials & assignments'}
+          </p>
+        </Link>
+
+        <Link
+          to="/portfolio"
+          className="bg-white p-5 rounded-3xl border border-[#D8ECFA] hover:border-[#60B6F8] shadow-baby-sm transition"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-[#64748B]">Portfolio Projects</span>
+            <div className="w-9 h-9 rounded-2xl bg-[#EAF7FF] flex items-center justify-center text-[#1E3A5F]">
+              <FolderGit2 className="w-4 h-4" />
+            </div>
+          </div>
+          <p className="text-2xl font-extrabold text-[#334155] mt-3">{portfolioProjects}</p>
+          <p className="text-[11px] text-[#64748B]">published work samples</p>
+        </Link>
+
+        <Link
+          to="/applications"
+          className="bg-white p-5 rounded-3xl border border-[#D8ECFA] hover:border-[#60B6F8] shadow-baby-sm transition"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-[#64748B]">Active Applications</span>
+            <div className="w-9 h-9 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+              <FileText className="w-4 h-4" />
+            </div>
+          </div>
+          <p className="text-2xl font-extrabold text-[#334155] mt-3">{activeApplications}</p>
+          <p className="text-[11px] text-[#64748B]">live submissions</p>
+        </Link>
       </section>
 
-      {/* SECTION D: Recommended Opportunities (2-3 cards max) */}
-      <section className="bg-white rounded-2xl p-6 sm:p-7 border border-[#D8ECFA] shadow-baby">
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <h3 className="text-base font-bold text-[#334155]">Recommended Opportunities</h3>
-            <p className="text-xs text-[#64748B] mt-0.5">
-              Verified roles matching your profile and verified strengths
-            </p>
+      {/* 1. Jobs For You 💼 */}
+      <section className="bg-white rounded-3xl p-6 border border-[#D8ECFA] shadow-baby-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Briefcase className="w-5 h-5 text-[#3B9EE8]" />
+            <h2 className="text-base font-extrabold text-[#334155] font-display">
+              Jobs For You 💼
+            </h2>
           </div>
           <Link
             to="/opportunities"
-            className="text-xs font-semibold text-[#3B9EE8] hover:text-[#2589D6] flex items-center gap-1"
+            className="text-xs font-bold text-[#2589D6] hover:underline inline-flex items-center gap-1"
           >
             <span>View All</span>
             <ChevronRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
-        {opportunities.length === 0 ? (
-          <p className="text-xs text-[#64748B] py-4 text-center">
-            No recommended opportunities available right now. Explore the Opportunities directory!
-          </p>
+        {recommendedJobs.length === 0 ? (
+          <div className="p-5 rounded-2xl bg-[#F8FCFF] border border-[#D8ECFA] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <p className="text-xs text-[#64748B]">
+              No live SETU employer vacancies posted right now. Browse verified Government of India
+              career &amp; apprenticeship portals (NCS, NATS, NAPS, PM Internship) on the
+              Opportunities page!
+            </p>
+            <Link
+              to="/opportunities"
+              className="px-4 py-2 rounded-2xl bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] text-[#1E3A5F] text-xs font-bold shrink-0 text-center"
+            >
+              Explore Portals
+            </Link>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {opportunities.map((opp) => (
-              <div
+            {recommendedJobs.map((opp: any) => (
+              <Link
                 key={opp._id}
-                className="flex flex-col justify-between p-4 rounded-xl border border-[#D8ECFA] bg-[#F8FCFF] hover:bg-[#EAF7FF] hover:border-[#A2D2FF] transition-all"
+                to="/opportunities"
+                className="p-4 rounded-2xl bg-[#F8FCFF] border border-[#D8ECFA] hover:border-[#60B6F8] transition flex flex-col justify-between space-y-3"
               >
-                <div>
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-[#EAF7FF] text-[#475569] capitalize">
-                      {opp.workMode || 'Hybrid'}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white border border-[#BDE0FE] text-[#1E3A5F] uppercase">
+                      {opp.opportunityType || 'Job'}
                     </span>
-                    <span className="text-[11px] font-bold text-[#475569]">
-                      {opp.stipendOrSalary || 'Competitive'}
-                    </span>
-                  </div>
-
-                  <h4 className="text-sm font-bold text-[#334155] line-clamp-1 mb-1">
-                    {opp.title}
-                  </h4>
-                  <p className="text-xs text-[#64748B] font-medium line-clamp-1 mb-2">
-                    {opp.organisationName}
-                  </p>
-
-                  <div className="flex items-center gap-1.5 text-xs text-[#64748B] mb-3">
-                    <MapPin className="w-3.5 h-3.5 shrink-0" />
-                    <span className="truncate">{opp.location?.city || 'India'}</span>
-                  </div>
-
-                  {/* Skills tags */}
-                  <div className="flex flex-wrap gap-1 mb-4">
-                    {(opp.requiredSkills || []).slice(0, 3).map((sk: string, i: number) => (
-                      <span
-                        key={i}
-                        className="text-[10px] bg-white border border-[#D8ECFA] text-[#64748B] px-2 py-0.5 rounded"
-                      >
-                        {sk}
+                    {typeof opp.matchScore === 'number' && (
+                      <span className="text-[11px] font-extrabold text-[#2589D6]">
+                        {opp.matchScore}% Match
                       </span>
-                    ))}
+                    )}
                   </div>
+                  <h3 className="text-sm font-bold text-[#334155] line-clamp-1">{opp.title}</h3>
+                  <p className="text-xs text-[#64748B] truncate">
+                    {opp.organisationName} • {formatLocation(opp.location)}
+                  </p>
+                  {opp.matchExplanation && (
+                    <p className="text-[11px] text-[#475569] line-clamp-2">
+                      {opp.matchExplanation}
+                    </p>
+                  )}
                 </div>
-
-                <Link
-                  to="/opportunities"
-                  className="w-full text-center py-2 px-3 bg-white hover:bg-[#EAF7FF] hover:border-[#BDE0FE] hover:text-[#3B9EE8] border border-[#D8ECFA] text-[#334155] text-xs font-semibold rounded-lg transition"
-                >
-                  View Details
-                </Link>
-              </div>
+                <span className="text-xs font-bold text-[#2589D6] inline-flex items-center gap-1">
+                  <span>View &amp; Apply</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </span>
+              </Link>
             ))}
           </div>
         )}
       </section>
 
-      {/* SECTION E: Continue Learning (2 cards max) */}
-      <section className="bg-white rounded-2xl p-6 sm:p-7 border border-[#D8ECFA] shadow-baby">
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <h3 className="text-base font-bold text-[#334155]">Continue Learning</h3>
-            <p className="text-xs text-[#64748B] mt-0.5">
-              Practical modules and assignments to sharpen your employment portfolio
-            </p>
+      {/* 2. Government Schemes For You 🏛️ */}
+      <section className="bg-white rounded-3xl p-6 border border-[#D8ECFA] shadow-baby-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Landmark className="w-5 h-5 text-[#3B9EE8]" />
+            <h2 className="text-base font-extrabold text-[#334155] font-display">
+              Government Schemes For You 🏛️
+            </h2>
           </div>
           <Link
-            to="/learn"
-            className="text-xs font-semibold text-[#3B9EE8] hover:text-[#2589D6] flex items-center gap-1"
+            to="/schemes"
+            className="text-xs font-bold text-[#2589D6] hover:underline inline-flex items-center gap-1"
           >
-            <span>Browse Catalog</span>
+            <span>View All</span>
             <ChevronRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
-        {learningItems.length === 0 ? (
-          <div className="text-center py-6 border border-dashed border-[#D8ECFA] rounded-xl">
-            <BookOpen className="w-8 h-8 text-[#94A3B8] mx-auto mb-2" />
-            <p className="text-xs text-[#64748B]">No learning in progress.</p>
-            <Link
-              to="/learn"
-              className="mt-2 inline-block text-xs font-semibold text-[#3B9EE8] hover:underline"
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {recommendedSchemes.map((scheme: any) => (
+            <div
+              key={scheme._id}
+              className="p-4 rounded-2xl bg-[#F8FCFF] border border-[#D8ECFA] flex flex-col justify-between space-y-3"
             >
-              Start learning practical skills →
-            </Link>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {learningItems.map((item, idx) => (
-              <div
-                key={item.id || item._id || idx}
-                className="flex items-center justify-between p-4 rounded-xl border border-[#D8ECFA] bg-[#F8FCFF] hover:bg-[#EAF7FF] transition"
-              >
-                <div className="space-y-1 pr-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-blue-100 text-blue-700">
-                      {item.type === 'practical_assignment' ? 'Practical Project' : 'Learning Module'}
-                    </span>
-                    <span className="text-[10px] text-[#64748B]">{item.duration || '20 mins'}</span>
-                  </div>
-                  <h4 className="text-xs font-bold text-[#334155] line-clamp-1">{item.title}</h4>
-                  <p className="text-[11px] text-[#64748B] line-clamp-1">Skill: {item.skillTag || 'Operations'}</p>
-                </div>
-                <Link
-                  to="/learn"
-                  className="shrink-0 px-3 py-1.5 bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] hover:from-[#8CC6FA] hover:to-[#A2D2FF] text-[#1E3A5F] shadow-baby-sm text-xs font-medium rounded-lg transition"
-                >
-                  Continue
-                </Link>
+              <div className="space-y-1.5">
+                <span className="inline-block text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-white text-[#1E3A5F] border border-[#BDE0FE]">
+                  {scheme.eligibilityStatus || 'Official Scheme'}
+                </span>
+                <h3 className="text-sm font-bold text-[#334155] line-clamp-2">{scheme.title}</h3>
+                <p className="text-[11px] text-[#64748B] line-clamp-2">{scheme.benefitsSummary}</p>
               </div>
-            ))}
-          </div>
-        )}
+              <a
+                href={scheme.officialUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs font-bold text-[#2589D6] hover:underline inline-flex items-center gap-1"
+              >
+                <span>Official Portal</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          ))}
+        </div>
       </section>
 
-      {/* SECTION F: Recent Activity */}
-      <section className="bg-white rounded-2xl p-6 sm:p-7 border border-[#D8ECFA] shadow-baby">
-        <div className="mb-4">
-          <h3 className="text-base font-bold text-[#334155]">Recent Activity</h3>
-          <p className="text-xs text-[#64748B] mt-0.5">
-            Real-time milestones from your applications, assessments, and learning journey
-          </p>
-        </div>
-
-        {recentActivities.length === 0 ? (
-          <div className="text-center py-8 border border-dashed border-[#D8ECFA] rounded-xl">
-            <Sparkles className="w-8 h-8 text-[#94A3B8] mx-auto mb-2" />
-            <p className="text-xs text-[#64748B]">
-              No recent activity yet. Start by assessing your skills!
-            </p>
+      {/* 3. Assessments For You 🧠 & 4. Learn Something New 📚 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <section className="bg-white rounded-3xl p-6 border border-[#D8ECFA] shadow-baby-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-extrabold text-[#334155] font-display">
+              Assessments For You 🧠
+            </h2>
             <Link
               to="/assess"
-              className="mt-2 inline-block text-xs font-semibold text-[#3B9EE8] hover:underline"
+              className="text-xs font-bold text-[#2589D6] hover:underline inline-flex items-center gap-1"
             >
-              Take Skill Assessment →
+              <span>View All</span>
+              <ChevronRight className="w-3.5 h-3.5" />
             </Link>
           </div>
-        ) : (
-          <div className="divide-y divide-[#EAF7FF]">
-            {recentActivities.map((act: any) => (
-              <div key={act.id} className="py-3 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-[#EAF7FF] flex items-center justify-center text-[#64748B] shrink-0">
-                    {act.type === 'assessment' ? (
-                      <Award className="w-4 h-4 text-[#3B9EE8]" />
-                    ) : act.type === 'application' ? (
-                      <FileText className="w-4 h-4 text-emerald-600" />
-                    ) : act.type === 'portfolio' ? (
-                      <FolderGit2 className="w-4 h-4 text-purple-600" />
-                    ) : (
-                      <BookOpen className="w-4 h-4 text-blue-600" />
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-[#334155]">{act.title}</p>
-                    <p className="text-[11px] text-[#64748B]">{act.subtitle}</p>
-                  </div>
+          <div className="space-y-2.5">
+            {recommendedAssessments.map((a: any) => (
+              <Link
+                key={a._id}
+                to="/assess"
+                className="p-3.5 rounded-2xl bg-[#F8FCFF] border border-[#D8ECFA] hover:border-[#60B6F8] transition flex items-center justify-between gap-3"
+              >
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-[#334155] truncate">{a.title}</p>
+                  <p className="text-[11px] text-[#64748B]">
+                    {a.recommendationReason || `${a.category} • ${a.durationMinutes || 10} mins`}
+                  </p>
                 </div>
+                <span className="text-[11px] font-bold px-3 py-1 rounded-xl bg-[#EAF7FF] text-[#1E3A5F] border border-[#BDE0FE] shrink-0">
+                  Start
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
 
-                <div className="text-right shrink-0">
+        <section className="bg-white rounded-3xl p-6 border border-[#D8ECFA] shadow-baby-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-extrabold text-[#334155] font-display">
+              Learn Something New 📚
+            </h2>
+            <Link
+              to="/learn"
+              className="text-xs font-bold text-[#2589D6] hover:underline inline-flex items-center gap-1"
+            >
+              <span>View All</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+          <div className="space-y-2.5">
+            {recommendedLearning.map((res: any) => (
+              <Link
+                key={res._id}
+                to={`/learn?resource=${res._id}`}
+                className="p-3.5 rounded-2xl bg-[#F8FCFF] border border-[#D8ECFA] hover:border-[#60B6F8] transition flex items-center justify-between gap-3"
+              >
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-[#334155] truncate">{res.title}</p>
+                  <p className="text-[11px] text-[#64748B] truncate">
+                    {res.recommendationReason || `${res.category} • ${res.duration}`}
+                  </p>
+                </div>
+                <span className="text-[11px] font-bold px-3 py-1 rounded-xl bg-[#EAF7FF] text-[#1E3A5F] border border-[#BDE0FE] shrink-0">
+                  Open
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      {/* 5. Your Career Progress 📈 */}
+      <section className="bg-white rounded-3xl p-6 border border-[#D8ECFA] shadow-baby-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-extrabold text-[#334155] font-display">
+            Your Career Progress 📈
+          </h2>
+          <span className="text-xs font-bold text-[#2589D6]">
+            {journeyStages.filter((s: any) => s.completed).length} / {journeyStages.length || 7}{' '}
+            Milestones
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+          {journeyStages.map((stage: any) => (
+            <div
+              key={stage.id}
+              className={`p-3 rounded-2xl border text-center space-y-1 ${
+                stage.completed
+                  ? 'bg-emerald-50/70 border-emerald-200 text-emerald-800'
+                  : 'bg-[#F8FCFF] border-[#D8ECFA] text-[#64748B]'
+              }`}
+            >
+              <CheckCircle2
+                className={`w-4 h-4 mx-auto ${
+                  stage.completed ? 'text-emerald-600' : 'text-[#BDE0FE]'
+                }`}
+              />
+              <p className="text-[11px] font-bold">{stage.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {recentActivities.length > 0 && (
+          <div className="pt-3 border-t border-[#EAF7FF] space-y-2">
+            <p className="text-xs font-bold text-[#64748B] uppercase tracking-wider">
+              Recent Activity
+            </p>
+            <div className="space-y-2">
+              {recentActivities.slice(0, 4).map((act: any) => (
+                <div
+                  key={act.id}
+                  className="p-3 rounded-2xl bg-[#F8FCFF] border border-[#D8ECFA] flex items-center justify-between gap-3 text-xs"
+                >
+                  <div className="min-w-0">
+                    <p className="font-bold text-[#334155] truncate">{act.title}</p>
+                    <p className="text-[11px] text-[#64748B] truncate">{act.subtitle}</p>
+                  </div>
                   {act.badgeText && (
-                    <span
-                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                        act.badgeColor === 'emerald'
-                          ? 'bg-emerald-100 text-emerald-700'
-                          : act.badgeColor === 'purple'
-                          ? 'bg-purple-100 text-purple-700'
-                          : act.badgeColor === 'amber'
-                          ? 'bg-amber-100 text-amber-700'
-                          : 'bg-[#EAF7FF] text-[#475569]'
-                      }`}
-                    >
+                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-white border border-[#BDE0FE] text-[#1E3A5F] shrink-0">
                       {act.badgeText}
                     </span>
                   )}
-                  <p className="text-[10px] text-[#64748B] mt-0.5">
-                    {new Date(act.timestamp).toLocaleDateString()}
-                  </p>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
       </section>

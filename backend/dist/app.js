@@ -100,6 +100,7 @@ app.put('/api/profile', auth_middleware_1.authenticate, user_controller_1.update
 app.get('/api/profile/completion', auth_middleware_1.authenticate, user_controller_1.getProfileCompletion);
 app.get('/api/dashboard', auth_middleware_1.authenticate, user_controller_1.getDashboard);
 app.use('/api/opportunities', opportunity_routes_1.default);
+app.use('/api/jobs', opportunity_routes_1.default);
 app.use('/api/assessments', assessment_routes_1.default);
 app.use('/api/learning', learning_routes_1.default);
 app.use('/api/portfolio', portfolio_routes_1.default);
@@ -140,12 +141,8 @@ app.post('/api/seeker/learning/progress', auth_middleware_1.authenticate, (req, 
     }
     (0, learning_controller_1.completeLearning)(req, res);
 });
-app.get('/api/seeker/saved-opportunities', auth_middleware_1.authenticate, (_req, res) => {
-    (0, response_1.sendSuccess)(res, 'Saved opportunities retrieved', []);
-});
-app.post('/api/seeker/saved-opportunities/toggle', auth_middleware_1.authenticate, (_req, res) => {
-    (0, response_1.sendSuccess)(res, 'Bookmark updated', { saved: true });
-});
+app.get('/api/seeker/saved-opportunities', auth_middleware_1.authenticate, opportunity_controller_1.getSavedOpportunities);
+app.post('/api/seeker/saved-opportunities/toggle', auth_middleware_1.authenticate, opportunity_controller_1.toggleSaveOpportunity);
 app.post('/api/seeker/report', auth_middleware_1.authenticate, async (req, res) => {
     try {
         const { opportunityId, reason, description } = req.body || {};

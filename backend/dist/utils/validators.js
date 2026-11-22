@@ -14,17 +14,63 @@ exports.loginSchema = zod_1.z.object({
     email: zod_1.z.string().trim().email('Invalid email address'),
     password: zod_1.z.string().min(1, 'Password is required')
 });
-const educationEntrySchema = zod_1.z.object({
+const nullableNumber = zod_1.z.preprocess((val) => {
+    if (val === '' || val === null || val === undefined)
+        return null;
+    const num = Number(val);
+    return Number.isNaN(num) ? val : num;
+}, zod_1.z.number().nullable().optional());
+const educationEntrySchema = zod_1.z
+    .object({
     level: zod_1.z.string().trim().min(1, 'Qualification level is required'),
     degree: zod_1.z.string().trim().optional().default(''),
     specialization: zod_1.z.string().trim().optional().default(''),
     institution: zod_1.z.string().trim().optional().default(''),
+    schoolName: zod_1.z.string().trim().optional().default(''),
+    board: zod_1.z.string().trim().optional().default(''),
+    duration: zod_1.z.string().trim().optional().default(''),
+    currentYear: zod_1.z.string().trim().optional().default(''),
+    currentSemester: zod_1.z.string().trim().optional().default(''),
     currentYearOrSemester: zod_1.z.string().trim().optional().default(''),
     expectedGraduationYear: zod_1.z.string().trim().optional().default(''),
     graduationYear: zod_1.z.string().trim().optional().default(''),
     classCompleted: zod_1.z.string().trim().optional().default(''),
     stream: zod_1.z.string().trim().optional().default(''),
-    status: zod_1.z.string().trim().optional().default('')
+    status: zod_1.z.string().trim().optional().default(''),
+    scoreType: zod_1.z.enum(['Percentage', 'CGPA', 'Grade', '']).optional().default(''),
+    percentage: nullableNumber,
+    cgpa: nullableNumber,
+    cgpaScale: nullableNumber,
+    grade: zod_1.z.string().trim().optional().default(''),
+    gradingSystem: zod_1.z.string().trim().optional().default('')
+})
+    .superRefine((ed, ctx) => {
+    if (ed.scoreType === 'Percentage' && ed.percentage !== null && ed.percentage !== undefined) {
+        if (ed.percentage < 0 || ed.percentage > 100) {
+            ctx.addIssue({
+                code: zod_1.z.ZodIssueCode.custom,
+                path: ['percentage'],
+                message: 'Percentage must be between 0 and 100'
+            });
+        }
+    }
+    if (ed.scoreType === 'CGPA') {
+        const scale = ed.cgpaScale ?? 10;
+        if (scale <= 0 || scale > 100) {
+            ctx.addIssue({
+                code: zod_1.z.ZodIssueCode.custom,
+                path: ['cgpaScale'],
+                message: 'CGPA scale must be a positive number'
+            });
+        }
+        if (ed.cgpa !== null && ed.cgpa !== undefined && (ed.cgpa < 0 || ed.cgpa > scale)) {
+            ctx.addIssue({
+                code: zod_1.z.ZodIssueCode.custom,
+                path: ['cgpa'],
+                message: `CGPA must be between 0 and ${scale}`
+            });
+        }
+    }
 });
 const detailedSkillSchema = zod_1.z.object({
     name: zod_1.z.string().trim().min(1, 'Skill name is required'),

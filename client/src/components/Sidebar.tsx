@@ -46,13 +46,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     { label: 'My Profile', path: '/profile', icon: UserCheck },
     { label: 'Opportunities', path: '/opportunities', icon: Briefcase },
     { label: 'Government Schemes', path: '/schemes', icon: Landmark },
-    {
-      label: 'Build Her',
-      path: '/build-her',
-      icon: Sparkles,
-      badge: 'Sanctuary',
-      badgeColor: 'bg-pink-50 text-pink-700 border border-pink-200'
-    },
+    { label: 'Build Her', path: '/build-her', icon: Sparkles },
     { label: 'Assessments', path: '/assess', icon: Award },
     { label: 'Learn & Practice', path: '/learn', icon: BookOpen },
     { label: 'Portfolio', path: '/portfolio', icon: FolderGit2 },

@@ -28,11 +28,13 @@ import {
   ExperienceEntry
 } from '../context/AuthContext';
 import { UserAvatar } from '../components/UserAvatar';
+import { EducationManager } from '../components/EducationManager';
 import {
-  EDUCATION_LEVELS,
-  SCHOOL_EDUCATION_LEVELS,
-  COLLEGE_STUDENT_LEVELS,
-  GRADUATE_EDUCATION_LEVELS,
+  formatAcademicScore,
+  formatEducationTitle,
+  getDisplayEducationStatus
+} from '../utils/educationHelpers';
+import {
   SUGGESTED_SKILLS,
   PROFICIENCY_LEVELS,
   CAREER_INTERESTS,
@@ -53,19 +55,6 @@ const STEPS = [
   { id: 6, title: 'Experience', icon: Award },
   { id: 7, title: 'Summary', icon: CheckCircle2 }
 ];
-
-const emptyEducationDraft = (): EducationEntry => ({
-  level: 'Undergraduate student',
-  degree: '',
-  specialization: '',
-  institution: '',
-  currentYearOrSemester: '',
-  expectedGraduationYear: '',
-  graduationYear: '',
-  classCompleted: '',
-  stream: '',
-  status: 'Pursuing'
-});
 
 const emptyExperienceDraft = (): ExperienceEntry => ({
   jobTitle: '',
@@ -104,8 +93,6 @@ export const ProfileOnboardingPage: React.FC = () => {
 
   // Step 2: Educational Background
   const [educationList, setEducationList] = useState<EducationEntry[]>([]);
-  const [eduDraft, setEduDraft] = useState<EducationEntry>(emptyEducationDraft());
-  const [editingEduIdx, setEditingEduIdx] = useState<number | null>(null);
 
   // Step 3: Skills
   const [skillsList, setSkillsList] = useState<DetailedSkill[]>([]);
@@ -321,35 +308,6 @@ export const ProfileOnboardingPage: React.FC = () => {
     setLocationInput('');
   };
 
-  // Education helpers
-  const handleAddOrUpdateEducation = () => {
-    if (!eduDraft.level) return;
-    if (editingEduIdx !== null) {
-      const updated = [...educationList];
-      updated[editingEduIdx] = eduDraft;
-      setEducationList(updated);
-      setEditingEduIdx(null);
-    } else {
-      setEducationList([...educationList, eduDraft]);
-    }
-    setEduDraft(emptyEducationDraft());
-    setStatusMsg('Qualification added to your education list!');
-    setTimeout(() => setStatusMsg(''), 2500);
-  };
-
-  const handleEditEducation = (idx: number) => {
-    setEduDraft(educationList[idx]);
-    setEditingEduIdx(idx);
-  };
-
-  const handleRemoveEducation = (idx: number) => {
-    setEducationList(educationList.filter((_, i) => i !== idx));
-    if (editingEduIdx === idx) {
-      setEditingEduIdx(null);
-      setEduDraft(emptyEducationDraft());
-    }
-  };
-
   // Skill helpers
   const addSkill = (
     skillName: string,
@@ -439,10 +397,6 @@ export const ProfileOnboardingPage: React.FC = () => {
     }
     return result;
   }, [skillSearch]);
-
-  const isSchoolLevel = SCHOOL_EDUCATION_LEVELS.has(eduDraft.level);
-  const isCollegeStudent = COLLEGE_STUDENT_LEVELS.has(eduDraft.level);
-  const isGraduateLevel = GRADUATE_EDUCATION_LEVELS.has(eduDraft.level);
 
   return (
     <div className="max-w-4xl mx-auto pb-12 space-y-6">
@@ -763,309 +717,18 @@ export const ProfileOnboardingPage: React.FC = () => {
                 Tell Us About Your Education 🎓
               </h2>
               <p className="text-xs text-[#64748B] mt-1">
-                Add one or more qualifications — from school education and ITI/Diploma to college degrees.
+                Add one or more qualifications — from Class 10, Class 12, and Diploma/ITI to college degrees, along with your Percentage, CGPA, or Grade.
               </p>
             </div>
 
-            {/* Education Form */}
-            <div className="p-5 rounded-3xl bg-[#F8FCFF] border border-[#D8ECFA] space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-[#334155] mb-2">
-                  Select Qualification Level
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
-                  {EDUCATION_LEVELS.map((lvl) => (
-                    <button
-                      key={lvl}
-                      type="button"
-                      onClick={() => setEduDraft({ ...emptyEducationDraft(), level: lvl })}
-                      className={`px-3 py-2 rounded-2xl border text-xs font-semibold transition text-center ${
-                        eduDraft.level === lvl
-                          ? 'bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] border-[#60B6F8] text-[#1E3A5F] shadow-baby-sm'
-                          : 'bg-white border-[#D8ECFA] text-[#64748B] hover:border-[#A2D2FF] hover:text-[#334155]'
-                      }`}
-                    >
-                      {lvl}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Conditional Fields for College Students */}
-              {isCollegeStudent && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
-                  <div>
-                    <label className="block text-xs font-semibold text-[#334155] mb-1">Degree</label>
-                    <input
-                      type="text"
-                      value={eduDraft.degree || ''}
-                      onChange={(e) => setEduDraft({ ...eduDraft, degree: e.target.value })}
-                      placeholder="e.g. B.Tech, B.Com, BBA, B.Sc"
-                      className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-xs"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-[#334155] mb-1">Specialization</label>
-                    <input
-                      type="text"
-                      value={eduDraft.specialization || ''}
-                      onChange={(e) => setEduDraft({ ...eduDraft, specialization: e.target.value })}
-                      placeholder="e.g. Computer Science, Finance"
-                      className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-xs"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-[#334155] mb-1">College / University</label>
-                    <input
-                      type="text"
-                      value={eduDraft.institution || ''}
-                      onChange={(e) => setEduDraft({ ...eduDraft, institution: e.target.value })}
-                      placeholder="Institution name"
-                      className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-xs"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-[#334155] mb-1">Current Year / Semester</label>
-                    <input
-                      type="text"
-                      value={eduDraft.currentYearOrSemester || ''}
-                      onChange={(e) =>
-                        setEduDraft({ ...eduDraft, currentYearOrSemester: e.target.value })
-                      }
-                      placeholder="e.g. 3rd Year / Semester 6"
-                      className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-xs"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-[#334155] mb-1">Expected Graduation Year</label>
-                    <input
-                      type="text"
-                      value={eduDraft.expectedGraduationYear || ''}
-                      onChange={(e) =>
-                        setEduDraft({ ...eduDraft, expectedGraduationYear: e.target.value })
-                      }
-                      placeholder="e.g. 2027"
-                      className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-xs"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-[#334155] mb-1">Academic Status</label>
-                    <select
-                      value={eduDraft.status || 'Pursuing'}
-                      onChange={(e) => setEduDraft({ ...eduDraft, status: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-xs"
-                    >
-                      <option value="Pursuing">Currently Pursuing</option>
-                      <option value="Final Year">Final Year</option>
-                      <option value="Awaiting Results">Awaiting Results</option>
-                    </select>
-                  </div>
-                </div>
-              )}
-
-              {/* Conditional Fields for Graduates / ITI / Diploma / PG / Doctorate */}
-              {isGraduateLevel && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
-                  <div>
-                    <label className="block text-xs font-semibold text-[#334155] mb-1">
-                      Degree / Diploma / Trade
-                    </label>
-                    <input
-                      type="text"
-                      value={eduDraft.degree || ''}
-                      onChange={(e) => setEduDraft({ ...eduDraft, degree: e.target.value })}
-                      placeholder="e.g. B.Tech, MBA, ITI Electrician, Diploma in CS"
-                      className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-xs"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-[#334155] mb-1">
-                      Specialization
-                    </label>
-                    <input
-                      type="text"
-                      value={eduDraft.specialization || ''}
-                      onChange={(e) => setEduDraft({ ...eduDraft, specialization: e.target.value })}
-                      placeholder="e.g. Data Science, Marketing, Mechanical"
-                      className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-xs"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-[#334155] mb-1">
-                      University / Institute
-                    </label>
-                    <input
-                      type="text"
-                      value={eduDraft.institution || ''}
-                      onChange={(e) => setEduDraft({ ...eduDraft, institution: e.target.value })}
-                      placeholder="University or institute name"
-                      className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-xs"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-[#334155] mb-1">
-                      Graduation Year
-                    </label>
-                    <input
-                      type="text"
-                      value={eduDraft.graduationYear || ''}
-                      onChange={(e) => setEduDraft({ ...eduDraft, graduationYear: e.target.value })}
-                      placeholder="e.g. 2024"
-                      className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-xs"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Conditional Fields for School Students */}
-              {isSchoolLevel && (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-2">
-                  <div>
-                    <label className="block text-xs font-semibold text-[#334155] mb-1">
-                      Class Completed
-                    </label>
-                    <input
-                      type="text"
-                      value={eduDraft.classCompleted || ''}
-                      onChange={(e) => setEduDraft({ ...eduDraft, classCompleted: e.target.value })}
-                      placeholder="e.g. Class 12, Class 10"
-                      className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-xs"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-[#334155] mb-1">
-                      Stream (if applicable)
-                    </label>
-                    <input
-                      type="text"
-                      value={eduDraft.stream || ''}
-                      onChange={(e) => setEduDraft({ ...eduDraft, stream: e.target.value })}
-                      placeholder="Science / Commerce / Arts"
-                      className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-xs"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-[#334155] mb-1">
-                      Current Education Status
-                    </label>
-                    <select
-                      value={eduDraft.status || 'Completed'}
-                      onChange={(e) => setEduDraft({ ...eduDraft, status: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-xs"
-                    >
-                      <option value="Completed">Completed</option>
-                      <option value="Currently Studying">Currently Studying</option>
-                      <option value="Open Schooling">Open Schooling (NIOS)</option>
-                    </select>
-                  </div>
-                </div>
-              )}
-
-              {/* Other Qualifications */}
-              {!isSchoolLevel && !isCollegeStudent && !isGraduateLevel && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
-                  <div>
-                    <label className="block text-xs font-semibold text-[#334155] mb-1">
-                      Certification / Qualification Name
-                    </label>
-                    <input
-                      type="text"
-                      value={eduDraft.degree || ''}
-                      onChange={(e) => setEduDraft({ ...eduDraft, degree: e.target.value })}
-                      placeholder="e.g. PMKVY Skill Certificate, Vocational Training"
-                      className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-xs"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-[#334155] mb-1">
-                      Institution / Issuing Body
-                    </label>
-                    <input
-                      type="text"
-                      value={eduDraft.institution || ''}
-                      onChange={(e) => setEduDraft({ ...eduDraft, institution: e.target.value })}
-                      placeholder="Issuing organization"
-                      className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-xs"
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className="pt-2 flex justify-end">
-                <button
-                  type="button"
-                  onClick={handleAddOrUpdateEducation}
-                  className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] hover:from-[#8CC6FA] hover:to-[#A2D2FF] text-[#1E3A5F] text-xs font-bold shadow-baby-sm transition"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>{editingEduIdx !== null ? 'Update Qualification' : 'Add Qualification'}</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Saved Qualifications List */}
-            <div className="space-y-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#64748B]">
-                Added Qualifications ({educationList.length})
-              </h3>
-              {educationList.length === 0 ? (
-                <div className="p-6 rounded-2xl border border-dashed border-[#BDE0FE] bg-[#F8FCFF] text-center text-xs text-[#64748B]">
-                  No qualifications added yet. Select your education level above and click <strong>Add Qualification</strong>!
-                </div>
-              ) : (
-                <div className="space-y-2.5">
-                  {educationList.map((ed, idx) => (
-                    <div
-                      key={idx}
-                      className="p-4 rounded-2xl bg-white border border-[#D8ECFA] flex items-start justify-between gap-4 shadow-baby-sm"
-                    >
-                      <div className="space-y-1">
-                        <span className="inline-block text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#EAF7FF] text-[#1E3A5F] border border-[#BDE0FE]">
-                          {ed.level}
-                        </span>
-                        <p className="text-sm font-bold text-[#334155]">
-                          {[ed.degree, ed.specialization, ed.classCompleted, ed.stream]
-                            .filter(Boolean)
-                            .join(' • ') || ed.level}
-                        </p>
-                        <p className="text-xs text-[#64748B]">
-                          {[
-                            ed.institution,
-                            ed.currentYearOrSemester,
-                            ed.expectedGraduationYear
-                              ? `Expected ${ed.expectedGraduationYear}`
-                              : ed.graduationYear
-                              ? `Graduated ${ed.graduationYear}`
-                              : '',
-                            ed.status
-                          ]
-                            .filter(Boolean)
-                            .join(' • ')}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => handleEditEducation(idx)}
-                          className="p-2 rounded-xl text-[#64748B] hover:text-[#334155] hover:bg-[#EAF7FF]"
-                          aria-label="Edit qualification"
-                        >
-                          <Edit3 className="w-4 h-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveEducation(idx)}
-                          className="p-2 rounded-xl text-[#64748B] hover:text-rose-500 hover:bg-rose-50"
-                          aria-label="Remove qualification"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <EducationManager
+              educationList={educationList}
+              onChange={(next) => {
+                setEducationList(next);
+                setStatusMsg('Education qualifications updated!');
+                setTimeout(() => setStatusMsg(''), 2500);
+              }}
+            />
           </div>
         )}
 
@@ -1734,13 +1397,27 @@ export const ProfileOnboardingPage: React.FC = () => {
                 {educationList.length === 0 ? (
                   <p className="text-xs text-[#64748B]">Not added yet</p>
                 ) : (
-                  educationList.map((ed, idx) => (
-                    <p key={idx} className="text-xs text-[#334155]">
-                      • <strong>{ed.level}</strong>
-                      {ed.degree ? ` — ${ed.degree}` : ''}
-                      {ed.specialization ? ` (${ed.specialization})` : ''}
-                    </p>
-                  ))
+                  <div className="space-y-1.5">
+                    {educationList.map((ed, idx) => {
+                      const scoreStr = formatAcademicScore(ed);
+                      const statusStr = getDisplayEducationStatus(ed);
+                      return (
+                        <div key={idx} className="text-xs text-[#334155]">
+                          <p>
+                            • <strong>{formatEducationTitle(ed)}</strong>{' '}
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white border border-[#D8ECFA] text-[#64748B]">
+                              {statusStr}
+                            </span>
+                          </p>
+                          {scoreStr && (
+                            <p className="text-[11px] font-semibold text-[#1E3A5F] pl-3">
+                              {scoreStr}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
 

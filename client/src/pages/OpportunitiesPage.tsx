@@ -1,89 +1,150 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Briefcase,
   Search,
-  Filter,
   MapPin,
   Clock,
   CheckCircle2,
   Bookmark,
+  BookmarkCheck,
   ExternalLink,
   ShieldAlert,
   ShieldCheck,
   Sparkles,
   ArrowRight,
   AlertCircle,
-  X
+  X,
+  RefreshCw,
+  BookOpen,
+  Landmark,
+  Building2
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { apiFetch, extractArray, formatLocation, unwrapData } from '../utils/api';
 
+type OppTab = 'all' | 'recommended' | 'saved';
+
+const OFFICIAL_CAREER_PORTALS = [
+  {
+    name: 'National Career Service (NCS)',
+    authority: 'Ministry of Labour & Employment, Govt. of India',
+    description:
+      'Verified national employment portal for government & private jobs, job fairs, and free career counseling across India.',
+    url: 'https://www.ncs.gov.in/',
+    badge: 'Official Govt Portal'
+  },
+  {
+    name: 'National Apprenticeship Training Scheme (NATS 2.0)',
+    authority: 'Ministry of Education, Govt. of India',
+    description:
+      'Paid 1-year apprenticeships at PSUs, government establishments, and leading private companies for Diploma & Degree graduates.',
+    url: 'https://nats.education.gov.in/',
+    badge: 'Graduate & Diploma'
+  },
+  {
+    name: 'Apprenticeship India (NAPS)',
+    authority: 'Ministry of Skill Development & Entrepreneurship',
+    description:
+      'Hands-on paid apprenticeships across IT, manufacturing, retail, healthcare, and trades for Class 10/12, ITI, Diploma, and Graduates.',
+    url: 'https://www.apprenticeshipindia.gov.in/',
+    badge: 'Paid Apprenticeships'
+  },
+  {
+    name: 'PM Internship Scheme Portal',
+    authority: 'Ministry of Corporate Affairs',
+    description:
+      '12-month corporate internship opportunities across top Indian companies for eligible youth (verify active cycle on portal).',
+    url: 'https://pminternship.mca.gov.in/',
+    badge: 'Corporate Internships'
+  },
+  {
+    name: 'Startup India Hub',
+    authority: 'DPIIT, Ministry of Commerce & Industry',
+    description:
+      'Explore DPIIT-recognized startups, innovation programs, incubators, and startup ecosystem opportunities.',
+    url: 'https://www.startupindia.gov.in/',
+    badge: 'Startup Ecosystem'
+  }
+];
+
 export const OpportunitiesPage: React.FC = () => {
   const { language } = useLanguage();
   const { user } = useAuth();
+  const isAuthenticated = Boolean(user);
 
   const [opportunities, setOpportunities] = useState<any[]>([]);
-  const [savedIds, setSavedIds] = useState<string[]>([]);
+  const [recommended, setRecommended] = useState<any[]>([]);
+  const [savedOpps, setSavedOpps] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
 
-  // Filters
+  // Tabs & Filters
+  const [activeTab, setActiveTab] = useState<OppTab>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [locationFilter, setLocationFilter] = useState('');
   const [workModeFilter, setWorkModeFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [restartOnly, setRestartOnly] = useState(false);
 
-  // Apply Modal State
+  // Interactive Modals
+  const [detailOpp, setDetailOpp] = useState<any>(null);
   const [applyOpp, setApplyOpp] = useState<any>(null);
   const [coverNote, setCoverNote] = useState('');
   const [applying, setApplying] = useState(false);
   const [applySuccess, setApplySuccess] = useState('');
   const [applyError, setApplyError] = useState('');
 
-  // Report Modal State
   const [reportOpp, setReportOpp] = useState<any>(null);
-  const [reportReason, setReportReason] = useState<any>('fraud_or_scam');
+  const [reportReason, setReportReason] = useState('fraud_or_scam');
   const [reportDesc, setReportDesc] = useState('');
   const [reporting, setReporting] = useState(false);
   const [reportSuccess, setReportSuccess] = useState('');
+  const [savingId, setSavingId] = useState<string | null>(null);
 
   const loadOpportunities = async () => {
+    setLoading(true);
     setLoadError('');
     try {
       const params = new URLSearchParams();
-      if (searchQuery) params.append('query', searchQuery);
-      if (locationFilter) params.append('location', locationFilter);
+      if (searchQuery.trim()) params.append('query', searchQuery.trim());
+      if (locationFilter.trim()) params.append('location', locationFilter.trim());
       if (workModeFilter !== 'all') params.append('workMode', workModeFilter);
       if (typeFilter !== 'all') params.append('opportunityType', typeFilter);
       if (restartOnly) params.append('isCareerRestart', 'true');
 
-      const [oppRes, savedRes] = await Promise.all([
-        apiFetch(`/api/public/opportunities?${params.toString()}`),
-        user?.role === 'seeker'
-          ? apiFetch('/api/seeker/saved-opportunities')
-          : Promise.resolve(null)
-      ]);
+      const requests = [apiFetch(`/api/opportunities?${params.toString()}`)];
+      if (isAuthenticated && user?.role === 'seeker') {
+        requests.push(apiFetch('/api/opportunities/recommended'));
+        requests.push(apiFetch('/api/opportunities/saved'));
+      }
+
+      const [oppRes, recRes, savedRes] = await Promise.all(requests);
 
       if (oppRes.ok) {
-        const list = extractArray(oppRes.data, ['results']);
-        setOpportunities(list);
+        setOpportunities(extractArray(oppRes.data, ['results', 'opportunities']));
       } else {
         setOpportunities([]);
         setLoadError(oppRes.error || 'Unable to load opportunities right now. Please try again.');
       }
 
-      if (savedRes && savedRes.ok) {
-        const sList = extractArray(savedRes.data);
-        setSavedIds(
-          sList.map((s: any) => (typeof s === 'string' ? s : s?._id || s?.opportunityId || '')).filter(Boolean)
-        );
+      if (recRes && recRes.ok) {
+        setRecommended(extractArray(recRes.data, ['results', 'opportunities']));
+      } else {
+        setRecommended([]);
       }
-    } catch (err) {
-      console.error('Failed to load opportunities:', err);
+
+      if (savedRes && savedRes.ok) {
+        setSavedOpps(extractArray(savedRes.data, ['results', 'opportunities']));
+      } else {
+        setSavedOpps([]);
+      }
+    } catch (err: any) {
       setOpportunities([]);
-      setLoadError('Unable to load opportunities right now. Please try again.');
+      setRecommended([]);
+      setSavedOpps([]);
+      setLoadError(err?.message || 'Unable to connect to SETU Opportunities service.');
     } finally {
       setLoading(false);
     }
@@ -91,48 +152,41 @@ export const OpportunitiesPage: React.FC = () => {
 
   useEffect(() => {
     loadOpportunities();
-  }, [workModeFilter, typeFilter, restartOnly]);
+  }, [workModeFilter, typeFilter, restartOnly, isAuthenticated, user?.id, user?.profileCompletion]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     loadOpportunities();
   };
 
   const handleToggleSave = async (oppId: string) => {
-    if (!user) {
-      alert('Please log in as a job seeker to bookmark opportunities.');
-      return;
-    }
-
+    if (!isAuthenticated) return;
+    setSavingId(oppId);
     try {
-      const res = await apiFetch('/api/seeker/saved-opportunities/toggle', {
-        method: 'POST',
-        body: JSON.stringify({ opportunityId: oppId })
-      });
-
+      const res = await apiFetch(`/api/opportunities/${oppId}/save`, { method: 'POST' });
       if (res.ok) {
-        const payload = unwrapData(res.data) || res.data;
-        if (payload?.saved) {
-          setSavedIds((prev) => (prev.includes(oppId) ? prev : [...prev, oppId]));
-        } else {
-          setSavedIds((prev) => prev.filter((id) => id !== oppId));
+        const data = unwrapData(res.data) || {};
+        const isSaved = Boolean(data.saved);
+
+        setOpportunities((prev) =>
+          prev.map((o) => (String(o._id) === oppId ? { ...o, isSaved } : o))
+        );
+        setRecommended((prev) =>
+          prev.map((o) => (String(o._id) === oppId ? { ...o, isSaved } : o))
+        );
+        if (detailOpp && String(detailOpp._id) === oppId) {
+          setDetailOpp((prev: any) => (prev ? { ...prev, isSaved } : null));
+        }
+
+        // Refresh saved list
+        const savedRes = await apiFetch('/api/opportunities/saved');
+        if (savedRes.ok) {
+          setSavedOpps(extractArray(savedRes.data, ['results', 'opportunities']));
         }
       }
-    } catch (err) {
-      console.error('Failed to toggle save:', err);
+    } finally {
+      setSavingId(null);
     }
-  };
-
-  const handleOpenApply = (opp: any) => {
-    if (!user) {
-      alert('Please log in as a job seeker to apply.');
-      return;
-    }
-    setApplyOpp(opp);
-    setCoverNote('');
-    setApplySuccess('');
-    setApplyError('');
   };
 
   const handleSubmitApplication = async (e: React.FormEvent) => {
@@ -143,25 +197,33 @@ export const OpportunitiesPage: React.FC = () => {
     setApplySuccess('');
 
     try {
-      const res = await apiFetch('/api/seeker/applications/apply', {
+      const res = await apiFetch('/api/applications', {
         method: 'POST',
         body: JSON.stringify({
           opportunityId: applyOpp._id,
-          coverNote
+          coverNote: coverNote.trim()
         })
       });
 
       if (!res.ok) {
-        setApplyError(res.error || 'Failed to submit application');
+        setApplyError(res.error || 'Failed to submit application.');
       } else {
-        setApplySuccess('Application submitted successfully! Track progress in Applications.');
-        setTimeout(() => {
-          setApplyOpp(null);
-          setApplySuccess('');
-        }, 2000);
+        setApplySuccess(
+          'Application submitted successfully! Track updates anytime in My Applications.'
+        );
+        setOpportunities((prev) =>
+          prev.map((o) =>
+            String(o._id) === String(applyOpp._id) ? { ...o, hasApplied: true } : o
+          )
+        );
+        setRecommended((prev) =>
+          prev.map((o) =>
+            String(o._id) === String(applyOpp._id) ? { ...o, hasApplied: true } : o
+          )
+        );
       }
     } catch (err: any) {
-      setApplyError(err.message || 'Network error');
+      setApplyError(err?.message || 'Network error while submitting application.');
     } finally {
       setApplying(false);
     }
@@ -171,453 +233,729 @@ export const OpportunitiesPage: React.FC = () => {
     e.preventDefault();
     if (!reportOpp) return;
     setReporting(true);
-
     try {
       const res = await apiFetch('/api/seeker/report', {
         method: 'POST',
         body: JSON.stringify({
           opportunityId: reportOpp._id,
           reason: reportReason,
-          description: reportDesc
+          description: reportDesc.trim()
         })
       });
-
       if (res.ok) {
-        setReportSuccess('Thank you. Report received and routed to our moderation team.');
-        setTimeout(() => {
-          setReportOpp(null);
-          setReportSuccess('');
-          setReportDesc('');
-        }, 2000);
+        setReportSuccess(
+          'Thank you for helping keep SETU safe. Our moderation team will review this listing.'
+        );
       }
-    } catch (err) {
-      console.error('Failed to submit report:', err);
     } finally {
       setReporting(false);
     }
   };
 
+  const displayedList = useMemo(() => {
+    if (activeTab === 'recommended') return recommended;
+    if (activeTab === 'saved') return savedOpps;
+    return opportunities;
+  }, [activeTab, opportunities, recommended, savedOpps]);
+
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
-      {/* Header */}
-      <div className="space-y-1 pb-4 border-b border-[#D8ECFA]">
-        <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-[#2589D6]">
-          <Briefcase className="w-4 h-4" />
-          <span>Stage 6: Find Opportunities</span>
+    <div className="max-w-6xl mx-auto space-y-6 pb-12">
+      {/* Header Banner */}
+      <div className="bg-gradient-to-r from-[#EAF7FF] via-white to-[#D6EEFF]/70 rounded-3xl border border-[#BDE0FE] p-6 sm:p-8 shadow-baby space-y-3">
+        <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#2589D6] bg-white px-3 py-1 rounded-full border border-[#BDE0FE]">
+          <Briefcase className="w-3.5 h-3.5" />
+          <span>Verified Opportunities</span>
         </div>
-        <h1 className="text-2xl sm:text-3xl font-bold font-serif text-[#334155]">
-          {language === 'hi' ? 'खोजें और आवेदन करें' : 'Explore Verified Opportunities'}
+        <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-[#334155]">
+          {language === 'hi'
+            ? 'सत्यापित रोजगार एवं इंटर्नशिप अवसर 💼'
+            : 'Opportunities Matched To Your Profile 💼'}
         </h1>
-        <p className="text-xs sm:text-sm text-[#64748B] max-w-3xl">
-          Search jobs, apprenticeships, internships, and freelance projects. Each listing shows transparent matching reasons derived from your verified skills and preferences.
+        <p className="text-xs sm:text-sm text-[#64748B] max-w-3xl leading-relaxed">
+          Explore genuine employer listings posted on SETU with transparent profile matching, plus
+          verified Government of India career and apprenticeship portals. SETU never displays fake
+          jobs or unverified listings.
         </p>
+
+        <div className="flex flex-wrap items-center gap-3 pt-1">
+          <div className="px-3.5 py-2 rounded-2xl bg-white border border-[#D8ECFA] text-xs font-semibold text-[#334155]">
+            <span className="text-[#3B9EE8] font-bold">{opportunities.length}</span> Live Employer
+            Listings
+          </div>
+          {isAuthenticated && user?.role === 'seeker' && (
+            <>
+              <div className="px-3.5 py-2 rounded-2xl bg-white border border-[#D8ECFA] text-xs font-semibold text-[#334155]">
+                <span className="text-emerald-600 font-bold">{savedOpps.length}</span> Saved Jobs
+              </div>
+              <Link
+                to="/applications"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-[#EAF7FF] hover:bg-[#D6EEFF] border border-[#BDE0FE] text-xs font-bold text-[#1E3A5F] transition"
+              >
+                <span>Track My Applications</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </>
+          )}
+        </div>
       </div>
 
-      {/* Search & Filter Bar */}
-      <form onSubmit={handleSearch} className="bg-white rounded-2xl border border-[#D8ECFA] p-4 sm:p-5 shadow-sm space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="relative">
-            <Search className="w-4 h-4 text-[#64748B] absolute left-3 top-3" />
+      {/* Tabs & Search / Filter Panel */}
+      <div className="bg-white rounded-3xl border border-[#D8ECFA] p-4 sm:p-5 shadow-baby-sm space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap gap-2">
+            {[
+              { id: 'all' as OppTab, label: 'All Opportunities' },
+              ...(isAuthenticated && user?.role === 'seeker'
+                ? [
+                    { id: 'recommended' as OppTab, label: '✨ Recommended For You' },
+                    { id: 'saved' as OppTab, label: `Saved Jobs (${savedOpps.length})` }
+                  ]
+                : [])
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-4 py-2 rounded-2xl text-xs font-bold border transition ${
+                  activeTab === tab.id
+                    ? 'bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] text-[#1E3A5F] border-[#60B6F8] shadow-baby-sm'
+                    : 'bg-[#F8FCFF] text-[#64748B] border-[#D8ECFA] hover:text-[#334155] hover:bg-[#EAF7FF]'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {!isAuthenticated && (
+            <Link to="/login" className="text-xs font-bold text-[#2589D6] hover:underline">
+              Sign in for personalized job matching →
+            </Link>
+          )}
+        </div>
+
+        <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-12 gap-3">
+          <div className="md:col-span-5 relative">
+            <Search className="w-4 h-4 text-[#64748B] absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by title, skills (Canva, Excel)..."
-              className="w-full pl-9 pr-3.5 py-2.5 rounded-lg border border-[#BDE0FE] text-xs sm:text-sm outline-none focus:ring-2 focus:ring-[#BDE0FE]"
+              placeholder="Role, skill, or organization..."
+              className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-[#D8ECFA] bg-[#F8FCFF] text-xs outline-none focus:ring-2 focus:ring-[#BDE0FE] focus:bg-white"
             />
           </div>
-
-          <div className="relative">
-            <MapPin className="w-4 h-4 text-[#64748B] absolute left-3 top-3" />
+          <div className="md:col-span-3 relative">
+            <MapPin className="w-4 h-4 text-[#64748B] absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={locationFilter}
               onChange={(e) => setLocationFilter(e.target.value)}
-              placeholder="Location (e.g. Gurugram, Remote, Haryana)"
-              className="w-full pl-9 pr-3.5 py-2.5 rounded-lg border border-[#BDE0FE] text-xs sm:text-sm outline-none focus:ring-2 focus:ring-[#BDE0FE]"
+              placeholder="City or State"
+              className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-[#D8ECFA] bg-[#F8FCFF] text-xs outline-none focus:ring-2 focus:ring-[#BDE0FE] focus:bg-white"
             />
           </div>
-
-          <div className="flex space-x-2">
-            <button
-              type="submit"
-              className="flex-1 py-2.5 bg-[#E65100] hover:bg-[#8CC6FA] text-white font-bold rounded-lg text-xs sm:text-sm transition shadow-sm flex items-center justify-center space-x-1.5"
-            >
-              <Search className="w-4 h-4" />
-              <span>Search</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Secondary Filter Chips */}
-        <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-[#EAF7FF] text-xs">
-          <div className="flex items-center space-x-1 text-[#64748B] font-semibold">
-            <Filter className="w-3.5 h-3.5" />
-            <span>Filters:</span>
-          </div>
-
           <select
             value={workModeFilter}
             onChange={(e) => setWorkModeFilter(e.target.value)}
-            className="px-2.5 py-1.5 rounded-lg border border-[#BDE0FE] bg-white text-[#475569] font-medium outline-none focus:ring-2 focus:ring-[#BDE0FE]"
+            className="md:col-span-2 px-3 py-2.5 rounded-2xl border border-[#D8ECFA] bg-[#F8FCFF] text-xs font-semibold text-[#334155] outline-none"
           >
-            <option value="all">All Work Modes</option>
-            <option value="remote">100% Remote</option>
+            <option value="all">Any Mode</option>
+            <option value="remote">Remote</option>
             <option value="hybrid">Hybrid</option>
             <option value="onsite">On-site</option>
           </select>
-
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            className="px-2.5 py-1.5 rounded-lg border border-[#BDE0FE] bg-white text-[#475569] font-medium outline-none focus:ring-2 focus:ring-[#BDE0FE]"
+          <button
+            type="submit"
+            className="md:col-span-2 py-2.5 rounded-2xl bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] hover:from-[#8CC6FA] hover:to-[#A2D2FF] text-[#1E3A5F] text-xs font-bold shadow-baby-sm transition"
           >
-            <option value="all">All Types</option>
-            <option value="job">Jobs</option>
-            <option value="internship">Internships</option>
-            <option value="apprenticeship">Apprenticeships</option>
-            <option value="flexible_work">Flexible Work</option>
-            <option value="freelance">Freelance Projects</option>
-          </select>
+            Search
+          </button>
+        </form>
 
-          <label className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border border-pink-200 bg-pink-50 text-pink-900 font-semibold cursor-pointer">
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-[#EAF7FF]">
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              { id: 'all', label: 'All Types' },
+              { id: 'job', label: 'Full-Time / Part-Time Job' },
+              { id: 'internship', label: 'Internship' },
+              { id: 'apprenticeship', label: 'Apprenticeship' },
+              { id: 'freelance', label: 'Freelance' }
+            ].map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setTypeFilter(t.id)}
+                className={`px-3 py-1.5 rounded-xl text-[11px] font-semibold border transition ${
+                  typeFilter === t.id
+                    ? 'bg-[#EAF7FF] text-[#1E3A5F] border-[#60B6F8]'
+                    : 'bg-white text-[#64748B] border-[#D8ECFA] hover:bg-[#F8FCFF]'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          <label className="inline-flex items-center gap-2 text-xs font-semibold text-[#334155] cursor-pointer">
             <input
               type="checkbox"
               checked={restartOnly}
               onChange={(e) => setRestartOnly(e.target.checked)}
-              className="rounded text-pink-600 focus:ring-pink-500 w-3.5 h-3.5"
+              className="rounded border-[#A2D2FF] text-[#3B9EE8]"
             />
-            <span>Build Her (Career Restart Friendly)</span>
+            <span>Career-Restart Friendly Only</span>
           </label>
         </div>
-      </form>
+      </div>
 
-      {/* Listings Stream */}
+      {/* Results Area */}
       {loading ? (
-        <div className="text-center py-16 text-[#64748B]">
-          <div className="inline-block animate-spin w-8 h-8 border-4 border-[#60B6F8] border-t-transparent rounded-full mb-3"></div>
-          <p className="text-sm">Finding matched opportunities...</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {[1, 2, 3, 4].map((n) => (
+            <div
+              key={n}
+              className="bg-white rounded-3xl border border-[#D8ECFA] p-6 space-y-4 animate-pulse"
+            >
+              <div className="h-4 w-32 bg-[#EAF7FF] rounded-full" />
+              <div className="h-6 w-3/4 bg-[#EAF7FF] rounded-lg" />
+              <div className="h-16 w-full bg-[#F8FCFF] rounded-xl" />
+              <div className="h-10 w-full bg-[#EAF7FF] rounded-2xl" />
+            </div>
+          ))}
         </div>
-      ) : opportunities.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-dashed border-[#BDE0FE] p-12 text-center space-y-2">
-          <Briefcase className="w-10 h-10 text-[#64748B] mx-auto" />
-          <h4 className="font-bold text-[#334155] text-base">No matching opportunities found</h4>
-          <p className="text-xs text-[#64748B]">
-            Try adjusting your search query, location filter, or work mode preference.
-          </p>
+      ) : loadError ? (
+        <div className="bg-white rounded-3xl border border-rose-200 p-8 text-center space-y-3 shadow-baby-sm">
+          <AlertCircle className="w-10 h-10 text-rose-500 mx-auto" />
+          <h3 className="text-base font-bold text-[#334155]">Unable to Load Opportunities</h3>
+          <p className="text-xs text-[#64748B] max-w-md mx-auto">{loadError}</p>
+          <button
+            type="button"
+            onClick={loadOpportunities}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] text-[#1E3A5F] text-xs font-bold shadow-baby-sm"
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span>Retry</span>
+          </button>
+        </div>
+      ) : displayedList.length === 0 ? (
+        <div className="space-y-6">
+          <div className="bg-white rounded-3xl border border-[#D8ECFA] p-8 text-center space-y-3 shadow-baby-sm">
+            <Building2 className="w-10 h-10 text-[#3B9EE8] mx-auto" />
+            <h3 className="text-base font-bold text-[#334155]">
+              {activeTab === 'saved'
+                ? 'No Saved Opportunities Yet'
+                : 'No Live SETU Employer Vacancies Match Right Now'}
+            </h3>
+            <p className="text-xs text-[#64748B] max-w-xl mx-auto leading-relaxed">
+              {activeTab === 'saved'
+                ? 'Bookmark any employer listing on SETU to compare and apply later.'
+                : 'SETU displays only authentic employer-posted listings — we never fabricate fake jobs or companies. While verified SETU employers post new roles, you can apply immediately through the official Government of India career and apprenticeship portals below!'}
+            </p>
+            {(searchQuery || locationFilter || workModeFilter !== 'all' || typeFilter !== 'all' || restartOnly) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  setLocationFilter('');
+                  setWorkModeFilter('all');
+                  setTypeFilter('all');
+                  setRestartOnly(false);
+                  setActiveTab('all');
+                }}
+                className="px-4 py-2 rounded-2xl bg-[#EAF7FF] text-[#1E3A5F] border border-[#BDE0FE] text-xs font-bold"
+              >
+                Reset Search &amp; Filters
+              </button>
+            )}
+          </div>
         </div>
       ) : (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between text-xs text-[#64748B] px-1">
-            <span>Showing {opportunities.length} credible opportunities</span>
-            <span className="flex items-center space-x-1 text-emerald-800 font-medium">
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span>Only approved employers appear in discovery</span>
-            </span>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {displayedList.map((opp) => {
+            const matchingSkills: string[] = Array.isArray(opp.matchingSkills)
+              ? opp.matchingSkills
+              : [];
+            const missingSkills: string[] = Array.isArray(opp.missingSkills)
+              ? opp.missingSkills
+              : [];
+            const matchReasons: string[] = Array.isArray(opp.matchReasons)
+              ? opp.matchReasons
+              : [];
 
-          {loadError && (
-            <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
-              <span>{loadError}</span>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 gap-4">
-            {(Array.isArray(opportunities) ? opportunities : []).map((item: any, idx: number) => {
-              const opp = item?.opportunity || item;
-              if (!opp || typeof opp !== 'object') return null;
-              const isSaved = savedIds.includes(opp._id);
-              const matchScore = item?.matchScore ?? opp.matchScore ?? 50;
-              const matchReasons: string[] = Array.isArray(item?.matchReasons)
-                ? item.matchReasons
-                : Array.isArray(opp.matchingSkills) && opp.matchingSkills.length > 0
-                ? opp.matchingSkills.map((sk: string) => `Matches skill: ${sk}`)
-                : opp.matchExplanation
-                ? [opp.matchExplanation]
-                : [];
-
-              return (
-                <div
-                  key={opp._id || idx}
-                  className="bg-white rounded-2xl border border-[#D8ECFA] p-5 sm:p-6 shadow-sm hover:border-[#A2D2FF] transition space-y-4"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                    <div className="space-y-1">
-                      <div className="flex items-center space-x-2 flex-wrap gap-y-1">
-                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center space-x-1">
-                          <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>Verified Employer</span>
+            return (
+              <div
+                key={opp._id}
+                className="bg-white rounded-3xl border border-[#D8ECFA] p-6 shadow-baby-sm hover:border-[#60B6F8] hover:shadow-baby transition flex flex-col justify-between space-y-4"
+              >
+                <div className="space-y-3">
+                  {/* Top Row */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#EAF7FF] text-[#1E3A5F] border border-[#BDE0FE] uppercase">
+                        {opp.opportunityType || 'Job'}
+                      </span>
+                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#F8FCFF] text-[#475569] border border-[#D8ECFA] capitalize">
+                        {opp.workMode || 'Hybrid'}
+                      </span>
+                      {opp.isCareerRestart && (
+                        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          Career-Restart Friendly
                         </span>
-                        {opp.isCareerRestart && (
-                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-pink-100 text-pink-800 border border-pink-200">
-                            Build Her Friendly
-                          </span>
-                        )}
-                      </div>
-
-                      <h3 className="text-lg sm:text-xl font-bold font-serif text-[#334155] pt-1">
-                        {opp.title}
-                      </h3>
-
-                      <p className="text-xs sm:text-sm text-[#64748B] font-medium">
-                        {opp.organisationName || 'Verified Employer'} • {formatLocation(opp.location)}
-                      </p>
+                      )}
                     </div>
 
-                    {/* Match Score & Bookmark */}
-                    <div className="flex items-center space-x-2 self-start sm:self-auto">
-                      <span className="text-xs font-bold px-3 py-1 rounded-full bg-[#EAF7FF] text-[#2589D6] border border-[#BDE0FE]">
-                        {matchScore}% Match
-                      </span>
-                      {user?.role === 'seeker' && (
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {typeof opp.matchScore === 'number' && (
+                        <span className="text-xs font-extrabold px-2.5 py-1 rounded-full bg-gradient-to-r from-[#EAF7FF] to-[#D6EEFF] text-[#1E3A5F] border border-[#BDE0FE]">
+                          {opp.matchScore}% Match
+                        </span>
+                      )}
+                      {isAuthenticated && user?.role === 'seeker' && (
                         <button
-                          onClick={() => handleToggleSave(opp._id)}
-                          className={`p-2 rounded-lg border transition ${
-                            isSaved
-                              ? 'bg-amber-50 border-amber-300 text-amber-700'
-                              : 'border-[#D8ECFA] text-[#64748B] hover:text-[#475569] hover:bg-[#F8FCFF]'
+                          type="button"
+                          disabled={savingId === String(opp._id)}
+                          onClick={() => handleToggleSave(String(opp._id))}
+                          className={`p-2 rounded-xl border transition ${
+                            opp.isSaved
+                              ? 'bg-[#EAF7FF] text-[#2589D6] border-[#60B6F8]'
+                              : 'bg-[#F8FCFF] text-[#64748B] border-[#D8ECFA] hover:text-[#1E3A5F]'
                           }`}
-                          title={isSaved ? 'Bookmarked' : 'Save opportunity'}
+                          aria-label={opp.isSaved ? 'Remove bookmark' : 'Save job'}
                         >
-                          <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-amber-600' : ''}`} />
+                          {opp.isSaved ? (
+                            <BookmarkCheck className="w-4 h-4" />
+                          ) : (
+                            <Bookmark className="w-4 h-4" />
+                          )}
                         </button>
                       )}
                     </div>
                   </div>
 
-                  {/* Explainability Badges */}
-                  {matchReasons.length > 0 && (
-                    <div className="flex flex-wrap gap-2 p-3 bg-[#F8FCFF] rounded-xl border border-[#D8ECFA]/60 text-xs">
-                      <span className="font-bold text-[#475569] flex items-center space-x-1">
-                        <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                        <span>Why this matches you:</span>
+                  {/* Title & Org */}
+                  <div>
+                    <h3 className="text-base sm:text-lg font-bold text-[#334155] leading-snug">
+                      {opp.title}
+                    </h3>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-[#64748B]">
+                      <span className="font-semibold text-[#1E3A5F] inline-flex items-center gap-1">
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                        {opp.organisationName}
                       </span>
-                      {matchReasons.map((reason: string, rIdx: number) => (
-                        <span
-                          key={rIdx}
-                          className="bg-white text-[#334155] px-2.5 py-0.5 rounded-md border border-[#D8ECFA] font-medium flex items-center space-x-1"
-                        >
-                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                          <span>{reason}</span>
-                        </span>
-                      ))}
+                      <span className="inline-flex items-center gap-1">
+                        <MapPin className="w-3.5 h-3.5 text-[#3B9EE8]" />
+                        {formatLocation(opp.location)}
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-[#3B9EE8]" />
+                        {opp.stipendOrSalary || 'Competitive'}
+                      </span>
                     </div>
-                  )}
-
-                  {/* Metadata Chips */}
-                  <div className="flex flex-wrap gap-2 text-xs text-[#64748B]">
-                    <span className="bg-[#EAF7FF] px-2.5 py-1 rounded font-medium">
-                      Mode: <strong className="text-[#334155]">{(opp.workMode || 'hybrid').toUpperCase()}</strong>
-                    </span>
-                    <span className="bg-[#EAF7FF] px-2.5 py-1 rounded font-medium">
-                      Type: <strong className="text-[#334155]">{(opp.opportunityType || 'job').replace('_', ' ')}</strong>
-                    </span>
-                    <span className="bg-[#EAF7FF] px-2.5 py-1 rounded font-medium">
-                      Compensation: <strong className="text-emerald-600">{opp.stipendOrSalary || opp.salaryOrStipend || 'Competitive'}</strong>
-                    </span>
-                    {opp.experienceRequired && (
-                      <span className="bg-[#EAF7FF] px-2.5 py-1 rounded font-medium">
-                        Experience: <strong className="text-[#334155]">{opp.experienceRequired}</strong>
-                      </span>
-                    )}
                   </div>
 
-                  <p className="text-xs sm:text-sm text-[#475569] leading-relaxed">
+                  <p className="text-xs text-[#64748B] line-clamp-2 leading-relaxed">
                     {opp.description}
                   </p>
 
-                  {/* Bottom Actions */}
-                  <div className="pt-3 border-t border-[#EAF7FF] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center space-x-3 text-xs text-[#64748B]">
+                  {/* Why This Opportunity Matches You */}
+                  {matchReasons.length > 0 && (
+                    <div className="p-3 rounded-2xl bg-[#F8FCFF] border border-[#D8ECFA] space-y-1">
+                      <p className="text-[11px] font-bold text-[#1E3A5F] flex items-center gap-1">
+                        <Sparkles className="w-3.5 h-3.5 text-[#3B9EE8]" />
+                        <span>Why This Opportunity Matches You</span>
+                      </p>
+                      <ul className="space-y-0.5 text-[11px] text-[#475569]">
+                        {matchReasons.slice(0, 3).map((r, i) => (
+                          <li key={i}>• {r}</li>
+                        ))}
+                      </ul>
+                      {opp.academicEligibilityNote && (
+                        <p className="text-[11px] text-amber-700 font-medium pt-0.5">
+                          Note: {opp.academicEligibilityNote}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Skills & Skill Gap Learning Nudge */}
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap gap-1.5">
+                      {matchingSkills.map((sk, idx) => (
+                        <span
+                          key={`m-${idx}`}
+                          className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200"
+                        >
+                          ✓ {sk}
+                        </span>
+                      ))}
+                      {missingSkills.slice(0, 4).map((sk, idx) => (
+                        <span
+                          key={`x-${idx}`}
+                          className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-[#F8FCFF] text-[#64748B] border border-[#D8ECFA]"
+                        >
+                          {sk}
+                        </span>
+                      ))}
+                    </div>
+
+                    {missingSkills.length > 0 && (
+                      <Link
+                        to={`/learn?skill=${encodeURIComponent(missingSkills[0])}`}
+                        className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#2589D6] hover:underline"
+                      >
+                        <BookOpen className="w-3.5 h-3.5" />
+                        <span>
+                          You&apos;re Almost There! 🩵 Learn {missingSkills[0]} on SETU
+                        </span>
+                      </Link>
+                    )}
+                  </div>
+                </div>
+
+                {/* Card Footer Actions */}
+                <div className="pt-3 border-t border-[#EAF7FF] flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setDetailOpp(opp)}
+                      className="px-3.5 py-2 rounded-xl bg-[#F8FCFF] hover:bg-[#EAF7FF] text-[#334155] border border-[#D8ECFA] text-xs font-bold transition"
+                    >
+                      View Details
+                    </button>
+                    {isAuthenticated && (
                       <button
+                        type="button"
                         onClick={() => {
                           setReportOpp(opp);
                           setReportSuccess('');
+                          setReportDesc('');
                         }}
-                        className="text-[#64748B] hover:text-rose-600 transition flex items-center space-x-1"
+                        className="p-2 rounded-xl text-[#64748B] hover:text-rose-600 hover:bg-rose-50 transition"
+                        title="Report suspicious listing"
                       >
-                        <ShieldAlert className="w-3.5 h-3.5" />
-                        <span>Report Suspicious Listing</span>
+                        <ShieldAlert className="w-4 h-4" />
                       </button>
-                    </div>
-
-                    <div className="flex items-center space-x-2">
-                      {opp.isExternal ? (
-                        <a
-                          href={opp.externalApplyUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] hover:from-[#8CC6FA] hover:to-[#A2D2FF] text-[#1E3A5F] font-bold text-xs sm:text-sm transition flex items-center space-x-1.5 shadow-sm"
-                        >
-                          <span>Apply on Official Portal</span>
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </a>
-                      ) : (
-                        <button
-                          onClick={() => handleOpenApply(opp)}
-                          className="px-5 py-2.5 rounded-xl bg-[#E65100] hover:bg-[#8CC6FA] text-white font-bold text-xs sm:text-sm transition flex items-center space-x-1.5 shadow-sm"
-                        >
-                          <span>Apply Directly on SETU</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
+                    )}
                   </div>
+
+                  {opp.hasApplied ? (
+                    <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold">
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Applied</span>
+                    </span>
+                  ) : opp.externalApplyUrl ? (
+                    <a
+                      href={opp.externalApplyUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-5 py-2 rounded-2xl bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] hover:from-[#8CC6FA] hover:to-[#A2D2FF] text-[#1E3A5F] text-xs font-bold shadow-baby-sm transition"
+                    >
+                      <span>Apply Externally</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!isAuthenticated) {
+                          alert('Please sign in as a Job Seeker to apply.');
+                          return;
+                        }
+                        setApplyOpp(opp);
+                        setCoverNote('');
+                        setApplyError('');
+                        setApplySuccess('');
+                      }}
+                      className="inline-flex items-center gap-1.5 px-5 py-2 rounded-2xl bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] hover:from-[#8CC6FA] hover:to-[#A2D2FF] text-[#1E3A5F] text-xs font-bold shadow-baby-sm transition"
+                    >
+                      <span>Apply Now</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
-              );
-            })}
-          </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
-      {/* Direct Apply Modal */}
-      {applyOpp && (
-        <div className="fixed inset-0 z-50 bg-[#EAF7FF]/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-[#D8ECFA] animate-in zoom-in-95">
-            <div className="p-5 border-b border-[#D8ECFA] flex items-center justify-between">
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#2589D6]">
-                  Direct SETU Application
+      {/* Clearly Labeled Verified Official Career & Government Employment Portals */}
+      <div className="bg-white rounded-3xl border border-[#D8ECFA] p-6 shadow-baby-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#2589D6]">
+              <Landmark className="w-3.5 h-3.5" />
+              <span>Official National Portals</span>
+            </div>
+            <h2 className="text-lg font-extrabold text-[#334155] font-display mt-0.5">
+              Verified Government Career &amp; Apprenticeship Portals
+            </h2>
+            <p className="text-xs text-[#64748B]">
+              Official external portals operated by Government of India ministries for verified jobs,
+              internships, and paid apprenticeships (clearly separated from direct SETU employer
+              listings).
+            </p>
+          </div>
+          <Link
+            to="/schemes"
+            className="text-xs font-bold text-[#2589D6] hover:underline shrink-0"
+          >
+            Explore All Schemes →
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {OFFICIAL_CAREER_PORTALS.map((portal) => (
+            <div
+              key={portal.url}
+              className="p-4 rounded-2xl bg-[#F8FCFF] border border-[#D8ECFA] hover:border-[#60B6F8] transition flex flex-col justify-between space-y-3"
+            >
+              <div className="space-y-1.5">
+                <span className="inline-block text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-white text-[#1E3A5F] border border-[#BDE0FE]">
+                  {portal.badge}
                 </span>
-                <h3 className="font-bold text-[#334155] text-base font-serif">{applyOpp.title}</h3>
-                <p className="text-xs text-[#64748B]">{applyOpp.organisationName}</p>
+                <h3 className="text-sm font-bold text-[#334155]">{portal.name}</h3>
+                <p className="text-[11px] font-semibold text-[#2589D6]">{portal.authority}</p>
+                <p className="text-xs text-[#64748B] leading-relaxed">{portal.description}</p>
+              </div>
+              <a
+                href={portal.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-1.5 py-2 rounded-xl bg-white hover:bg-[#EAF7FF] text-[#1E3A5F] border border-[#BDE0FE] text-xs font-bold transition"
+              >
+                <span>Open Official Portal</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* View Opportunity Details Modal */}
+      {detailOpp && (
+        <div className="fixed inset-0 z-50 bg-[#1E3A5F]/35 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-baby-lg border border-[#BDE0FE] overflow-hidden">
+            <div className="p-5 bg-gradient-to-r from-[#EAF7FF] to-[#F8FCFF] border-b border-[#D8ECFA] flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold text-[#2589D6]">{detailOpp.organisationName}</p>
+                <h3 className="text-lg font-extrabold text-[#334155] font-display">
+                  {detailOpp.title}
+                </h3>
+                <p className="text-xs text-[#64748B] mt-0.5">
+                  {formatLocation(detailOpp.location)} • {detailOpp.workMode} •{' '}
+                  {detailOpp.stipendOrSalary}
+                </p>
               </div>
               <button
-                onClick={() => setApplyOpp(null)}
-                className="p-1.5 rounded-lg text-[#64748B] hover:bg-[#EAF7FF]"
+                type="button"
+                onClick={() => setDetailOpp(null)}
+                className="p-2 rounded-xl text-[#64748B] hover:bg-white"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-
-            <form onSubmit={handleSubmitApplication} className="p-6 space-y-4">
-              {applyError && (
-                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center space-x-2">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{applyError}</span>
+            <div className="p-6 overflow-y-auto space-y-4 text-xs sm:text-sm text-[#334155]">
+              <p className="whitespace-pre-line text-[#475569] leading-relaxed">
+                {detailOpp.description}
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="p-3 rounded-2xl bg-[#F8FCFF] border border-[#D8ECFA]">
+                  <p className="font-bold text-[#1E3A5F]">Experience</p>
+                  <p className="text-[#64748B] mt-0.5">
+                    {detailOpp.experienceRequired || 'Fresher / Entry-Level Welcome'}
+                  </p>
+                </div>
+                <div className="p-3 rounded-2xl bg-[#F8FCFF] border border-[#D8ECFA]">
+                  <p className="font-bold text-[#1E3A5F]">Duration / Type</p>
+                  <p className="text-[#64748B] mt-0.5 capitalize">
+                    {detailOpp.duration || detailOpp.opportunityType}
+                  </p>
+                </div>
+              </div>
+              {Array.isArray(detailOpp.requiredSkills) && detailOpp.requiredSkills.length > 0 && (
+                <div>
+                  <p className="text-xs font-bold text-[#334155] mb-1.5">Required Skills</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {detailOpp.requiredSkills.map((s: string, i: number) => (
+                      <span
+                        key={i}
+                        className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#EAF7FF] text-[#1E3A5F] border border-[#BDE0FE]"
+                      >
+                        {s}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
-
-              {applySuccess && (
-                <div className="p-3 bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs rounded-xl flex items-center space-x-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span className="font-semibold">{applySuccess}</span>
-                </div>
-              )}
-
-              <div className="p-3.5 bg-[#EAF7FF]/70 border border-[#BDE0FE] rounded-xl text-xs space-y-1">
-                <span className="font-bold text-orange-950 block">Portfolio Snapshot Attached:</span>
-                <p className="text-[#2589D6] text-[11px] leading-relaxed">
-                  Your public portfolio projects and verified assessment scores will be automatically shared with {applyOpp.organisationName}.
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-[#475569] mb-1">
-                  Cover Note / Introduction for Recruiter
-                </label>
-                <textarea
-                  rows={3}
-                  value={coverNote}
-                  onChange={(e) => setCoverNote(e.target.value)}
-                  placeholder="Introduce yourself, mention your key practical skills, and your availability..."
-                  className="w-full px-3.5 py-2 rounded-lg border border-[#BDE0FE] text-sm outline-none focus:ring-2 focus:ring-[#BDE0FE]"
-                />
-              </div>
-
-              <div className="flex justify-end space-x-2 pt-2 border-t border-[#D8ECFA]">
+            </div>
+            <div className="p-4 border-t border-[#EAF7FF] bg-[#F8FCFF] flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDetailOpp(null)}
+                className="px-4 py-2 rounded-2xl bg-white border border-[#D8ECFA] text-xs font-bold text-[#64748B]"
+              >
+                Close
+              </button>
+              {!detailOpp.hasApplied && !detailOpp.externalApplyUrl && (
                 <button
                   type="button"
-                  onClick={() => setApplyOpp(null)}
-                  className="px-4 py-2 rounded-lg border border-[#BDE0FE] text-xs font-semibold text-[#475569] hover:bg-[#EAF7FF]"
+                  onClick={() => {
+                    const target = detailOpp;
+                    setDetailOpp(null);
+                    setApplyOpp(target);
+                    setCoverNote('');
+                    setApplyError('');
+                    setApplySuccess('');
+                  }}
+                  className="px-5 py-2 rounded-2xl bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] text-[#1E3A5F] text-xs font-bold shadow-baby-sm"
                 >
-                  Cancel
+                  Apply Now
                 </button>
-                <button
-                  type="submit"
-                  disabled={applying || !!applySuccess}
-                  className="px-5 py-2 rounded-lg bg-[#E65100] hover:bg-[#8CC6FA] text-white font-bold text-xs shadow-sm transition disabled:opacity-50"
-                >
-                  {applying ? 'Submitting...' : 'Confirm & Apply'}
-                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Apply Now Modal */}
+      {applyOpp && (
+        <div className="fixed inset-0 z-50 bg-[#1E3A5F]/35 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full shadow-baby-lg border border-[#BDE0FE] overflow-hidden">
+            <div className="p-5 bg-gradient-to-r from-[#EAF7FF] to-[#F8FCFF] border-b border-[#D8ECFA] flex items-center justify-between">
+              <div>
+                <p className="text-[11px] font-bold text-[#2589D6]">Apply via SETU</p>
+                <h3 className="text-base font-extrabold text-[#334155]">{applyOpp.title}</h3>
               </div>
+              <button
+                type="button"
+                onClick={() => setApplyOpp(null)}
+                className="p-2 rounded-xl text-[#64748B] hover:bg-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleSubmitApplication} className="p-5 space-y-4">
+              {applyError && (
+                <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
+                  {applyError}
+                </div>
+              )}
+              {applySuccess ? (
+                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs space-y-2">
+                  <p className="font-bold">{applySuccess}</p>
+                  <Link
+                    to="/applications"
+                    className="inline-flex items-center gap-1 text-[#2589D6] font-bold hover:underline"
+                  >
+                    <span>Go to My Applications</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#334155] mb-1.5">
+                      Short Cover Note (Optional)
+                    </label>
+                    <textarea
+                      rows={4}
+                      value={coverNote}
+                      onChange={(e) => setCoverNote(e.target.value)}
+                      placeholder="Highlight your relevant skills, projects, or why you are excited about this role..."
+                      className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-xs outline-none focus:ring-2 focus:ring-[#BDE0FE]"
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setApplyOpp(null)}
+                      className="px-4 py-2 rounded-2xl bg-[#F8FCFF] border border-[#D8ECFA] text-xs font-bold text-[#64748B]"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={applying}
+                      className="px-5 py-2 rounded-2xl bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] text-[#1E3A5F] text-xs font-bold shadow-baby-sm disabled:opacity-50"
+                    >
+                      {applying ? 'Submitting...' : 'Submit Application'}
+                    </button>
+                  </div>
+                </>
+              )}
             </form>
           </div>
         </div>
       )}
 
-      {/* Report Suspicious Listing Modal */}
+      {/* Report Modal */}
       {reportOpp && (
-        <div className="fixed inset-0 z-50 bg-[#EAF7FF]/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-[#D8ECFA] animate-in zoom-in-95">
-            <div className="p-5 border-b border-[#D8ECFA] flex items-center justify-between">
-              <h3 className="font-bold text-[#334155] text-base font-serif flex items-center space-x-1.5 text-rose-700">
-                <ShieldAlert className="w-5 h-5" />
-                <span>Report Suspicious Listing</span>
-              </h3>
+        <div className="fixed inset-0 z-50 bg-[#1E3A5F]/35 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full shadow-baby-lg border border-[#BDE0FE] overflow-hidden">
+            <div className="p-5 bg-[#EAF7FF] border-b border-[#D8ECFA] flex items-center justify-between">
+              <h3 className="text-sm font-extrabold text-[#334155]">Report Suspicious Listing</h3>
               <button
+                type="button"
                 onClick={() => setReportOpp(null)}
-                className="p-1.5 rounded-lg text-[#64748B] hover:bg-[#EAF7FF]"
+                className="p-1.5 rounded-xl text-[#64748B] hover:bg-white"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
-
-            <form onSubmit={handleSubmitReport} className="p-6 space-y-4">
-              {reportSuccess && (
-                <div className="p-3 bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs rounded-xl">
+            <form onSubmit={handleSubmitReport} className="p-5 space-y-4">
+              {reportSuccess ? (
+                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium">
                   {reportSuccess}
                 </div>
+              ) : (
+                <>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#334155] mb-1">
+                      Reason
+                    </label>
+                    <select
+                      value={reportReason}
+                      onChange={(e) => setReportReason(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-xs"
+                    >
+                      <option value="fraud_or_scam">Suspected Fraud / Upfront Fee Demand</option>
+                      <option value="misleading_info">Misleading Job Description</option>
+                      <option value="harassment_or_unsafe">Unsafe / Inappropriate Content</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#334155] mb-1">
+                      Additional Details
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={reportDesc}
+                      onChange={(e) => setReportDesc(e.target.value)}
+                      placeholder="Describe what seemed suspicious..."
+                      className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-xs"
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setReportOpp(null)}
+                      className="px-4 py-2 rounded-2xl bg-[#F8FCFF] border border-[#D8ECFA] text-xs font-bold text-[#64748B]"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={reporting}
+                      className="px-5 py-2 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold disabled:opacity-50"
+                    >
+                      {reporting ? 'Submitting...' : 'Submit Report'}
+                    </button>
+                  </div>
+                </>
               )}
-
-              <div>
-                <label className="block text-xs font-semibold text-[#475569] mb-1">
-                  Reason for Reporting
-                </label>
-                <select
-                  value={reportReason}
-                  onChange={(e: any) => setReportReason(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-lg border border-[#BDE0FE] text-sm outline-none focus:ring-2 focus:ring-rose-500 bg-white"
-                >
-                  <option value="fraud_or_scam">Fraud / Fake Job Scam</option>
-                  <option value="fee_charged">Charging Money / Registration Fee</option>
-                  <option value="inaccurate_details">Inaccurate / Misleading Details</option>
-                  <option value="unsafe_conditions">Unsafe or Exploitative Conditions</option>
-                  <option value="other">Other Violation</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-[#475569] mb-1">
-                  Description of Issue *
-                </label>
-                <textarea
-                  required
-                  rows={3}
-                  value={reportDesc}
-                  onChange={(e) => setReportDesc(e.target.value)}
-                  placeholder="Explain why this listing is suspicious. The SETU administration moderates reports promptly."
-                  className="w-full px-3.5 py-2 rounded-lg border border-[#BDE0FE] text-sm outline-none focus:ring-2 focus:ring-rose-500"
-                />
-              </div>
-
-              <div className="flex justify-end space-x-2 pt-2 border-t border-[#D8ECFA]">
-                <button
-                  type="button"
-                  onClick={() => setReportOpp(null)}
-                  className="px-4 py-2 rounded-lg border border-[#BDE0FE] text-xs font-semibold text-[#475569] hover:bg-[#EAF7FF]"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={reporting || !!reportSuccess}
-                  className="px-5 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-sm transition disabled:opacity-50"
-                >
-                  {reporting ? 'Submitting...' : 'Submit Report to Admin'}
-                </button>
-              </div>
             </form>
           </div>
         </div>

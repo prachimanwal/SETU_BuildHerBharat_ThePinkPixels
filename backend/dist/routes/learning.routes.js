@@ -6,5 +6,7 @@ const auth_middleware_1 = require("../middleware/auth.middleware");
 const router = (0, express_1.Router)();
 router.get('/', auth_middleware_1.optionalAuthenticate, learning_controller_1.getLearningResources);
 router.get('/recommended', auth_middleware_1.optionalAuthenticate, learning_controller_1.getRecommendedLearning);
+router.get('/:id', auth_middleware_1.optionalAuthenticate, learning_controller_1.getLearningResourceById);
+router.put('/:id/progress', auth_middleware_1.authenticate, learning_controller_1.updateLearningProgress);
 router.post('/:id/complete', auth_middleware_1.authenticate, learning_controller_1.completeLearning);
 exports.default = router;

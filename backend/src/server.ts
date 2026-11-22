@@ -1,12 +1,14 @@
 import app from './app';
 import { connectDB } from './config/database';
 import { ENV } from './config/env';
+import { ensurePlatformCatalogs } from './seed/catalogBootstrap';
 
 const DB_RETRY_INTERVAL_MS = 10000;
 
 const connectWithRetry = async () => {
   try {
     await connectDB();
+    await ensurePlatformCatalogs();
   } catch (error: any) {
     console.error(
       `[Server] Initial MongoDB connection failed (${error?.message || 'unknown error'}).`

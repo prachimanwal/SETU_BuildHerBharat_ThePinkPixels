@@ -13,6 +13,8 @@ import { LearningProgress } from '../src/models/LearningProgress';
 import { Portfolio } from '../src/models/Portfolio';
 import { Opportunity } from '../src/models/Opportunity';
 import { LearningResource } from '../src/models/LearningResource';
+import { Assessment } from '../src/models/Assessment';
+import { GovernmentScheme } from '../src/models/GovernmentScheme';
 
 interface HttpResponse {
   status: number;
@@ -106,11 +108,12 @@ function installInMemoryStore() {
     get: () => 1
   });
 
-  const makeQuery = (result: any) => ({
-    select: () => Promise.resolve(result),
+  const makeQuery = (result: any): any => ({
+    select: () => makeQuery(result),
     populate: () => makeQuery(result),
     sort: () => makeQuery(result),
-    limit: () => Promise.resolve(result),
+    limit: () => makeQuery(result),
+    lean: () => makeQuery(result),
     then: (resolve: any, reject: any) => Promise.resolve(result).then(resolve, reject)
   });
 
@@ -162,6 +165,8 @@ function installInMemoryStore() {
   (Portfolio as any).find = emptyListQuery;
   (Opportunity as any).find = emptyListQuery;
   (LearningResource as any).find = emptyListQuery;
+  (Assessment as any).find = emptyListQuery;
+  (GovernmentScheme as any).find = emptyListQuery;
 
   return {
     users,
@@ -388,6 +393,89 @@ async function run() {
     });
     assert.equal(seekerToAdminRes.status, 403);
     console.log('  ✓ 6. Role-based access control & anti-escalation enforced (Seeker blocked from Admin)');
+
+    // 6b. Phase 1: Educational academic score validation & persistence
+    const eduSaveRes = await request(port, 'PUT', '/api/profile', {
+      cookie: seekerCookie,
+      body: {
+        seekerProfile: {
+          education: [
+            {
+              level: 'Undergraduate student',
+              degree: 'B.Tech',
+              specialization: 'Computer Science',
+              institution: 'DTU',
+              currentYear: '3rd Year',
+              currentSemester: 'Semester 6',
+              expectedGraduationYear: '2027',
+              status: 'Pursuing',
+              scoreType: 'CGPA',
+              cgpa: 8.2,
+              cgpaScale: 10
+            },
+            {
+              level: 'Class 12 completed',
+              schoolName: 'Kendriya Vidyalaya',
+              board: 'CBSE',
+              stream: 'Science',
+              specialization: 'PCM',
+              graduationYear: '2023',
+              status: 'Completed',
+              scoreType: 'Percentage',
+              percentage: 88.5
+            }
+          ]
+        }
+      }
+    });
+    assert.equal(eduSaveRes.status, 200);
+    const savedEdu = eduSaveRes.body.data.user.seekerProfile.education;
+    assert.equal(savedEdu.length, 2);
+    assert.equal(savedEdu[0].scoreType, 'CGPA');
+    assert.equal(savedEdu[0].cgpa, 8.2);
+    assert.equal(savedEdu[0].cgpaScale, 10);
+    assert.equal(savedEdu[0].status, 'Pursuing');
+    assert.equal(savedEdu[1].scoreType, 'Percentage');
+    assert.equal(savedEdu[1].percentage, 88.5);
+    assert.equal(savedEdu[1].status, 'Completed');
+
+    // Invalid percentage (> 100) must be rejected with HTTP 400
+    const badPctRes = await request(port, 'PUT', '/api/profile', {
+      cookie: seekerCookie,
+      body: {
+        seekerProfile: {
+          education: [
+            {
+              level: 'Class 10 completed',
+              board: 'CBSE',
+              scoreType: 'Percentage',
+              percentage: 112
+            }
+          ]
+        }
+      }
+    });
+    assert.equal(badPctRes.status, 400);
+
+    // Invalid CGPA (> scale) must be rejected with HTTP 400
+    const badCgpaRes = await request(port, 'PUT', '/api/profile', {
+      cookie: seekerCookie,
+      body: {
+        seekerProfile: {
+          education: [
+            {
+              level: 'Graduate',
+              degree: 'B.Sc',
+              scoreType: 'CGPA',
+              cgpa: 4.5,
+              cgpaScale: 4
+            }
+          ]
+        }
+      }
+    });
+    assert.equal(badCgpaRes.status, 400);
+    console.log('  ✓ 6b. Education CGPA/Percentage persistence & validation (rejects >100% and CGPA>scale)');
 
     // 7. Existing Admin account authenticates securely
     const adminEmail = 'platform.admin.test@setu.org';

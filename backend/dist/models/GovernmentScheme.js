@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.GovernmentScheme = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
 const GovernmentSchemeSchema = new mongoose_1.Schema({
+    slug: { type: String, unique: true, sparse: true, index: true },
     title: { type: String, required: true, trim: true },
     hindiTitle: { type: String, default: '' },
     ministry: { type: String, required: true, trim: true },
@@ -52,10 +53,29 @@ const GovernmentSchemeSchema = new mongoose_1.Schema({
         index: true
     },
     targetAudience: { type: String, default: 'General' },
+    description: { type: String, default: '' },
     benefitsSummary: { type: String, required: true },
     eligibilitySummary: { type: String, required: true },
+    requiredDocuments: { type: [String], default: [] },
+    applicationProcess: { type: String, default: '' },
+    applicationStatus: {
+        type: String,
+        default: 'Ongoing — Verify current cycle on Official Portal'
+    },
     officialUrl: { type: String, required: true, trim: true },
-    lastReviewedDate: { type: String, default: '2026-02-15' }
+    applicationUrl: { type: String, default: '' },
+    eligibilityRules: {
+        minAge: { type: Number },
+        maxAge: { type: Number },
+        educationLevels: { type: [String], default: [] },
+        studentFriendly: { type: Boolean, default: false },
+        entrepreneurshipFocused: { type: Boolean, default: false },
+        womenFocused: { type: Boolean, default: false },
+        ruralFocused: { type: Boolean, default: false },
+        states: { type: [String], default: [] },
+        keywords: { type: [String], default: [] }
+    },
+    lastReviewedDate: { type: String, default: '2026-03-01' }
 }, { timestamps: true });
 GovernmentSchemeSchema.index({ title: 'text', ministry: 'text', benefitsSummary: 'text' });
 exports.GovernmentScheme = mongoose_1.default.model('GovernmentScheme', GovernmentSchemeSchema);

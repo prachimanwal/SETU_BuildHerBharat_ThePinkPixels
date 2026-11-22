@@ -49,11 +49,15 @@ const LearningProgressSchema = new mongoose_1.Schema({
     },
     status: {
         type: String,
-        enum: ['started', 'completed'],
+        enum: ['started', 'in_progress', 'completed'],
         default: 'started',
         required: true
     },
-    submissionDetails: { type: String, default: '' }
+    completedSteps: { type: [Number], default: [] },
+    submissionDetails: { type: String, default: '' },
+    submissionText: { type: String, default: '' },
+    submissionUrl: { type: String, default: '' },
+    completedAt: { type: Date }
 }, { timestamps: true });
 LearningProgressSchema.index({ userId: 1, resourceId: 1 }, { unique: true });
 exports.LearningProgress = mongoose_1.default.model('LearningProgress', LearningProgressSchema);

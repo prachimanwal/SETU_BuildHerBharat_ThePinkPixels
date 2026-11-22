@@ -83,12 +83,27 @@ const UserSchema = new mongoose_1.Schema({
                 degree: { type: String, default: '' },
                 specialization: { type: String, default: '' },
                 institution: { type: String, default: '' },
+                schoolName: { type: String, default: '' },
+                board: { type: String, default: '' },
+                duration: { type: String, default: '' },
+                currentYear: { type: String, default: '' },
+                currentSemester: { type: String, default: '' },
                 currentYearOrSemester: { type: String, default: '' },
                 expectedGraduationYear: { type: String, default: '' },
                 graduationYear: { type: String, default: '' },
                 classCompleted: { type: String, default: '' },
                 stream: { type: String, default: '' },
-                status: { type: String, default: '' }
+                status: { type: String, default: '' },
+                scoreType: {
+                    type: String,
+                    enum: ['Percentage', 'CGPA', 'Grade', ''],
+                    default: ''
+                },
+                percentage: { type: Number, min: 0, max: 100, default: null },
+                cgpa: { type: Number, min: 0, default: null },
+                cgpaScale: { type: Number, min: 1, default: null },
+                grade: { type: String, default: '' },
+                gradingSystem: { type: String, default: '' }
             }
         ],
         qualifications: [
@@ -177,6 +192,14 @@ const UserSchema = new mongoose_1.Schema({
         },
         adminReviewNotes: { type: String, default: '' },
         verifiedAt: { type: Date }
+    },
+    savedOpportunities: {
+        type: [{ type: mongoose_1.Schema.Types.ObjectId, ref: 'Opportunity' }],
+        default: []
+    },
+    savedSchemes: {
+        type: [{ type: mongoose_1.Schema.Types.ObjectId, ref: 'GovernmentScheme' }],
+        default: []
     }
 }, { timestamps: true });
 // Keep name/fullName and avatar/profilePicture synchronized

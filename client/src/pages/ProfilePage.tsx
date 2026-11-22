@@ -24,8 +24,8 @@ import {
   ExperienceEntry
 } from '../context/AuthContext';
 import { UserAvatar } from '../components/UserAvatar';
+import { EducationManager } from '../components/EducationManager';
 import {
-  EDUCATION_LEVELS,
   PROFICIENCY_LEVELS,
   CAREER_INTERESTS,
   CAREER_GOALS,
@@ -84,11 +84,6 @@ export const ProfilePage: React.FC = () => {
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [accessibilityPreferences, setAccessibilityPreferences] = useState('');
   const [educationList, setEducationList] = useState<EducationEntry[]>([]);
-  const [newEduLevel, setNewEduLevel] = useState<string>('Graduate');
-  const [newEduDegree, setNewEduDegree] = useState('');
-  const [newEduSpec, setNewEduSpec] = useState('');
-  const [newEduInst, setNewEduInst] = useState('');
-  const [newEduYear, setNewEduYear] = useState('');
 
   // Skills & Experience
   const [skillsList, setSkillsList] = useState<DetailedSkill[]>([]);
@@ -194,24 +189,6 @@ export const ProfilePage: React.FC = () => {
   const toggleItem = (list: string[], setter: (v: string[]) => void, value: string) => {
     if (list.includes(value)) setter(list.filter((i) => i !== value));
     else setter([...list, value]);
-  };
-
-  const handleAddEducation = () => {
-    if (!newEduLevel) return;
-    setEducationList([
-      ...educationList,
-      {
-        level: newEduLevel,
-        degree: newEduDegree.trim(),
-        specialization: newEduSpec.trim(),
-        institution: newEduInst.trim(),
-        graduationYear: newEduYear.trim()
-      }
-    ]);
-    setNewEduDegree('');
-    setNewEduSpec('');
-    setNewEduInst('');
-    setNewEduYear('');
   };
 
   const handleAddSkill = () => {
@@ -561,90 +538,23 @@ export const ProfilePage: React.FC = () => {
 
             {/* Education Section */}
             <div className="pt-4 border-t border-[#EAF7FF] space-y-4">
-              <div className="flex items-center gap-2">
-                <GraduationCap className="w-4 h-4 text-[#3B9EE8]" />
-                <h3 className="text-sm font-bold text-[#334155] uppercase tracking-wider">
-                  Educational Qualifications ({educationList.length})
-                </h3>
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <GraduationCap className="w-4 h-4 text-[#3B9EE8]" />
+                  <h3 className="text-sm font-bold text-[#334155] uppercase tracking-wider">
+                    Educational Qualifications ({educationList.length})
+                  </h3>
+                </div>
+                <span className="text-[11px] text-[#64748B]">
+                  Supports Percentage, CGPA &amp; Grade • Click Save Changes below after updating
+                </span>
               </div>
 
-              <div className="p-4 rounded-2xl bg-[#F8FCFF] border border-[#D8ECFA] grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <select
-                  value={newEduLevel}
-                  onChange={(e) => setNewEduLevel(e.target.value)}
-                  className="px-3.5 py-2 rounded-xl border border-[#D8ECFA] text-xs"
-                >
-                  {EDUCATION_LEVELS.map((lvl) => (
-                    <option key={lvl} value={lvl}>
-                      {lvl}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="text"
-                  value={newEduDegree}
-                  onChange={(e) => setNewEduDegree(e.target.value)}
-                  placeholder="Degree / Stream (e.g. B.Tech CS)"
-                  className="px-3.5 py-2 rounded-xl border border-[#D8ECFA] text-xs"
-                />
-                <input
-                  type="text"
-                  value={newEduSpec}
-                  onChange={(e) => setNewEduSpec(e.target.value)}
-                  placeholder="Specialization"
-                  className="px-3.5 py-2 rounded-xl border border-[#D8ECFA] text-xs"
-                />
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newEduInst}
-                    onChange={(e) => setNewEduInst(e.target.value)}
-                    placeholder="Institution / University"
-                    className="flex-1 px-3.5 py-2 rounded-xl border border-[#D8ECFA] text-xs"
-                  />
-                  <input
-                    type="text"
-                    value={newEduYear}
-                    onChange={(e) => setNewEduYear(e.target.value)}
-                    placeholder="Year"
-                    className="w-20 px-3 py-2 rounded-xl border border-[#D8ECFA] text-xs"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddEducation}
-                    className="px-3 py-2 rounded-xl bg-[#EAF7FF] hover:bg-[#D6EEFF] text-[#1E3A5F] border border-[#BDE0FE] text-xs font-bold shrink-0"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              {educationList.map((ed, idx) => (
-                <div
-                  key={idx}
-                  className="p-3.5 rounded-2xl bg-[#F8FCFF] border border-[#D8ECFA] flex items-center justify-between gap-3"
-                >
-                  <div>
-                    <p className="text-xs font-bold text-[#334155]">
-                      {ed.level}
-                      {ed.degree ? ` — ${ed.degree}` : ''}
-                      {ed.specialization ? ` (${ed.specialization})` : ''}
-                    </p>
-                    <p className="text-[11px] text-[#64748B]">
-                      {[ed.institution, ed.graduationYear || ed.expectedGraduationYear]
-                        .filter(Boolean)
-                        .join(' • ')}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setEducationList(educationList.filter((_, i) => i !== idx))}
-                    className="p-1.5 rounded-xl text-[#64748B] hover:text-rose-500 hover:bg-rose-50"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
+              <EducationManager
+                educationList={educationList}
+                onChange={setEducationList}
+                compactLevelSelector
+              />
             </div>
           </div>
         )}

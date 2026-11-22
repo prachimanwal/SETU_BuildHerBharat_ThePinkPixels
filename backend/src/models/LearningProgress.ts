@@ -1,13 +1,17 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
-export type LearningStatus = 'started' | 'completed';
+export type LearningStatus = 'started' | 'in_progress' | 'completed';
 
 export interface ILearningProgress extends Document {
   _id: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
   resourceId: mongoose.Types.ObjectId;
   status: LearningStatus;
+  completedSteps: number[];
   submissionDetails?: string;
+  submissionText?: string;
+  submissionUrl?: string;
+  completedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -27,11 +31,15 @@ const LearningProgressSchema = new Schema<ILearningProgress>(
     },
     status: {
       type: String,
-      enum: ['started', 'completed'],
+      enum: ['started', 'in_progress', 'completed'],
       default: 'started',
       required: true
     },
-    submissionDetails: { type: String, default: '' }
+    completedSteps: { type: [Number], default: [] },
+    submissionDetails: { type: String, default: '' },
+    submissionText: { type: String, default: '' },
+    submissionUrl: { type: String, default: '' },
+    completedAt: { type: Date }
   },
   { timestamps: true }
 );
