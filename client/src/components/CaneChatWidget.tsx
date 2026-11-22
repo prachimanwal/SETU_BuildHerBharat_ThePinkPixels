@@ -201,7 +201,7 @@ export const CaneWorkspace: React.FC<CaneWorkspaceProps> = ({
 
       if (!res.ok) {
         setError(res.error || 'CANE could not respond right now.');
-        if (res.status === 503) {
+        if (res.data?.errors?.aiNotConfigured === true) {
           setAiStatus((prev) => ({ ...prev, configured: false }));
         }
       } else {

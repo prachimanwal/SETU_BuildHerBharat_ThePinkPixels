@@ -246,6 +246,7 @@ export const getCaneStatus = async (_req: AuthenticatedRequest, res: Response): 
     configured: active.configured,
     provider: active.provider,
     model: active.model,
+    fallbackModel: active.fallbackModel || null,
     supportedLanguages: ['English', 'Hindi', 'Hinglish'],
     configurationHint: active.configured
       ? 'Live conversational AI model active.'
@@ -431,7 +432,14 @@ export const sendCaneMessage = async (req: AuthenticatedRequest, res: Response):
     if (completion.error || !completion.content) {
       conv.lastMessageAt = new Date();
       await conv.save();
-      sendError(res, completion.error || 'CANE could not generate a response right now. Please try again.', 502);
+      if (completion.retryAfterSeconds) {
+        res.setHeader('Retry-After', String(completion.retryAfterSeconds));
+      }
+      sendError(
+        res,
+        completion.error || 'CANE could not generate a response right now. Please try again.',
+        completion.statusCode || 502
+      );
       return;
     }
 
@@ -500,10 +508,14 @@ export const regenerateLastResponse = async (
     );
 
     if (!completion.configured || completion.error || !completion.content) {
+      if (completion.retryAfterSeconds) {
+        res.setHeader('Retry-After', String(completion.retryAfterSeconds));
+      }
       sendError(
         res,
         completion.error || 'CANE AI provider unavailable right now.',
-        completion.configured ? 502 : 503
+        completion.configured ? completion.statusCode || 502 : 503,
+        !completion.configured ? { aiNotConfigured: true } : undefined
       );
       return;
     }

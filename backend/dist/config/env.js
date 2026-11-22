@@ -27,6 +27,7 @@ exports.ENV = {
     CANE_AI_PROVIDER: (process.env.CANE_AI_PROVIDER || 'auto').toLowerCase(),
     GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
     GEMINI_MODEL: process.env.GEMINI_MODEL || '',
+    GEMINI_FALLBACK_MODEL: process.env.GEMINI_FALLBACK_MODEL || '',
     OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
     OPENAI_BASE_URL: (process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(/\/$/, ''),
     CANE_AI_MODEL: process.env.CANE_AI_MODEL || ''
