@@ -271,7 +271,7 @@ export const EmployerDashboardPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-16 text-center text-[#A3A3A3]">
+      <div className="max-w-6xl mx-auto px-4 py-16 text-center text-[#64748B]">
         <div className="inline-block animate-spin w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full mb-3"></div>
         <p className="text-sm font-medium">Loading employer portal...</p>
       </div>
@@ -281,23 +281,23 @@ export const EmployerDashboardPage: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#292929] gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#D8ECFA] gap-4">
         <div>
           <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-indigo-700">
             <Building className="w-4 h-4" />
             <span>Employer Management Portal</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold font-serif text-[#F5F5F5]">
+          <h1 className="text-2xl sm:text-3xl font-bold font-serif text-[#334155]">
             {user?.employerProfile?.companyName || user?.name}
           </h1>
-          <p className="text-xs sm:text-sm text-[#A3A3A3] mt-0.5">
+          <p className="text-xs sm:text-sm text-[#64748B] mt-0.5">
             Industry: {user?.employerProfile?.industry || 'General'} • Company Size: {user?.employerProfile?.companySize}
           </p>
         </div>
 
         <button
           onClick={openCreateOppModal}
-          className="px-4 py-2.5 rounded-xl bg-[#E65100] hover:bg-[#FF7847] text-white font-bold text-xs sm:text-sm transition flex items-center space-x-1.5 shadow-sm self-start sm:self-auto"
+          className="px-4 py-2.5 rounded-xl bg-[#E65100] hover:bg-[#8CC6FA] text-white font-bold text-xs sm:text-sm transition flex items-center space-x-1.5 shadow-sm self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
           <span>Post New Opportunity</span>
@@ -348,55 +348,55 @@ export const EmployerDashboardPage: React.FC = () => {
 
       {/* Metric Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-[#151515] rounded-xl border border-[#292929] p-4 shadow-sm space-y-1">
-          <span className="text-[11px] font-bold text-[#737373] uppercase tracking-wider block">
+        <div className="bg-white rounded-xl border border-[#D8ECFA] p-4 shadow-sm space-y-1">
+          <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider block">
             Published Listings
           </span>
           <div className="text-2xl font-black text-indigo-900 font-serif">
             {stats?.publishedCount || 0}
           </div>
-          <p className="text-[11px] text-[#737373]">Live in search</p>
+          <p className="text-[11px] text-[#64748B]">Live in search</p>
         </div>
 
-        <div className="bg-[#151515] rounded-xl border border-[#292929] p-4 shadow-sm space-y-1">
-          <span className="text-[11px] font-bold text-[#737373] uppercase tracking-wider block">
+        <div className="bg-white rounded-xl border border-[#D8ECFA] p-4 shadow-sm space-y-1">
+          <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider block">
             Draft Postings
           </span>
-          <div className="text-2xl font-black text-[#E5E5E5] font-serif">
+          <div className="text-2xl font-black text-[#334155] font-serif">
             {stats?.draftCount || 0}
           </div>
-          <p className="text-[11px] text-[#737373]">Pending publish</p>
+          <p className="text-[11px] text-[#64748B]">Pending publish</p>
         </div>
 
-        <div className="bg-[#151515] rounded-xl border border-[#292929] p-4 shadow-sm space-y-1">
-          <span className="text-[11px] font-bold text-[#737373] uppercase tracking-wider block">
+        <div className="bg-white rounded-xl border border-[#D8ECFA] p-4 shadow-sm space-y-1">
+          <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider block">
             Total Candidates
           </span>
-          <div className="text-2xl font-black text-[#F5F5F5] font-serif">
+          <div className="text-2xl font-black text-[#334155] font-serif">
             {stats?.totalApplicants || 0}
           </div>
-          <p className="text-[11px] text-[#737373]">Applicants to your roles</p>
+          <p className="text-[11px] text-[#64748B]">Applicants to your roles</p>
         </div>
 
-        <div className="bg-[#151515] rounded-xl border border-[#292929] p-4 shadow-sm space-y-1">
-          <span className="text-[11px] font-bold text-[#737373] uppercase tracking-wider block">
+        <div className="bg-white rounded-xl border border-[#D8ECFA] p-4 shadow-sm space-y-1">
+          <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider block">
             Interviews Scheduled
           </span>
           <div className="text-2xl font-black text-emerald-700 font-serif">
             {stats?.interviewsScheduled || 0}
           </div>
-          <p className="text-[11px] text-[#737373]">Stage 7 progress</p>
+          <p className="text-[11px] text-[#64748B]">Stage 7 progress</p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center space-x-2 border-b border-[#292929]">
+      <div className="flex items-center space-x-2 border-b border-[#D8ECFA]">
         <button
           onClick={() => setActiveTab('opportunities')}
           className={`py-3 px-4 font-bold text-xs sm:text-sm border-b-2 transition ${
             activeTab === 'opportunities'
               ? 'border-indigo-600 text-indigo-900'
-              : 'border-transparent text-[#737373] hover:text-[#F5F5F5]'
+              : 'border-transparent text-[#64748B] hover:text-[#334155]'
           }`}
         >
           My Opportunities ({opportunities.length})
@@ -406,7 +406,7 @@ export const EmployerDashboardPage: React.FC = () => {
           className={`py-3 px-4 font-bold text-xs sm:text-sm border-b-2 transition ${
             activeTab === 'applicants'
               ? 'border-indigo-600 text-indigo-900'
-              : 'border-transparent text-[#737373] hover:text-[#F5F5F5]'
+              : 'border-transparent text-[#64748B] hover:text-[#334155]'
           }`}
         >
           Applicants Review ({applicants.length})
@@ -416,7 +416,7 @@ export const EmployerDashboardPage: React.FC = () => {
           className={`py-3 px-4 font-bold text-xs sm:text-sm border-b-2 transition ${
             activeTab === 'verification'
               ? 'border-indigo-600 text-indigo-900'
-              : 'border-transparent text-[#737373] hover:text-[#F5F5F5]'
+              : 'border-transparent text-[#64748B] hover:text-[#334155]'
           }`}
         >
           Verification Credentials
@@ -427,7 +427,7 @@ export const EmployerDashboardPage: React.FC = () => {
       {activeTab === 'opportunities' && (
         <div className="space-y-4">
           {opportunities.length === 0 ? (
-            <div className="bg-[#151515] rounded-2xl border border-dashed border-[#333333] p-12 text-center text-[#737373]">
+            <div className="bg-white rounded-2xl border border-dashed border-[#BDE0FE] p-12 text-center text-[#64748B]">
               No opportunities created yet. Click "Post New Opportunity" above.
             </div>
           ) : (
@@ -435,31 +435,31 @@ export const EmployerDashboardPage: React.FC = () => {
               {opportunities.map((opp) => (
                 <div
                   key={opp._id}
-                  className="bg-[#151515] rounded-2xl border border-[#292929] p-5 shadow-sm space-y-3"
+                  className="bg-white rounded-2xl border border-[#D8ECFA] p-5 shadow-sm space-y-3"
                 >
                   <div className="flex items-center justify-between">
                     <span
                       className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
                         opp.status === 'published'
                           ? 'bg-emerald-100 text-emerald-800'
-                          : 'bg-[#1C1C1C] text-[#D4D4D4]'
+                          : 'bg-[#EAF7FF] text-[#475569]'
                       }`}
                     >
                       {opp.status}
                     </span>
-                    <span className="text-xs text-[#737373] flex items-center space-x-1 font-semibold">
+                    <span className="text-xs text-[#64748B] flex items-center space-x-1 font-semibold">
                       <Users className="w-3.5 h-3.5 text-indigo-600" />
                       <span>{opp.applicantCount} Applicant(s)</span>
                     </span>
                   </div>
 
-                  <h3 className="font-bold text-[#F5F5F5] text-base leading-snug">{opp.title}</h3>
+                  <h3 className="font-bold text-[#334155] text-base leading-snug">{opp.title}</h3>
 
-                  <div className="flex flex-wrap gap-1.5 text-xs text-[#A3A3A3]">
-                    <span className="bg-[#1C1C1C] px-2 py-0.5 rounded text-[11px]">
+                  <div className="flex flex-wrap gap-1.5 text-xs text-[#64748B]">
+                    <span className="bg-[#EAF7FF] px-2 py-0.5 rounded text-[11px]">
                       {(opp.workMode || 'hybrid').toUpperCase()}
                     </span>
-                    <span className="bg-[#1C1C1C] px-2 py-0.5 rounded text-[11px]">
+                    <span className="bg-[#EAF7FF] px-2 py-0.5 rounded text-[11px]">
                       {opp.stipendOrSalary || opp.salaryOrStipend || 'Competitive'}
                     </span>
                     {opp.isCareerRestart && (
@@ -469,20 +469,20 @@ export const EmployerDashboardPage: React.FC = () => {
                     )}
                   </div>
 
-                  <p className="text-xs text-[#A3A3A3] line-clamp-2">{opp.description}</p>
+                  <p className="text-xs text-[#64748B] line-clamp-2">{opp.description}</p>
 
-                  <div className="pt-3 border-t border-[#222222] flex items-center justify-between text-xs">
-                    <span className="text-[#737373]">{formatLocation(opp.location)}</span>
+                  <div className="pt-3 border-t border-[#EAF7FF] flex items-center justify-between text-xs">
+                    <span className="text-[#64748B]">{formatLocation(opp.location)}</span>
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => openEditOppModal(opp)}
-                        className="p-1.5 text-[#737373] hover:text-[#F5F5F5] hover:bg-[#1C1C1C] rounded-lg"
+                        className="p-1.5 text-[#64748B] hover:text-[#334155] hover:bg-[#EAF7FF] rounded-lg"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => handleDeleteOpp(opp._id)}
-                        className="p-1.5 text-[#737373] hover:text-rose-600 hover:bg-rose-50 rounded-lg"
+                        className="p-1.5 text-[#64748B] hover:text-rose-600 hover:bg-rose-50 rounded-lg"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -499,7 +499,7 @@ export const EmployerDashboardPage: React.FC = () => {
       {activeTab === 'applicants' && (
         <div className="space-y-4">
           {applicants.length === 0 ? (
-            <div className="bg-[#151515] rounded-2xl border border-dashed border-[#333333] p-12 text-center text-[#737373]">
+            <div className="bg-white rounded-2xl border border-dashed border-[#BDE0FE] p-12 text-center text-[#64748B]">
               No applicants have applied to your postings yet.
             </div>
           ) : (
@@ -511,23 +511,23 @@ export const EmployerDashboardPage: React.FC = () => {
                 return (
                   <div
                     key={app._id}
-                    className="bg-[#151515] rounded-2xl border border-[#292929] p-6 shadow-sm space-y-4"
+                    className="bg-white rounded-2xl border border-[#D8ECFA] p-6 shadow-sm space-y-4"
                   >
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                       <div>
                         <div className="flex items-center space-x-2">
-                          <h3 className="text-lg font-bold text-[#F5F5F5]">{seeker.name}</h3>
+                          <h3 className="text-lg font-bold text-[#334155]">{seeker.name}</h3>
                           <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-indigo-50 text-indigo-900">
                             {app.opportunityId?.title}
                           </span>
                         </div>
-                        <p className="text-xs text-[#A3A3A3] mt-0.5">
+                        <p className="text-xs text-[#64748B] mt-0.5">
                           {profile.headline || 'Job Seeker'} • {profile.location?.city || 'India'}
                         </p>
                       </div>
 
                       <div className="flex items-center space-x-2">
-                        <span className="text-xs font-bold px-3 py-1 rounded-full bg-[#1C1C1C] text-[#E5E5E5]">
+                        <span className="text-xs font-bold px-3 py-1 rounded-full bg-[#EAF7FF] text-[#334155]">
                           {app.status}
                         </span>
                         <button
@@ -543,16 +543,16 @@ export const EmployerDashboardPage: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs pt-1">
                       <div className="space-y-2">
                         <div>
-                          <span className="font-semibold text-[#D4D4D4] block mb-0.5">Education:</span>
-                          <span className="text-[#E5E5E5] font-medium">{profile.educationLevel}</span>
+                          <span className="font-semibold text-[#475569] block mb-0.5">Education:</span>
+                          <span className="text-[#334155] font-medium">{profile.educationLevel}</span>
                         </div>
                         <div>
-                          <span className="font-semibold text-[#D4D4D4] block mb-0.5">Skills:</span>
+                          <span className="font-semibold text-[#475569] block mb-0.5">Skills:</span>
                           <div className="flex flex-wrap gap-1">
                             {profile.skills?.map((s: string, sIdx: number) => (
                               <span
                                 key={sIdx}
-                                className="bg-[#1C1C1C] text-[#E5E5E5] px-2 py-0.5 rounded text-[11px]"
+                                className="bg-[#EAF7FF] text-[#334155] px-2 py-0.5 rounded text-[11px]"
                               >
                                 {s}
                               </span>
@@ -563,20 +563,20 @@ export const EmployerDashboardPage: React.FC = () => {
 
                       <div className="space-y-2">
                         <div>
-                          <span className="font-semibold text-[#D4D4D4] block mb-0.5">
+                          <span className="font-semibold text-[#475569] block mb-0.5">
                             Attached Portfolio Deliverables:
                           </span>
                           {app.portfolioProjectsSnapshot?.length > 0 ? (
                             <div className="space-y-1">
                               {app.portfolioProjectsSnapshot.map((proj: any, pIdx: number) => (
-                                <div key={pIdx} className="flex items-center justify-between bg-[#101010] p-1.5 rounded border border-[#292929]">
-                                  <span className="font-medium text-[#E5E5E5]">{proj.title}</span>
+                                <div key={pIdx} className="flex items-center justify-between bg-[#F8FCFF] p-1.5 rounded border border-[#D8ECFA]">
+                                  <span className="font-medium text-[#334155]">{proj.title}</span>
                                   {proj.workSampleUrl && (
                                     <a
                                       href={proj.workSampleUrl}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="text-[#FF7847] hover:underline font-bold"
+                                      className="text-[#2589D6] hover:underline font-bold"
                                     >
                                       View Work Sample →
                                     </a>
@@ -585,14 +585,14 @@ export const EmployerDashboardPage: React.FC = () => {
                               ))}
                             </div>
                           ) : (
-                            <span className="text-[#555555] italic">None attached</span>
+                            <span className="text-[#64748B] italic">None attached</span>
                           )}
                         </div>
 
                         {app.coverNote && (
                           <div>
-                            <span className="font-semibold text-[#D4D4D4] block mb-0.5">Cover Note:</span>
-                            <p className="text-[#D4D4D4] italic">"{app.coverNote}"</p>
+                            <span className="font-semibold text-[#475569] block mb-0.5">Cover Note:</span>
+                            <p className="text-[#475569] italic">"{app.coverNote}"</p>
                           </div>
                         )}
                       </div>
@@ -620,12 +620,12 @@ export const EmployerDashboardPage: React.FC = () => {
 
       {/* Tab 3: Verification */}
       {activeTab === 'verification' && (
-        <div className="bg-[#151515] rounded-2xl border border-[#292929] p-6 sm:p-8 shadow-sm space-y-6 max-w-2xl">
+        <div className="bg-white rounded-2xl border border-[#D8ECFA] p-6 sm:p-8 shadow-sm space-y-6 max-w-2xl">
           <div className="space-y-1">
-            <h3 className="text-lg font-bold font-serif text-[#F5F5F5]">
+            <h3 className="text-lg font-bold font-serif text-[#334155]">
               Employer Verification Details
             </h3>
-            <p className="text-xs text-[#A3A3A3]">
+            <p className="text-xs text-[#64748B]">
               Submit your corporate registration, GSTIN, PAN, or MSME Udyam details for SETU administration review.
             </p>
           </div>
@@ -639,19 +639,19 @@ export const EmployerDashboardPage: React.FC = () => {
 
           <form onSubmit={handleSubmitVerification} className="space-y-4 text-xs">
             <div>
-              <label className="block font-semibold text-[#D4D4D4] mb-1">Document Type *</label>
+              <label className="block font-semibold text-[#475569] mb-1">Document Type *</label>
               <input
                 type="text"
                 required
                 value={docType}
                 onChange={(e) => setDocType(e.target.value)}
                 placeholder="e.g. GSTIN Certificate, CIN, MSME Udyam"
-                className="w-full px-3.5 py-2 rounded-lg border border-[#333333] text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3.5 py-2 rounded-lg border border-[#BDE0FE] text-sm outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
 
             <div>
-              <label className="block font-semibold text-[#D4D4D4] mb-1">
+              <label className="block font-semibold text-[#475569] mb-1">
                 Document / Registration Number *
               </label>
               <input
@@ -660,12 +660,12 @@ export const EmployerDashboardPage: React.FC = () => {
                 value={docNumber}
                 onChange={(e) => setDocNumber(e.target.value)}
                 placeholder="e.g. 06AAACB1234F1Z8"
-                className="w-full px-3.5 py-2 rounded-lg border border-[#333333] text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3.5 py-2 rounded-lg border border-[#BDE0FE] text-sm outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
 
             <div>
-              <label className="block font-semibold text-[#D4D4D4] mb-1">
+              <label className="block font-semibold text-[#475569] mb-1">
                 Verification Notes for Admin
               </label>
               <textarea
@@ -673,7 +673,7 @@ export const EmployerDashboardPage: React.FC = () => {
                 value={verNotes}
                 onChange={(e) => setVerNotes(e.target.value)}
                 placeholder="Provide registry verification details or official MCA corporate portal references..."
-                className="w-full px-3.5 py-2 rounded-lg border border-[#333333] text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3.5 py-2 rounded-lg border border-[#BDE0FE] text-sm outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
 
@@ -690,15 +690,15 @@ export const EmployerDashboardPage: React.FC = () => {
 
       {/* Opportunity Modal */}
       {oppModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-[#151515] rounded-2xl max-w-xl w-full shadow-2xl border border-[#292929] animate-in zoom-in-95">
-            <div className="p-5 border-b border-[#292929] flex items-center justify-between">
-              <h3 className="font-bold text-[#F5F5F5] text-base font-serif">
+        <div className="fixed inset-0 z-50 bg-[#EAF7FF]/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-[#D8ECFA] animate-in zoom-in-95">
+            <div className="p-5 border-b border-[#D8ECFA] flex items-center justify-between">
+              <h3 className="font-bold text-[#334155] text-base font-serif">
                 {editingOpp ? 'Edit Opportunity' : 'Post New Opportunity'}
               </h3>
               <button
                 onClick={() => setOppModalOpen(false)}
-                className="p-1.5 rounded-lg text-[#737373] hover:bg-[#1C1C1C]"
+                className="p-1.5 rounded-lg text-[#64748B] hover:bg-[#EAF7FF]"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -712,24 +712,24 @@ export const EmployerDashboardPage: React.FC = () => {
               )}
 
               <div>
-                <label className="block font-semibold text-[#D4D4D4] mb-1">Role Title *</label>
+                <label className="block font-semibold text-[#475569] mb-1">Role Title *</label>
                 <input
                   type="text"
                   required
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g. Remote Canva & Social Media Designer"
-                  className="w-full px-3 py-2 rounded-lg border border-[#333333] text-sm outline-none focus:ring-2 focus:ring-[#FF5A1F]"
+                  className="w-full px-3 py-2 rounded-lg border border-[#BDE0FE] text-sm outline-none focus:ring-2 focus:ring-[#BDE0FE]"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-[#D4D4D4] mb-1">Opportunity Type</label>
+                  <label className="block font-semibold text-[#475569] mb-1">Opportunity Type</label>
                   <select
                     value={oppType}
                     onChange={(e: any) => setOppType(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-[#333333] bg-[#151515] text-sm outline-none focus:ring-2 focus:ring-[#FF5A1F]"
+                    className="w-full px-3 py-2 rounded-lg border border-[#BDE0FE] bg-white text-sm outline-none focus:ring-2 focus:ring-[#BDE0FE]"
                   >
                     <option value="job">Job</option>
                     <option value="internship">Internship</option>
@@ -740,11 +740,11 @@ export const EmployerDashboardPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-[#D4D4D4] mb-1">Work Mode</label>
+                  <label className="block font-semibold text-[#475569] mb-1">Work Mode</label>
                   <select
                     value={workMode}
                     onChange={(e: any) => setWorkMode(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-[#333333] bg-[#151515] text-sm outline-none focus:ring-2 focus:ring-[#FF5A1F]"
+                    className="w-full px-3 py-2 rounded-lg border border-[#BDE0FE] bg-white text-sm outline-none focus:ring-2 focus:ring-[#BDE0FE]"
                   >
                     <option value="remote">Remote (Work from Home)</option>
                     <option value="hybrid">Hybrid</option>
@@ -755,31 +755,31 @@ export const EmployerDashboardPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-[#D4D4D4] mb-1">Location *</label>
+                  <label className="block font-semibold text-[#475569] mb-1">Location *</label>
                   <input
                     type="text"
                     required
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
                     placeholder="e.g. Gurugram, Remote"
-                    className="w-full px-3 py-2 rounded-lg border border-[#333333] text-sm outline-none focus:ring-2 focus:ring-[#FF5A1F]"
+                    className="w-full px-3 py-2 rounded-lg border border-[#BDE0FE] text-sm outline-none focus:ring-2 focus:ring-[#BDE0FE]"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-[#D4D4D4] mb-1">Stipend / Salary</label>
+                  <label className="block font-semibold text-[#475569] mb-1">Stipend / Salary</label>
                   <input
                     type="text"
                     value={salary}
                     onChange={(e) => setSalary(e.target.value)}
                     placeholder="e.g. ₹20,000 / month"
-                    className="w-full px-3 py-2 rounded-lg border border-[#333333] text-sm outline-none focus:ring-2 focus:ring-[#FF5A1F]"
+                    className="w-full px-3 py-2 rounded-lg border border-[#BDE0FE] text-sm outline-none focus:ring-2 focus:ring-[#BDE0FE]"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-semibold text-[#D4D4D4] mb-1">
+                <label className="block font-semibold text-[#475569] mb-1">
                   Required Skills (comma separated)
                 </label>
                 <input
@@ -787,19 +787,19 @@ export const EmployerDashboardPage: React.FC = () => {
                   value={skills}
                   onChange={(e) => setSkills(e.target.value)}
                   placeholder="e.g. Canva, Graphic Design, Social Media"
-                  className="w-full px-3 py-2 rounded-lg border border-[#333333] text-sm outline-none focus:ring-2 focus:ring-[#FF5A1F]"
+                  className="w-full px-3 py-2 rounded-lg border border-[#BDE0FE] text-sm outline-none focus:ring-2 focus:ring-[#BDE0FE]"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-[#D4D4D4] mb-1">Description *</label>
+                <label className="block font-semibold text-[#475569] mb-1">Description *</label>
                 <textarea
                   required
                   rows={3}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Describe the practical responsibilities, flexible schedule, and deliverables..."
-                  className="w-full px-3 py-2 rounded-lg border border-[#333333] text-sm outline-none focus:ring-2 focus:ring-[#FF5A1F]"
+                  className="w-full px-3 py-2 rounded-lg border border-[#BDE0FE] text-sm outline-none focus:ring-2 focus:ring-[#BDE0FE]"
                 />
               </div>
 
@@ -811,17 +811,17 @@ export const EmployerDashboardPage: React.FC = () => {
                   onChange={(e) => setIsRestart(e.target.checked)}
                   className="rounded text-pink-600 focus:ring-pink-500 w-4 h-4"
                 />
-                <label htmlFor="restartOpp" className="text-xs text-[#D4D4D4] font-semibold cursor-pointer">
+                <label htmlFor="restartOpp" className="text-xs text-[#475569] font-semibold cursor-pointer">
                   Build Her Initiative: Women returning to work / flexible transition friendly
                 </label>
               </div>
 
               <div>
-                <label className="block font-semibold text-[#D4D4D4] mb-1">Publication Status</label>
+                <label className="block font-semibold text-[#475569] mb-1">Publication Status</label>
                 <select
                   value={status}
                   onChange={(e: any) => setStatus(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-[#333333] bg-[#151515] text-sm outline-none focus:ring-2 focus:ring-[#FF5A1F]"
+                  className="w-full px-3 py-2 rounded-lg border border-[#BDE0FE] bg-white text-sm outline-none focus:ring-2 focus:ring-[#BDE0FE]"
                 >
                   <option value="draft">Draft (Private, not published)</option>
                   <option value="published" disabled={!isApproved}>
@@ -837,18 +837,18 @@ export const EmployerDashboardPage: React.FC = () => {
                 )}
               </div>
 
-              <div className="flex justify-end space-x-2 pt-3 border-t border-[#292929]">
+              <div className="flex justify-end space-x-2 pt-3 border-t border-[#D8ECFA]">
                 <button
                   type="button"
                   onClick={() => setOppModalOpen(false)}
-                  className="px-4 py-2 rounded-lg border border-[#333333] font-semibold hover:bg-[#1C1C1C]"
+                  className="px-4 py-2 rounded-lg border border-[#BDE0FE] font-semibold hover:bg-[#EAF7FF]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submittingOpp}
-                  className="px-5 py-2 rounded-lg bg-[#E65100] hover:bg-[#FF7847] text-white font-bold"
+                  className="px-5 py-2 rounded-lg bg-[#E65100] hover:bg-[#8CC6FA] text-white font-bold"
                 >
                   {submittingOpp ? 'Saving...' : 'Save Opportunity'}
                 </button>
@@ -860,20 +860,20 @@ export const EmployerDashboardPage: React.FC = () => {
 
       {/* Applicant Status & Interview Scheduling Modal */}
       {statusModalApp && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-[#151515] rounded-2xl max-w-lg w-full shadow-2xl border border-[#292929] animate-in zoom-in-95">
-            <div className="p-5 border-b border-[#292929] flex items-center justify-between">
+        <div className="fixed inset-0 z-50 bg-[#EAF7FF]/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-[#D8ECFA] animate-in zoom-in-95">
+            <div className="p-5 border-b border-[#D8ECFA] flex items-center justify-between">
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700">
                   Update Candidate Progress
                 </span>
-                <h3 className="font-bold text-[#F5F5F5] text-base font-serif">
+                <h3 className="font-bold text-[#334155] text-base font-serif">
                   {statusModalApp.seekerId?.name} ({statusModalApp.opportunityId?.title})
                 </h3>
               </div>
               <button
                 onClick={() => setStatusModalApp(null)}
-                className="p-1.5 rounded-lg text-[#737373] hover:bg-[#1C1C1C]"
+                className="p-1.5 rounded-lg text-[#64748B] hover:bg-[#EAF7FF]"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -881,11 +881,11 @@ export const EmployerDashboardPage: React.FC = () => {
 
             <form onSubmit={handleUpdateStatus} className="p-6 space-y-4 text-xs">
               <div>
-                <label className="block font-semibold text-[#D4D4D4] mb-1">Application Status *</label>
+                <label className="block font-semibold text-[#475569] mb-1">Application Status *</label>
                 <select
                   value={newStatus}
                   onChange={(e: any) => setNewStatus(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-[#333333] bg-[#151515] text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-semibold"
+                  className="w-full px-3 py-2 rounded-lg border border-[#BDE0FE] bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-semibold"
                 >
                   <option value="Applied">Applied</option>
                   <option value="Under Review">Under Review</option>
@@ -897,7 +897,7 @@ export const EmployerDashboardPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-semibold text-[#D4D4D4] mb-1">
+                <label className="block font-semibold text-[#475569] mb-1">
                   Recruiter Note for Audit History
                 </label>
                 <input
@@ -905,7 +905,7 @@ export const EmployerDashboardPage: React.FC = () => {
                   value={statusNote}
                   onChange={(e) => setStatusNote(e.target.value)}
                   placeholder="e.g. Portfolio reviewed, qualified for creative conversation."
-                  className="w-full px-3 py-2 rounded-lg border border-[#333333] text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 rounded-lg border border-[#BDE0FE] text-sm outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
@@ -924,7 +924,7 @@ export const EmployerDashboardPage: React.FC = () => {
                         required
                         value={interviewDate}
                         onChange={(e) => setInterviewDate(e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg border border-emerald-300 bg-[#151515] text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                        className="w-full px-3 py-2 rounded-lg border border-emerald-300 bg-white text-sm outline-none focus:ring-2 focus:ring-emerald-500"
                       />
                     </div>
                     <div>
@@ -935,7 +935,7 @@ export const EmployerDashboardPage: React.FC = () => {
                         value={interviewTime}
                         onChange={(e) => setInterviewTime(e.target.value)}
                         placeholder="03:00 PM IST"
-                        className="w-full px-3 py-2 rounded-lg border border-emerald-300 bg-[#151515] text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                        className="w-full px-3 py-2 rounded-lg border border-emerald-300 bg-white text-sm outline-none focus:ring-2 focus:ring-emerald-500"
                       />
                     </div>
                   </div>
@@ -949,7 +949,7 @@ export const EmployerDashboardPage: React.FC = () => {
                       value={meetLink}
                       onChange={(e) => setMeetLink(e.target.value)}
                       placeholder="https://meet.google.com/..."
-                      className="w-full px-3 py-2 rounded-lg border border-emerald-300 bg-[#151515] text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-3 py-2 rounded-lg border border-emerald-300 bg-white text-sm outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
 
@@ -963,17 +963,17 @@ export const EmployerDashboardPage: React.FC = () => {
                       value={interviewInstructions}
                       onChange={(e) => setInterviewInstructions(e.target.value)}
                       placeholder="e.g. Please bring your practical Canva deliverable. Focus will be on design hierarchy."
-                      className="w-full px-3 py-2 rounded-lg border border-emerald-300 bg-[#151515] text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-3 py-2 rounded-lg border border-emerald-300 bg-white text-sm outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
                 </div>
               )}
 
-              <div className="flex justify-end space-x-2 pt-3 border-t border-[#292929]">
+              <div className="flex justify-end space-x-2 pt-3 border-t border-[#D8ECFA]">
                 <button
                   type="button"
                   onClick={() => setStatusModalApp(null)}
-                  className="px-4 py-2 rounded-lg border border-[#333333] font-semibold hover:bg-[#1C1C1C]"
+                  className="px-4 py-2 rounded-lg border border-[#BDE0FE] font-semibold hover:bg-[#EAF7FF]"
                 >
                   Cancel
                 </button>

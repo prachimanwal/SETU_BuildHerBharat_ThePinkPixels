@@ -16,8 +16,12 @@ const getProfile = async (req, res) => {
         (0, response_1.sendError)(res, 'Authentication required', 401);
         return;
     }
+    const completion = (0, userSerializer_1.getProfileCompletionDetails)(req.user);
     (0, response_1.sendSuccess)(res, 'User profile fetched successfully', {
-        user: (0, userSerializer_1.serializeUser)(req.user)
+        user: (0, userSerializer_1.serializeUser)(req.user),
+        profileCompletionPercentage: completion.completionPercentage,
+        completedSections: completion.completedSections,
+        missingSections: completion.missingSections
     });
 };
 exports.getProfile = getProfile;
@@ -32,20 +36,128 @@ const updateProfile = async (req, res) => {
             (0, response_1.sendError)(res, parseResult.error.errors[0]?.message || 'Invalid profile fields', 400);
             return;
         }
-        const { name, avatar, seekerProfile, employerProfile } = parseResult.data;
+        const { name, fullName, avatar, profilePicture, seekerProfile, employerProfile } = parseResult.data;
         const user = req.user;
-        if (name) {
-            user.name = name;
-            user.fullName = name;
+        const resolvedName = name || fullName;
+        if (resolvedName) {
+            user.name = resolvedName;
+            user.fullName = resolvedName;
         }
-        if (avatar !== undefined) {
-            user.avatar = avatar;
-            user.profilePicture = avatar;
+        const resolvedAvatar = profilePicture !== undefined ? profilePicture : avatar;
+        if (resolvedAvatar !== undefined) {
+            user.avatar = resolvedAvatar;
+            user.profilePicture = resolvedAvatar;
         }
         if (user.role === 'seeker' && seekerProfile) {
+            const existing = (user.seekerProfile || {});
+            // Preserve server-verified skill status: never trust client-submitted verified flags
+            const existingVerifiedMap = new Set((Array.isArray(existing.detailedSkills) ? existing.detailedSkills : [])
+                .filter((s) => s?.verified || s?.source === 'assessment_verified')
+                .map((s) => String(s.name || '').toLowerCase()));
+            let mergedDetailedSkills = existing.detailedSkills || [];
+            let mergedSkills = existing.skills || [];
+            if (Array.isArray(seekerProfile.detailedSkills)) {
+                const seen = new Set();
+                mergedDetailedSkills = seekerProfile.detailedSkills
+                    .filter((s) => {
+                    const key = s.name.trim().toLowerCase();
+                    if (!key || seen.has(key))
+                        return false;
+                    seen.add(key);
+                    return true;
+                })
+                    .map((s) => {
+                    const isVerified = existingVerifiedMap.has(s.name.trim().toLowerCase());
+                    return {
+                        name: s.name.trim(),
+                        category: s.category || 'General',
+                        proficiency: s.proficiency || 'Beginner',
+                        verified: isVerified,
+                        source: isVerified ? 'assessment_verified' : 'self_reported',
+                        supportingTitle: s.supportingTitle || '',
+                        supportingUrl: s.supportingUrl || ''
+                    };
+                });
+                mergedSkills = mergedDetailedSkills.map((s) => s.name);
+            }
+            else if (Array.isArray(seekerProfile.skills)) {
+                mergedSkills = seekerProfile.skills.map((s) => s.trim()).filter(Boolean);
+                // Keep detailedSkills synchronized if only flat skills were submitted
+                const existingMap = new Map((Array.isArray(existing.detailedSkills) ? existing.detailedSkills : []).map((s) => [
+                    String(s.name || '').toLowerCase(),
+                    s
+                ]));
+                mergedDetailedSkills = mergedSkills.map((sk) => {
+                    const prev = existingMap.get(sk.toLowerCase());
+                    const isVerified = existingVerifiedMap.has(sk.toLowerCase());
+                    return {
+                        name: sk,
+                        category: prev?.category || 'General',
+                        proficiency: prev?.proficiency || 'Intermediate',
+                        verified: isVerified,
+                        source: isVerified ? 'assessment_verified' : 'self_reported',
+                        supportingTitle: prev?.supportingTitle || '',
+                        supportingUrl: prev?.supportingUrl || ''
+                    };
+                });
+            }
+            // Sync primary educationLevel from structured education array if provided
+            let derivedEducationLevel = seekerProfile.educationLevel ?? existing.educationLevel ?? '';
+            if (Array.isArray(seekerProfile.education) && seekerProfile.education.length > 0) {
+                derivedEducationLevel = seekerProfile.education[0].level || derivedEducationLevel;
+            }
+            // Sync careerGoals text from careerGoalsList if provided
+            let derivedCareerGoals = seekerProfile.careerGoals ?? existing.careerGoals ?? '';
+            if (Array.isArray(seekerProfile.careerGoalsList) &&
+                seekerProfile.careerGoalsList.length > 0 &&
+                !seekerProfile.careerGoals) {
+                derivedCareerGoals = seekerProfile.careerGoalsList.join(', ');
+            }
+            // Sync preferredWorkMode from employmentPreferences.workModes if provided
+            let derivedWorkMode = seekerProfile.preferredWorkMode ?? existing.preferredWorkMode ?? 'any';
+            const workModes = seekerProfile.employmentPreferences?.workModes;
+            if (Array.isArray(workModes) && workModes.length === 1) {
+                const lower = workModes[0].toLowerCase();
+                if (lower.includes('remote'))
+                    derivedWorkMode = 'remote';
+                else if (lower.includes('hybrid'))
+                    derivedWorkMode = 'hybrid';
+                else if (lower.includes('on-site') || lower.includes('onsite'))
+                    derivedWorkMode = 'onsite';
+            }
+            else if (Array.isArray(workModes) && workModes.length > 1) {
+                derivedWorkMode = 'any';
+            }
+            // Sync experienceLevel from hasExperience / experience array
+            let derivedExperienceLevel = seekerProfile.experienceLevel ?? existing.experienceLevel ?? '';
+            if (seekerProfile.hasExperience === false) {
+                derivedExperienceLevel = 'No previous experience / Fresher';
+            }
+            else if (Array.isArray(seekerProfile.experience) &&
+                seekerProfile.experience.length > 0 &&
+                !seekerProfile.experienceLevel) {
+                derivedExperienceLevel =
+                    seekerProfile.employmentPreferences?.yearsOfExperience || 'Experienced';
+            }
             user.seekerProfile = {
-                ...user.seekerProfile,
-                ...seekerProfile
+                ...existing,
+                ...seekerProfile,
+                location: {
+                    city: seekerProfile.location?.city ?? existing.location?.city ?? '',
+                    state: seekerProfile.location?.state ?? existing.location?.state ?? '',
+                    country: seekerProfile.location?.country ?? existing.location?.country ?? 'India',
+                    isRural: seekerProfile.location?.isRural ?? existing.location?.isRural ?? false
+                },
+                employmentPreferences: {
+                    ...(existing.employmentPreferences || {}),
+                    ...(seekerProfile.employmentPreferences || {})
+                },
+                skills: mergedSkills,
+                detailedSkills: mergedDetailedSkills,
+                educationLevel: derivedEducationLevel,
+                careerGoals: derivedCareerGoals,
+                preferredWorkMode: derivedWorkMode,
+                experienceLevel: derivedExperienceLevel
             };
         }
         else if (user.role === 'employer' && employerProfile) {
@@ -56,12 +168,14 @@ const updateProfile = async (req, res) => {
                 verificationStatus: user.employerProfile?.verificationStatus || 'pending'
             };
         }
-        const completionPercentage = (0, userSerializer_1.calculateProfileCompletion)(user);
-        user.profileCompletion = completionPercentage;
+        const completion = (0, userSerializer_1.getProfileCompletionDetails)(user);
+        user.profileCompletion = completion.completionPercentage;
         await user.save();
         (0, response_1.sendSuccess)(res, 'Profile updated successfully', {
             user: (0, userSerializer_1.serializeUser)(user),
-            profileCompletionPercentage: completionPercentage
+            profileCompletionPercentage: completion.completionPercentage,
+            completedSections: completion.completedSections,
+            missingSections: completion.missingSections
         });
     }
     catch (error) {
@@ -74,10 +188,14 @@ const getProfileCompletion = async (req, res) => {
         (0, response_1.sendError)(res, 'Authentication required', 401);
         return;
     }
-    const completionPercentage = (0, userSerializer_1.calculateProfileCompletion)(req.user);
+    const completion = (0, userSerializer_1.getProfileCompletionDetails)(req.user);
     (0, response_1.sendSuccess)(res, 'Profile completion calculated', {
-        completionPercentage,
-        message: `Your profile is ${completionPercentage}% complete. Complete your profile to receive better opportunity matches.`
+        completionPercentage: completion.completionPercentage,
+        completedSections: completion.completedSections,
+        missingSections: completion.missingSections,
+        message: completion.completionPercentage === 100
+            ? 'Your career profile is 100% complete!'
+            : `Your profile is ${completion.completionPercentage}% complete. Complete the remaining sections for even better recommendations.`
     });
 };
 exports.getProfileCompletion = getProfileCompletion;

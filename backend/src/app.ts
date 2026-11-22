@@ -7,7 +7,7 @@ import { authenticate, AuthenticatedRequest } from './middleware/auth.middleware
 import { requireRole } from './middleware/role.middleware';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware';
 import { sendSuccess, sendError } from './utils/response';
-import { getDashboard } from './controllers/user.controller';
+import { getDashboard, getProfile, updateProfile, getProfileCompletion } from './controllers/user.controller';
 import { createApplication, updateApplicationStatus } from './controllers/application.controller';
 import { submitAssessment } from './controllers/assessment.controller';
 import { completeLearning } from './controllers/learning.controller';
@@ -120,6 +120,9 @@ app.get('/api/health', (_req, res) => {
 // Primary RESTful Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.get('/api/profile', authenticate, getProfile);
+app.put('/api/profile', authenticate, updateProfile);
+app.get('/api/profile/completion', authenticate, getProfileCompletion);
 app.get('/api/dashboard', authenticate, getDashboard);
 app.use('/api/opportunities', opportunityRoutes);
 app.use('/api/assessments', assessmentRoutes);

@@ -100,7 +100,7 @@ export const SeekerDashboardPage: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-4 border-[#3B9EE8] border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -135,7 +135,7 @@ export const SeekerDashboardPage: React.FC = () => {
   return (
     <div className="space-y-8 max-w-6xl mx-auto pb-8">
       {/* SECTION A: Welcome Section with Real Authenticated User Identity */}
-      <section className="bg-[#151515] rounded-2xl p-6 sm:p-7 border border-[#292929] shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <section className="bg-white rounded-2xl p-6 sm:p-7 border border-[#D8ECFA] shadow-baby flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4 min-w-0">
           <UserAvatar
             name={user?.name}
@@ -143,25 +143,25 @@ export const SeekerDashboardPage: React.FC = () => {
             size="xl"
           />
           <div className="min-w-0">
-            <h2 className="text-xl sm:text-2xl font-bold text-[#F5F5F5] tracking-tight truncate">
+            <h2 className="text-xl sm:text-2xl font-bold text-[#334155] tracking-tight truncate">
               Welcome back, {user?.name || 'Member'}!
             </h2>
-            <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs text-[#A3A3A3]">
+            <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs text-[#64748B]">
               <span className="inline-flex items-center gap-1.5 truncate">
-                <Mail className="w-3.5 h-3.5 text-[#737373] shrink-0" />
+                <Mail className="w-3.5 h-3.5 text-[#64748B] shrink-0" />
                 <span className="truncate">{user?.email}</span>
               </span>
               {user?.emailVerified && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-950/50 border border-emerald-800/50 text-emerald-400 text-[10px] font-semibold">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 text-[10px] font-semibold">
                   <ShieldCheck className="w-3 h-3" />
                   <span>Verified</span>
                 </span>
               )}
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#1C1C1C] border border-[#292929] text-[#FF7847] text-[10px] font-semibold">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#EAF7FF] border border-[#D8ECFA] text-[#2589D6] text-[10px] font-semibold">
                 {roleLabel}
               </span>
             </div>
-            <p className="text-xs text-[#737373] mt-1.5">
+            <p className="text-xs text-[#64748B] mt-1.5">
               Your journey towards better opportunities starts here.
             </p>
           </div>
@@ -169,7 +169,7 @@ export const SeekerDashboardPage: React.FC = () => {
         <div className="flex items-center gap-2 shrink-0">
           <Link
             to="/opportunities"
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#FF5A1F] hover:bg-[#FF7847] text-white shadow-[0_2px_12px_rgba(255,90,31,0.35)] text-xs font-semibold rounded-xl shadow-xs transition"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] hover:from-[#8CC6FA] hover:to-[#A2D2FF] text-[#1E3A5F] shadow-baby-sm text-xs font-semibold rounded-xl shadow-xs transition"
           >
             <span>Explore Opportunities</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -178,25 +178,25 @@ export const SeekerDashboardPage: React.FC = () => {
       </section>
 
       {/* SECTION B: Complete Your Profile & Saved Skills */}
-      <section className="bg-[#151515] rounded-2xl p-6 sm:p-7 border border-[#292929] shadow-xl space-y-5">
+      <section className="bg-white rounded-2xl p-6 sm:p-7 border border-[#D8ECFA] shadow-baby space-y-5">
         <div>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-[#F5F5F5]">Complete Your Profile</h3>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-950/60 border border-orange-800/50 text-[#FF7847]">
+                <h3 className="text-base font-bold text-[#334155]">Complete Your Profile</h3>
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#EAF7FF] border border-[#BDE0FE] text-[#2589D6]">
                   {profilePct}% Done
                 </span>
               </div>
-              <p className="text-xs text-[#737373] mt-1">
+              <p className="text-xs text-[#64748B] mt-1">
                 {profilePct < 100
                   ? `Your profile is ${profilePct}% complete. Add your headline, location, education, and skills to unlock personalized job matches.`
                   : 'Your SETU profile is 100% complete and ready for employer discovery!'}
               </p>
             </div>
             <Link
-              to="/profile"
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#1C1C1C] hover:bg-[#252525] text-[#F5F5F5] border border-[#292929] text-xs font-medium rounded-xl transition shadow-xs shrink-0"
+              to={profilePct < 100 ? '/onboarding' : '/profile'}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#EAF7FF] hover:bg-[#D6EEFF] text-[#1E3A5F] border border-[#BDE0FE] text-xs font-bold rounded-2xl transition shadow-baby-sm shrink-0"
             >
               <span>{profilePct < 100 ? 'Complete Profile' : 'Edit Profile'}</span>
               <ChevronRight className="w-3.5 h-3.5" />
@@ -204,44 +204,44 @@ export const SeekerDashboardPage: React.FC = () => {
           </div>
 
           {/* Dynamic Progress Bar */}
-          <div className="w-full bg-[#1C1C1C] h-2.5 rounded-full overflow-hidden">
+          <div className="w-full bg-[#EAF7FF] h-2.5 rounded-full overflow-hidden">
             <div
-              className="bg-gradient-to-r from-orange-500 to-amber-500 h-2.5 rounded-full transition-all duration-500 ease-out"
+              className="bg-gradient-to-r from-[#60B6F8] to-[#3B9EE8] h-2.5 rounded-full transition-all duration-500 ease-out"
               style={{ width: `${profilePct}%` }}
             />
           </div>
         </div>
 
         {/* Saved Skills Row */}
-        <div className="pt-4 border-t border-[#242424] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="pt-4 border-t border-[#EAF7FF] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-[#D4D4D4]">Saved Skills</span>
-              <span className="text-[11px] text-[#737373]">({savedSkills.length})</span>
+              <span className="text-xs font-bold text-[#475569]">Saved Skills</span>
+              <span className="text-[11px] text-[#64748B]">({savedSkills.length})</span>
             </div>
             {savedSkills.length > 0 ? (
               <div className="flex flex-wrap gap-1.5">
                 {savedSkills.map((skill, idx) => (
                   <span
                     key={`${skill}-${idx}`}
-                    className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-lg bg-[#1C1C1C] border border-[#292929] text-[#E5E5E5]"
+                    className="inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-lg bg-[#EAF7FF] border border-[#D8ECFA] text-[#334155]"
                   >
                     {verifiedSkills.some((v) => v.toLowerCase() === skill.toLowerCase()) && (
-                      <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                     )}
                     <span>{skill}</span>
                   </span>
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-[#737373]">
+              <p className="text-xs text-[#64748B]">
                 No skills saved yet. Add your practical skills so SETU can match you with verified opportunities.
               </p>
             )}
           </div>
           <Link
             to="/profile?tab=skills"
-            className="text-xs font-semibold text-[#FF5A1F] hover:text-[#FF7847] inline-flex items-center gap-1 shrink-0"
+            className="text-xs font-semibold text-[#3B9EE8] hover:text-[#2589D6] inline-flex items-center gap-1 shrink-0"
           >
             <span>{savedSkills.length > 0 ? 'Manage Skills' : 'Add Skills'}</span>
             <ChevronRight className="w-3.5 h-3.5" />
@@ -255,34 +255,34 @@ export const SeekerDashboardPage: React.FC = () => {
           {/* Card 1: Skills Verified */}
           <Link
             to="/assess"
-            className="bg-[#151515] p-5 rounded-2xl border border-[#292929] hover:border-[#383838] shadow-md card-hover-effect block"
+            className="bg-white p-5 rounded-2xl border border-[#D8ECFA] hover:border-[#A2D2FF] shadow-baby-sm card-hover-effect block"
           >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-[#737373]">Skills Verified</span>
-              <div className="w-8 h-8 rounded-xl bg-[#1C1C1C] flex items-center justify-center text-[#FF5A1F]">
+              <span className="text-xs font-semibold text-[#64748B]">Skills Verified</span>
+              <div className="w-8 h-8 rounded-xl bg-[#EAF7FF] flex items-center justify-center text-[#3B9EE8]">
                 <Award className="w-4 h-4" />
               </div>
             </div>
             <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-[#F5F5F5]">{skillsVerified}</span>
-              <span className="text-[11px] text-[#555555]">assessments passed</span>
+              <span className="text-2xl font-bold text-[#334155]">{skillsVerified}</span>
+              <span className="text-[11px] text-[#64748B]">assessments passed</span>
             </div>
           </Link>
 
           {/* Card 2: Learning Progress */}
           <Link
             to="/learn"
-            className="bg-[#151515] p-5 rounded-2xl border border-[#292929] hover:border-[#383838] shadow-md card-hover-effect block"
+            className="bg-white p-5 rounded-2xl border border-[#D8ECFA] hover:border-[#A2D2FF] shadow-baby-sm card-hover-effect block"
           >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-[#737373]">Learning Progress</span>
-              <div className="w-8 h-8 rounded-xl bg-blue-950/50 flex items-center justify-center text-blue-400">
+              <span className="text-xs font-semibold text-[#64748B]">Learning Progress</span>
+              <div className="w-8 h-8 rounded-xl bg-[#EAF7FF] flex items-center justify-center text-blue-400">
                 <BookOpen className="w-4 h-4" />
               </div>
             </div>
             <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-[#F5F5F5]">{learningCompleted}</span>
-              <span className="text-[11px] text-[#555555]">
+              <span className="text-2xl font-bold text-[#334155]">{learningCompleted}</span>
+              <span className="text-[11px] text-[#64748B]">
                 completed{learningStarted > 0 ? ` • ${learningStarted} active` : ''}
               </span>
             </div>
@@ -291,51 +291,51 @@ export const SeekerDashboardPage: React.FC = () => {
           {/* Card 3: Portfolio Projects */}
           <Link
             to="/portfolio"
-            className="bg-[#151515] p-5 rounded-2xl border border-[#292929] hover:border-[#383838] shadow-md card-hover-effect block"
+            className="bg-white p-5 rounded-2xl border border-[#D8ECFA] hover:border-[#A2D2FF] shadow-baby-sm card-hover-effect block"
           >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-[#737373]">Portfolio Projects</span>
-              <div className="w-8 h-8 rounded-xl bg-purple-950/50 flex items-center justify-center text-purple-400">
+              <span className="text-xs font-semibold text-[#64748B]">Portfolio Projects</span>
+              <div className="w-8 h-8 rounded-xl bg-violet-50 flex items-center justify-center text-purple-400">
                 <FolderGit2 className="w-4 h-4" />
               </div>
             </div>
             <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-[#F5F5F5]">{portfolioProjects}</span>
-              <span className="text-[11px] text-[#555555]">published projects</span>
+              <span className="text-2xl font-bold text-[#334155]">{portfolioProjects}</span>
+              <span className="text-[11px] text-[#64748B]">published projects</span>
             </div>
           </Link>
 
           {/* Card 4: Job Applications */}
           <Link
             to="/applications"
-            className="bg-[#151515] p-5 rounded-2xl border border-[#292929] hover:border-[#383838] shadow-md card-hover-effect block"
+            className="bg-white p-5 rounded-2xl border border-[#D8ECFA] hover:border-[#A2D2FF] shadow-baby-sm card-hover-effect block"
           >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-[#737373]">Job Applications</span>
-              <div className="w-8 h-8 rounded-xl bg-emerald-950/50 flex items-center justify-center text-emerald-400">
+              <span className="text-xs font-semibold text-[#64748B]">Job Applications</span>
+              <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
                 <FileText className="w-4 h-4" />
               </div>
             </div>
             <div className="mt-3 flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-[#F5F5F5]">{activeApplications}</span>
-              <span className="text-[11px] text-[#555555]">live submissions</span>
+              <span className="text-2xl font-bold text-[#334155]">{activeApplications}</span>
+              <span className="text-[11px] text-[#64748B]">live submissions</span>
             </div>
           </Link>
         </div>
       </section>
 
       {/* SECTION D: Recommended Opportunities (2-3 cards max) */}
-      <section className="bg-[#151515] rounded-2xl p-6 sm:p-7 border border-[#292929] shadow-xl">
+      <section className="bg-white rounded-2xl p-6 sm:p-7 border border-[#D8ECFA] shadow-baby">
         <div className="flex items-center justify-between mb-5">
           <div>
-            <h3 className="text-base font-bold text-[#F5F5F5]">Recommended Opportunities</h3>
-            <p className="text-xs text-[#737373] mt-0.5">
+            <h3 className="text-base font-bold text-[#334155]">Recommended Opportunities</h3>
+            <p className="text-xs text-[#64748B] mt-0.5">
               Verified roles matching your profile and verified strengths
             </p>
           </div>
           <Link
             to="/opportunities"
-            className="text-xs font-semibold text-[#FF5A1F] hover:text-[#FF7847] flex items-center gap-1"
+            className="text-xs font-semibold text-[#3B9EE8] hover:text-[#2589D6] flex items-center gap-1"
           >
             <span>View All</span>
             <ChevronRight className="w-3.5 h-3.5" />
@@ -343,7 +343,7 @@ export const SeekerDashboardPage: React.FC = () => {
         </div>
 
         {opportunities.length === 0 ? (
-          <p className="text-xs text-[#737373] py-4 text-center">
+          <p className="text-xs text-[#64748B] py-4 text-center">
             No recommended opportunities available right now. Explore the Opportunities directory!
           </p>
         ) : (
@@ -351,26 +351,26 @@ export const SeekerDashboardPage: React.FC = () => {
             {opportunities.map((opp) => (
               <div
                 key={opp._id}
-                className="flex flex-col justify-between p-4 rounded-xl border border-[#292929] bg-[#101010] hover:bg-[#181818] hover:border-[#383838] transition-all"
+                className="flex flex-col justify-between p-4 rounded-xl border border-[#D8ECFA] bg-[#F8FCFF] hover:bg-[#EAF7FF] hover:border-[#A2D2FF] transition-all"
               >
                 <div>
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-[#222222] text-[#D4D4D4] capitalize">
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-[#EAF7FF] text-[#475569] capitalize">
                       {opp.workMode || 'Hybrid'}
                     </span>
-                    <span className="text-[11px] font-bold text-[#D4D4D4]">
+                    <span className="text-[11px] font-bold text-[#475569]">
                       {opp.stipendOrSalary || 'Competitive'}
                     </span>
                   </div>
 
-                  <h4 className="text-sm font-bold text-[#F5F5F5] line-clamp-1 mb-1">
+                  <h4 className="text-sm font-bold text-[#334155] line-clamp-1 mb-1">
                     {opp.title}
                   </h4>
-                  <p className="text-xs text-[#A3A3A3] font-medium line-clamp-1 mb-2">
+                  <p className="text-xs text-[#64748B] font-medium line-clamp-1 mb-2">
                     {opp.organisationName}
                   </p>
 
-                  <div className="flex items-center gap-1.5 text-xs text-[#737373] mb-3">
+                  <div className="flex items-center gap-1.5 text-xs text-[#64748B] mb-3">
                     <MapPin className="w-3.5 h-3.5 shrink-0" />
                     <span className="truncate">{opp.location?.city || 'India'}</span>
                   </div>
@@ -380,7 +380,7 @@ export const SeekerDashboardPage: React.FC = () => {
                     {(opp.requiredSkills || []).slice(0, 3).map((sk: string, i: number) => (
                       <span
                         key={i}
-                        className="text-[10px] bg-white border border-[#292929] text-[#A3A3A3] px-2 py-0.5 rounded"
+                        className="text-[10px] bg-white border border-[#D8ECFA] text-[#64748B] px-2 py-0.5 rounded"
                       >
                         {sk}
                       </span>
@@ -390,7 +390,7 @@ export const SeekerDashboardPage: React.FC = () => {
 
                 <Link
                   to="/opportunities"
-                  className="w-full text-center py-2 px-3 bg-white hover:bg-[#1C1C1C] hover:border-orange-200 hover:text-[#FF5A1F] border border-[#292929] text-[#E5E5E5] text-xs font-semibold rounded-lg transition"
+                  className="w-full text-center py-2 px-3 bg-white hover:bg-[#EAF7FF] hover:border-[#BDE0FE] hover:text-[#3B9EE8] border border-[#D8ECFA] text-[#334155] text-xs font-semibold rounded-lg transition"
                 >
                   View Details
                 </Link>
@@ -401,17 +401,17 @@ export const SeekerDashboardPage: React.FC = () => {
       </section>
 
       {/* SECTION E: Continue Learning (2 cards max) */}
-      <section className="bg-[#151515] rounded-2xl p-6 sm:p-7 border border-[#292929] shadow-xl">
+      <section className="bg-white rounded-2xl p-6 sm:p-7 border border-[#D8ECFA] shadow-baby">
         <div className="flex items-center justify-between mb-5">
           <div>
-            <h3 className="text-base font-bold text-[#F5F5F5]">Continue Learning</h3>
-            <p className="text-xs text-[#737373] mt-0.5">
+            <h3 className="text-base font-bold text-[#334155]">Continue Learning</h3>
+            <p className="text-xs text-[#64748B] mt-0.5">
               Practical modules and assignments to sharpen your employment portfolio
             </p>
           </div>
           <Link
             to="/learn"
-            className="text-xs font-semibold text-[#FF5A1F] hover:text-[#FF7847] flex items-center gap-1"
+            className="text-xs font-semibold text-[#3B9EE8] hover:text-[#2589D6] flex items-center gap-1"
           >
             <span>Browse Catalog</span>
             <ChevronRight className="w-3.5 h-3.5" />
@@ -419,12 +419,12 @@ export const SeekerDashboardPage: React.FC = () => {
         </div>
 
         {learningItems.length === 0 ? (
-          <div className="text-center py-6 border border-dashed border-[#292929] rounded-xl">
-            <BookOpen className="w-8 h-8 text-[#444444] mx-auto mb-2" />
-            <p className="text-xs text-[#737373]">No learning in progress.</p>
+          <div className="text-center py-6 border border-dashed border-[#D8ECFA] rounded-xl">
+            <BookOpen className="w-8 h-8 text-[#94A3B8] mx-auto mb-2" />
+            <p className="text-xs text-[#64748B]">No learning in progress.</p>
             <Link
               to="/learn"
-              className="mt-2 inline-block text-xs font-semibold text-[#FF5A1F] hover:underline"
+              className="mt-2 inline-block text-xs font-semibold text-[#3B9EE8] hover:underline"
             >
               Start learning practical skills →
             </Link>
@@ -434,21 +434,21 @@ export const SeekerDashboardPage: React.FC = () => {
             {learningItems.map((item, idx) => (
               <div
                 key={item.id || item._id || idx}
-                className="flex items-center justify-between p-4 rounded-xl border border-[#292929] bg-[#101010] hover:bg-[#181818] transition"
+                className="flex items-center justify-between p-4 rounded-xl border border-[#D8ECFA] bg-[#F8FCFF] hover:bg-[#EAF7FF] transition"
               >
                 <div className="space-y-1 pr-3">
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-blue-100 text-blue-700">
                       {item.type === 'practical_assignment' ? 'Practical Project' : 'Learning Module'}
                     </span>
-                    <span className="text-[10px] text-[#737373]">{item.duration || '20 mins'}</span>
+                    <span className="text-[10px] text-[#64748B]">{item.duration || '20 mins'}</span>
                   </div>
-                  <h4 className="text-xs font-bold text-[#F5F5F5] line-clamp-1">{item.title}</h4>
-                  <p className="text-[11px] text-[#737373] line-clamp-1">Skill: {item.skillTag || 'Operations'}</p>
+                  <h4 className="text-xs font-bold text-[#334155] line-clamp-1">{item.title}</h4>
+                  <p className="text-[11px] text-[#64748B] line-clamp-1">Skill: {item.skillTag || 'Operations'}</p>
                 </div>
                 <Link
                   to="/learn"
-                  className="shrink-0 px-3 py-1.5 bg-[#FF5A1F] hover:bg-[#FF7847] text-white shadow-[0_2px_12px_rgba(255,90,31,0.35)] text-xs font-medium rounded-lg transition"
+                  className="shrink-0 px-3 py-1.5 bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] hover:from-[#8CC6FA] hover:to-[#A2D2FF] text-[#1E3A5F] shadow-baby-sm text-xs font-medium rounded-lg transition"
                 >
                   Continue
                 </Link>
@@ -459,35 +459,35 @@ export const SeekerDashboardPage: React.FC = () => {
       </section>
 
       {/* SECTION F: Recent Activity */}
-      <section className="bg-[#151515] rounded-2xl p-6 sm:p-7 border border-[#292929] shadow-xl">
+      <section className="bg-white rounded-2xl p-6 sm:p-7 border border-[#D8ECFA] shadow-baby">
         <div className="mb-4">
-          <h3 className="text-base font-bold text-[#F5F5F5]">Recent Activity</h3>
-          <p className="text-xs text-[#737373] mt-0.5">
+          <h3 className="text-base font-bold text-[#334155]">Recent Activity</h3>
+          <p className="text-xs text-[#64748B] mt-0.5">
             Real-time milestones from your applications, assessments, and learning journey
           </p>
         </div>
 
         {recentActivities.length === 0 ? (
-          <div className="text-center py-8 border border-dashed border-[#292929] rounded-xl">
-            <Sparkles className="w-8 h-8 text-[#444444] mx-auto mb-2" />
-            <p className="text-xs text-[#737373]">
+          <div className="text-center py-8 border border-dashed border-[#D8ECFA] rounded-xl">
+            <Sparkles className="w-8 h-8 text-[#94A3B8] mx-auto mb-2" />
+            <p className="text-xs text-[#64748B]">
               No recent activity yet. Start by assessing your skills!
             </p>
             <Link
               to="/assess"
-              className="mt-2 inline-block text-xs font-semibold text-[#FF5A1F] hover:underline"
+              className="mt-2 inline-block text-xs font-semibold text-[#3B9EE8] hover:underline"
             >
               Take Skill Assessment →
             </Link>
           </div>
         ) : (
-          <div className="divide-y divide-[#222222]">
+          <div className="divide-y divide-[#EAF7FF]">
             {recentActivities.map((act: any) => (
               <div key={act.id} className="py-3 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-[#1C1C1C] flex items-center justify-center text-[#A3A3A3] shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-[#EAF7FF] flex items-center justify-center text-[#64748B] shrink-0">
                     {act.type === 'assessment' ? (
-                      <Award className="w-4 h-4 text-[#FF5A1F]" />
+                      <Award className="w-4 h-4 text-[#3B9EE8]" />
                     ) : act.type === 'application' ? (
                       <FileText className="w-4 h-4 text-emerald-600" />
                     ) : act.type === 'portfolio' ? (
@@ -497,8 +497,8 @@ export const SeekerDashboardPage: React.FC = () => {
                     )}
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-[#F5F5F5]">{act.title}</p>
-                    <p className="text-[11px] text-[#737373]">{act.subtitle}</p>
+                    <p className="text-xs font-semibold text-[#334155]">{act.title}</p>
+                    <p className="text-[11px] text-[#64748B]">{act.subtitle}</p>
                   </div>
                 </div>
 
@@ -512,13 +512,13 @@ export const SeekerDashboardPage: React.FC = () => {
                           ? 'bg-purple-100 text-purple-700'
                           : act.badgeColor === 'amber'
                           ? 'bg-amber-100 text-amber-700'
-                          : 'bg-[#1C1C1C] text-[#D4D4D4]'
+                          : 'bg-[#EAF7FF] text-[#475569]'
                       }`}
                     >
                       {act.badgeText}
                     </span>
                   )}
-                  <p className="text-[10px] text-[#555555] mt-0.5">
+                  <p className="text-[10px] text-[#64748B] mt-0.5">
                     {new Date(act.timestamp).toLocaleDateString()}
                   </p>
                 </div>

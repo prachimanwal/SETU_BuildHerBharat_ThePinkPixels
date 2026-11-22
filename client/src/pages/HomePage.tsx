@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Compass,
   ArrowRight,
   Sparkles,
   ShieldCheck,
@@ -9,96 +8,47 @@ import {
   Landmark,
   Briefcase,
   CheckCircle2,
-  Users,
   Award,
   BookOpen,
   Layers,
-  TrendingUp,
   MapPin,
   Clock,
   ExternalLink,
-  ChevronRight
+  Compass
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { JourneyBridge } from '../components/JourneyBridge';
 import { apiFetch, extractArray, formatLocation, toStringArray } from '../utils/api';
 
-const FALLBACK_OPPORTUNITIES = [
-  {
-    _id: '1',
-    title: 'Digital Graphic Associate',
-    organisationName: 'Gramin Digital Services Pvt Ltd',
-    location: { city: 'Gurugram', state: 'Haryana', isRural: false },
-    workMode: 'hybrid',
-    stipendOrSalary: '₹22,000 / month',
-    opportunityType: 'full-time',
-    requiredSkills: ['Canva', 'Social Media', 'Content Formatting']
-  },
-  {
-    _id: '2',
-    title: 'Hindi & Regional Content Creator',
-    organisationName: 'Bharat Vani Media',
-    location: { city: 'Remote', state: 'Pan India', isRural: true },
-    workMode: 'remote',
-    stipendOrSalary: '₹18,000 / month',
-    opportunityType: 'part-time',
-    requiredSkills: ['Hindi Typing', 'Creative Writing', 'Canva']
-  },
-  {
-    _id: '3',
-    title: 'Operations & Community Facilitator',
-    organisationName: 'Pratham Skilling Initiative',
-    location: { city: 'Nuh', state: 'Haryana', isRural: true },
-    workMode: 'onsite',
-    stipendOrSalary: '₹25,000 / month',
-    opportunityType: 'full-time',
-    requiredSkills: ['Community Outreach', 'Basic Excel', 'Hindi Communication']
-  }
-];
-
-const FALLBACK_SCHEMES = [
-  {
-    _id: 's1',
-    title: 'PM Vishwakarma Yojana',
-    ministry: 'Ministry of MSME',
-    targetAudience: 'Artisans & Craftsmen',
-    benefitsSummary: '₹15,000 tool kit incentive & collateral-free credit support up to ₹3 Lakhs.'
-  },
-  {
-    _id: 's2',
-    title: 'Pradhan Mantri Kaushal Vikas Yojana (PMKVY 4.0)',
-    ministry: 'Ministry of Skill Development & Entrepreneurship',
-    targetAudience: 'Youth & Job Seekers',
-    benefitsSummary: 'Free industry-aligned skill certification, assessment vouchers & stipend.'
-  },
-  {
-    _id: 's3',
-    title: 'Mahila Samriddhi Yojana',
-    ministry: 'Ministry of Social Justice & Empowerment',
-    targetAudience: 'Women Entrepreneurs & Returnees',
-    benefitsSummary: 'Microfinance up to ₹1,40,000 at highly subsidized 4% interest rate.'
-  }
-];
-
 export const HomePage: React.FC = () => {
   const { language } = useLanguage();
   const [opportunities, setOpportunities] = useState<any[]>([]);
   const [schemes, setSchemes] = useState<any[]>([]);
+  const [loadingOpps, setLoadingOpps] = useState(true);
+  const [loadingSchemes, setLoadingSchemes] = useState(true);
 
   useEffect(() => {
     let active = true;
 
-    apiFetch('/api/public/opportunities?limit=3').then((res) => {
-      if (!active) return;
-      const list = res.ok ? extractArray(res.data, ['results']) : [];
-      setOpportunities(list.length > 0 ? list.slice(0, 3) : FALLBACK_OPPORTUNITIES);
-    });
+    apiFetch('/api/public/opportunities?limit=3')
+      .then((res) => {
+        if (!active) return;
+        const list = res.ok ? extractArray(res.data, ['results']) : [];
+        setOpportunities(list.slice(0, 3));
+      })
+      .finally(() => {
+        if (active) setLoadingOpps(false);
+      });
 
-    apiFetch('/api/public/schemes').then((res) => {
-      if (!active) return;
-      const list = res.ok ? extractArray(res.data, ['schemes', 'results']) : [];
-      setSchemes(list.length > 0 ? list.slice(0, 3) : FALLBACK_SCHEMES);
-    });
+    apiFetch('/api/public/schemes')
+      .then((res) => {
+        if (!active) return;
+        const list = res.ok ? extractArray(res.data, ['schemes', 'results']) : [];
+        setSchemes(list.slice(0, 3));
+      })
+      .finally(() => {
+        if (active) setLoadingSchemes(false);
+      });
 
     return () => {
       active = false;
@@ -106,345 +56,370 @@ export const HomePage: React.FC = () => {
   }, []);
 
   return (
-    <div className="space-y-16 sm:space-y-24 pb-20 bg-[#080808] text-[#F5F5F5] min-h-screen">
-      {/* 1. HERO SECTION (TASK 4) */}
-      <section className="relative overflow-hidden pt-20 pb-28 px-4 sm:px-6 lg:px-8 border-b border-[#222222]">
-        {/* Subtle Ambient Tech Background */}
-        <div className="absolute inset-0 bg-[radial-gradient(#292929_1px,transparent_1px)] [background-size:32px_32px] opacity-25"></div>
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-[#FF5A1F]/10 rounded-full blur-[140px] pointer-events-none"></div>
+    <div className="space-y-16 sm:space-y-24 pb-20 bg-[#F8FCFF] text-[#334155] min-h-screen">
+      {/* 1. HERO SECTION — Soft Baby Blue Theme with Floating Pastel Shapes */}
+      <section className="relative overflow-hidden pt-16 pb-24 sm:pt-24 sm:pb-28 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-[#EAF7FF] via-[#F8FCFF] to-[#F8FCFF] border-b border-[#D8ECFA]">
+        {/* Decorative Floating Baby-Blue Shapes */}
+        <div className="absolute -top-12 -left-16 w-72 h-72 rounded-full bg-[#BDE0FE]/55 blur-3xl pointer-events-none animate-float-slow" />
+        <div className="absolute top-1/4 -right-12 w-80 h-80 rounded-full bg-[#A2D2FF]/40 blur-3xl pointer-events-none animate-float-gentle" />
+        <div className="absolute bottom-6 left-1/3 w-56 h-56 rounded-full bg-[#D6EEFF]/60 blur-2xl pointer-events-none" />
 
-        <div className="relative max-w-5xl mx-auto text-center space-y-8">
-          {/* Subtle Tagline Badge */}
-          <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-[#151515] border border-[#292929] shadow-sm">
-            <span className="w-2 h-2 rounded-full bg-[#FF5A1F] shadow-[0_0_8px_rgba(255,90,31,0.8)]"></span>
-            <span className="text-xs font-semibold text-[#A3A3A3] tracking-wide">
-              {language === 'hi' ? 'हुनर से हक़ की कमाई तक।' : 'Bridging Skills, Opportunities & Employment'}
+        <div className="relative max-w-5xl mx-auto text-center space-y-7">
+          {/* Cheerful Tagline Pill */}
+          <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-white border border-[#D8ECFA] shadow-baby-sm">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#A2D2FF] ring-4 ring-[#EAF7FF]" />
+            <span className="text-xs font-semibold text-[#334155] tracking-wide">
+              {language === 'hi'
+                ? 'हुनर से हक़ की कमाई तक।'
+                : 'Every great career begins with one small step! 🩵'}
             </span>
           </div>
 
-          {/* Large Bold Headline (Task 4 requirement) */}
-          <div className="space-y-4">
-            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight font-display text-[#F5F5F5] leading-[1.1]">
-              Your Potential.{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF5A1F] via-[#FF7847] to-[#FFA07A]">
-                Your Path.
-              </span>{' '}
-              Your Future.
-            </h1>
-            <p className="max-w-3xl mx-auto text-lg sm:text-xl text-[#A3A3A3] font-normal leading-relaxed">
-              Discover opportunities, build valuable skills, connect with mentors, and take the next step toward meaningful employment.
-            </p>
-          </div>
+          {/* Hero Headline */}
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-[#334155] tracking-tight font-display leading-[1.15]">
+            {language === 'hi' ? (
+              <>
+                कौशल, अवसर और रोजगार का{' '}
+                <span className="text-[#3B9EE8]">विश्वसनीय सेतु</span>
+              </>
+            ) : (
+              <>
+                Discover Your Strengths.{' '}
+                <span className="bg-gradient-to-r from-[#2589D6] to-[#3B9EE8] bg-clip-text text-transparent">
+                  Unlock Career Opportunities.
+                </span>
+              </>
+            )}
+          </h1>
 
-          {/* Primary & Secondary CTAs (Task 4 requirement) */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
+          <p className="text-sm sm:text-lg text-[#64748B] max-w-2xl mx-auto leading-relaxed">
+            {language === 'hi'
+              ? 'अपनी शिक्षा, कौशल और रुचियों के आधार पर सही नौकरियां, सरकारी योजनाएं, कौशल परीक्षाएं और सीखने के मार्ग पाएं।'
+              : 'Build your personalized career profile and let SETU guide you toward verified jobs, government schemes, skill assessments, and tailored learning pathways.'}
+          </p>
+
+          {/* Primary CTA Buttons */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-2">
+            <Link
+              to="/register"
+              className="w-full sm:w-auto px-7 py-3.5 rounded-full bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] hover:from-[#8CC6FA] hover:to-[#A2D2FF] text-[#1E3A5F] font-bold text-sm shadow-baby transition flex items-center justify-center gap-2"
+            >
+              <span>Build Your Career Profile</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
             <Link
               to="/opportunities"
-              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-[#FF5A1F] hover:bg-[#FF7847] text-white font-bold text-sm sm:text-base shadow-[0_4px_24px_rgba(255,90,31,0.4)] transition-all flex items-center justify-center gap-2 group"
+              className="w-full sm:w-auto px-7 py-3.5 rounded-full bg-white hover:bg-[#EAF7FF] text-[#334155] font-semibold text-sm border border-[#D8ECFA] shadow-baby-sm transition flex items-center justify-center gap-2"
             >
+              <Compass className="w-4 h-4 text-[#3B9EE8]" />
               <span>Explore Opportunities</span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
-
-            <a
-              href="#discover-setu"
-              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-[#151515] hover:bg-[#1C1C1C] text-[#F5F5F5] font-semibold text-sm sm:text-base border border-[#292929] hover:border-[#383838] transition flex items-center justify-center gap-2"
-            >
-              <span>Discover SETU</span>
-              <ChevronRight className="w-4 h-4 text-[#A3A3A3]" />
-            </a>
           </div>
 
-          {/* Secondary Persona Pills */}
-          <div className="pt-4 flex flex-wrap items-center justify-center gap-2 text-xs text-[#737373]">
-            <span className="px-3 py-1 rounded-full bg-[#121212] border border-[#222222]">College Graduates</span>
-            <span className="px-3 py-1 rounded-full bg-[#121212] border border-[#222222]">Women Returning to Work</span>
-            <span className="px-3 py-1 rounded-full bg-[#121212] border border-[#222222]">Rural Talent</span>
-            <span className="px-3 py-1 rounded-full bg-[#121212] border border-[#222222]">Freelancers</span>
-            <span className="px-3 py-1 rounded-full bg-[#121212] border border-[#222222]">Practical Skilled Workers</span>
+          {/* Friendly Feature Highlights */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-8 max-w-4xl mx-auto text-left">
+            <div className="p-5 rounded-3xl bg-white border border-[#D8ECFA] shadow-baby-sm flex items-start gap-3.5 card-hover-effect">
+              <div className="w-10 h-10 rounded-2xl bg-[#EAF7FF] border border-[#D8ECFA] text-[#3B9EE8] flex items-center justify-center shrink-0">
+                <Award className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-[#334155]">Skill-First Matching</h3>
+                <p className="text-xs text-[#64748B] mt-1 leading-relaxed">
+                  Recommendations tailored to your real skills, education, and goals.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-5 rounded-3xl bg-white border border-[#D8ECFA] shadow-baby-sm flex items-start gap-3.5 card-hover-effect">
+              <div className="w-10 h-10 rounded-2xl bg-[#EAF7FF] border border-[#D8ECFA] text-[#3B9EE8] flex items-center justify-center shrink-0">
+                <BookOpen className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-[#334155]">Guided Learning Paths</h3>
+                <p className="text-xs text-[#64748B] mt-1 leading-relaxed">
+                  Practical modules and assignments that turn learning into portfolio proof.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-5 rounded-3xl bg-white border border-[#D8ECFA] shadow-baby-sm flex items-start gap-3.5 card-hover-effect">
+              <div className="w-10 h-10 rounded-2xl bg-[#EAF7FF] border border-[#D8ECFA] text-[#3B9EE8] flex items-center justify-center shrink-0">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-[#334155]">Verified Network</h3>
+                <p className="text-xs text-[#64748B] mt-1 leading-relaxed">
+                  Employer verification and curated government schemes in one safe space.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* 2. IMPACT METRICS STRIP */}
+      {/* 2. 7-STAGE JOURNEY BRIDGE */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          <div className="p-6 rounded-2xl bg-[#151515] border border-[#292929] card-hover-effect">
-            <div className="flex items-center gap-2 text-[#FF5A1F] mb-2">
-              <Briefcase className="w-5 h-5" />
-              <span className="text-xs uppercase font-bold tracking-wider text-[#A3A3A3]">Active Roles</span>
-            </div>
-            <div className="text-3xl sm:text-4xl font-extrabold text-[#F5F5F5] font-display">10,000+</div>
-            <p className="text-xs text-[#737373] mt-1">Verified micro-jobs, internships & full-time positions</p>
-          </div>
-
-          <div className="p-6 rounded-2xl bg-[#151515] border border-[#292929] card-hover-effect">
-            <div className="flex items-center gap-2 text-emerald-400 mb-2">
-              <Award className="w-5 h-5" />
-              <span className="text-xs uppercase font-bold tracking-wider text-[#A3A3A3]">Skill Scoring</span>
-            </div>
-            <div className="text-3xl sm:text-4xl font-extrabold text-[#F5F5F5] font-display">92%</div>
-            <p className="text-xs text-[#737373] mt-1">Practical assessment accuracy with instant gap analysis</p>
-          </div>
-
-          <div className="p-6 rounded-2xl bg-[#151515] border border-[#292929] card-hover-effect">
-            <div className="flex items-center gap-2 text-amber-400 mb-2">
-              <Landmark className="w-5 h-5" />
-              <span className="text-xs uppercase font-bold tracking-wider text-[#A3A3A3]">Welfare Bridge</span>
-            </div>
-            <div className="text-3xl sm:text-4xl font-extrabold text-[#F5F5F5] font-display">35+</div>
-            <p className="text-xs text-[#737373] mt-1">Government schemes directly matched to eligibility</p>
-          </div>
-
-          <div className="p-6 rounded-2xl bg-[#151515] border border-[#292929] card-hover-effect">
-            <div className="flex items-center gap-2 text-rose-400 mb-2">
-              <ShieldCheck className="w-5 h-5" />
-              <span className="text-xs uppercase font-bold tracking-wider text-[#A3A3A3]">Trust & Safety</span>
-            </div>
-            <div className="text-3xl sm:text-4xl font-extrabold text-[#F5F5F5] font-display">100%</div>
-            <p className="text-xs text-[#737373] mt-1">Admin-verified employers & moderated safe listings</p>
-          </div>
-        </div>
+        <JourneyBridge currentStage="discover" />
       </section>
 
-      {/* 3. 7-STAGE JOURNEY BRIDGE */}
-      <section id="discover-setu" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
-        <JourneyBridge currentStage="discover" completedStages={[]} />
-      </section>
-
-      {/* 4. FEATURED OPPORTUNITIES */}
+      {/* 3. FEATURED OPPORTUNITIES FROM DATABASE */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
           <div>
-            <div className="flex items-center gap-2 text-[#FF5A1F] text-xs font-bold tracking-wider uppercase mb-1">
+            <div className="flex items-center gap-2 text-[#3B9EE8] text-xs font-bold tracking-wider uppercase mb-1">
               <Briefcase className="w-4 h-4" />
-              <span>Verified Employment</span>
+              <span>Verified Roles</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#F5F5F5] font-display">
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#334155] font-display">
               Latest Verified Opportunities
             </h2>
-            <p className="text-xs sm:text-sm text-[#A3A3A3] mt-1">
-              Hand-picked listings designed for practical capabilities and verified skills
+            <p className="text-xs sm:text-sm text-[#64748B] mt-1">
+              Real openings from approved employers across remote, hybrid, and on-site roles
             </p>
           </div>
           <Link
             to="/opportunities"
-            className="inline-flex items-center gap-2 text-xs font-bold text-[#FF5A1F] hover:text-[#FF7847] transition"
+            className="inline-flex items-center gap-2 text-xs font-bold text-[#3B9EE8] hover:text-[#2589D6] transition"
           >
             <span>View All Opportunities</span>
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {(Array.isArray(opportunities) ? opportunities : []).map((opp, idx) => (
-            <div
-              key={opp._id || idx}
-              className="p-6 rounded-2xl bg-[#151515] border border-[#292929] card-hover-effect flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-center justify-between gap-2 mb-3">
-                  <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-[#1C1C1C] text-[#FF5A1F] border border-[#292929] capitalize">
-                    {opp.opportunityType || opp.employmentType || 'Opportunity'}
-                  </span>
-                  <span className="text-xs font-bold text-emerald-400">
-                    {opp.stipendOrSalary || opp.salaryOrStipend || 'Competitive'}
-                  </span>
-                </div>
-                <h3 className="text-base font-bold text-[#F5F5F5] line-clamp-1">{opp.title}</h3>
-                <p className="text-xs text-[#A3A3A3] mt-1">
-                  {opp.organisationName || opp.company || 'Verified Employer'}
-                </p>
-
-                <div className="flex items-center gap-3 mt-4 text-xs text-[#737373]">
-                  <span className="flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5" />
-                    {formatLocation(opp.location, 'Flexible')}
-                  </span>
-                  <span className="flex items-center gap-1 capitalize">
-                    <Clock className="w-3.5 h-3.5" />
-                    {opp.workMode || 'Hybrid'}
-                  </span>
-                </div>
-
-                <div className="mt-4 flex flex-wrap gap-1.5">
-                  {toStringArray(opp.requiredSkills).slice(0, 3).map((s: string, sIdx: number) => (
-                    <span
-                      key={sIdx}
-                      className="text-[11px] px-2 py-0.5 rounded bg-[#101010] text-[#A3A3A3] border border-[#242424]"
-                    >
-                      {s}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="pt-6 mt-6 border-t border-[#222222]">
-                <Link
-                  to="/opportunities"
-                  className="w-full py-2.5 px-4 rounded-xl bg-[#1C1C1C] hover:bg-[#252525] text-[#F5F5F5] text-xs font-semibold flex items-center justify-center gap-2 transition"
-                >
-                  <span>View Details & Match</span>
-                  <ArrowRight className="w-3.5 h-3.5 text-[#FF5A1F]" />
-                </Link>
-              </div>
+        {loadingOpps ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-56 rounded-3xl border border-[#D8ECFA] skeleton-baby" />
+            ))}
+          </div>
+        ) : opportunities.length === 0 ? (
+          <div className="p-10 rounded-3xl bg-white border border-dashed border-[#BDE0FE] text-center space-y-3 shadow-baby-sm">
+            <div className="w-12 h-12 rounded-2xl bg-[#EAF7FF] text-[#3B9EE8] flex items-center justify-center mx-auto">
+              <Briefcase className="w-6 h-6" />
             </div>
-          ))}
-        </div>
+            <h3 className="text-base font-bold text-[#334155]">
+              No matches just yet!
+            </h3>
+            <p className="text-xs text-[#64748B] max-w-md mx-auto">
+              Create your account and complete your profile so SETU can match you as soon as verified opportunities are published.
+            </p>
+            <Link
+              to="/register"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] text-[#1E3A5F] text-xs font-bold shadow-baby-sm transition"
+            >
+              <span>Build My Profile</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {(Array.isArray(opportunities) ? opportunities : []).map((opp, idx) => (
+              <div
+                key={opp._id || idx}
+                className="p-6 rounded-3xl bg-white border border-[#D8ECFA] shadow-baby-sm card-hover-effect flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <span className="text-[11px] font-semibold px-3 py-1 rounded-full bg-[#EAF7FF] text-[#1E3A5F] border border-[#BDE0FE] capitalize">
+                      {opp.opportunityType || opp.employmentType || 'Opportunity'}
+                    </span>
+                    <span className="text-xs font-bold text-emerald-600">
+                      {opp.stipendOrSalary || opp.salaryOrStipend || 'Competitive'}
+                    </span>
+                  </div>
+                  <h3 className="text-base font-bold text-[#334155] line-clamp-1">{opp.title}</h3>
+                  <p className="text-xs text-[#64748B] mt-1 font-medium">
+                    {opp.organisationName || opp.company || 'Verified Employer'}
+                  </p>
+
+                  <div className="flex items-center gap-3 mt-4 text-xs text-[#64748B]">
+                    <span className="flex items-center gap-1">
+                      <MapPin className="w-3.5 h-3.5 text-[#3B9EE8]" />
+                      {formatLocation(opp.location, 'Flexible')}
+                    </span>
+                    <span className="flex items-center gap-1 capitalize">
+                      <Clock className="w-3.5 h-3.5 text-[#3B9EE8]" />
+                      {opp.workMode || 'Hybrid'}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-1.5">
+                    {toStringArray(opp.requiredSkills).slice(0, 3).map((s: string, sIdx: number) => (
+                      <span
+                        key={sIdx}
+                        className="text-[11px] px-2.5 py-0.5 rounded-full bg-[#F8FCFF] text-[#334155] border border-[#D8ECFA]"
+                      >
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-5 mt-5 border-t border-[#EAF7FF]">
+                  <Link
+                    to="/opportunities"
+                    className="w-full py-2.5 px-4 rounded-2xl bg-[#EAF7FF] hover:bg-[#D6EEFF] text-[#1E3A5F] text-xs font-semibold flex items-center justify-center gap-2 transition"
+                  >
+                    <span>View Details & Match</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-[#3B9EE8]" />
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
-      {/* 5. BUILD HER SANCTUARY & MENTORSHIP */}
+      {/* 4. BUILD HER SANCTUARY & MENTORSHIP (Soft Pastel Sky & Blush) */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="rounded-3xl bg-gradient-to-br from-[#181216] via-[#151515] to-[#121212] border border-rose-950/60 p-8 sm:p-12 relative overflow-hidden">
-          <div className="absolute right-0 top-0 w-96 h-96 bg-rose-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+        <div className="rounded-3xl bg-gradient-to-br from-[#EAF7FF] via-white to-[#FFF1F5] border border-[#D8ECFA] p-8 sm:p-12 relative overflow-hidden shadow-baby">
+          <div className="absolute right-0 top-0 w-72 h-72 bg-[#BDE0FE]/45 rounded-full blur-3xl pointer-events-none" />
 
           <div className="relative z-10 max-w-2xl space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-950/50 border border-rose-800/40 text-rose-300 text-xs font-semibold">
-              <Heart className="w-3.5 h-3.5 fill-rose-400 text-rose-400" />
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-pink-200 text-pink-600 text-xs font-semibold shadow-xs">
+              <Heart className="w-3.5 h-3.5 fill-pink-400 text-pink-400" />
               <span>Build Her Sanctuary & Mentorship</span>
             </div>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-[#F5F5F5] tracking-tight font-display">
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-[#334155] tracking-tight font-display">
               Dedicated Support for Women Returning to Work
             </h2>
-            <p className="text-sm sm:text-base text-[#A3A3A3] leading-relaxed">
-              Safe spaces, confidential employer verification, 1-on-1 mentorship, and structured flexible roles tailored for women restarting their professional journey after a career break.
+            <p className="text-sm sm:text-base text-[#64748B] leading-relaxed">
+              Welcoming spaces, verified employers, career-restart guidance, and flexible roles designed for women rebuilding financial independence after a career break.
             </p>
 
-            <div className="pt-4 flex flex-col sm:flex-row gap-3">
+            <div className="pt-3 flex flex-col sm:flex-row gap-3">
               <Link
                 to="/build-her"
-                className="px-6 py-3.5 rounded-xl bg-[#FF5A1F] hover:bg-[#FF7847] text-white text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-[0_4px_20px_rgba(255,90,31,0.35)] transition"
+                className="px-6 py-3 rounded-full bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] hover:from-[#8CC6FA] hover:to-[#A2D2FF] text-[#1E3A5F] text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-baby-sm transition"
               >
                 <span>Enter Build Her Sanctuary</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
-                to="/register?role=seeker"
-                className="px-6 py-3.5 rounded-xl bg-[#1C1C1C] hover:bg-[#252525] text-[#F5F5F5] text-xs sm:text-sm font-semibold border border-[#292929] flex items-center justify-center gap-2 transition"
+                to="/register"
+                className="px-6 py-3 rounded-full bg-white hover:bg-[#EAF7FF] text-[#334155] text-xs sm:text-sm font-semibold border border-[#D8ECFA] flex items-center justify-center gap-2 transition"
               >
-                <span>Get Matched with a Mentor</span>
+                <span>Create Your Profile</span>
               </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 6. GOVERNMENT SCHEMES DIRECTORY */}
+      {/* 5. GOVERNMENT SCHEMES DIRECTORY */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
           <div>
-            <div className="flex items-center gap-2 text-amber-400 text-xs font-bold tracking-wider uppercase mb-1">
+            <div className="flex items-center gap-2 text-[#3B9EE8] text-xs font-bold tracking-wider uppercase mb-1">
               <Landmark className="w-4 h-4" />
               <span>Public Welfare & Grants</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#F5F5F5] font-display">
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#334155] font-display">
               Government Schemes & Subsidies
             </h2>
-            <p className="text-xs sm:text-sm text-[#A3A3A3] mt-1">
-              Direct access to government skill training, financial assistance, and entrepreneurship toolkits
+            <p className="text-xs sm:text-sm text-[#64748B] mt-1">
+              Curated skill training, apprenticeship, and entrepreneurship support programs
             </p>
           </div>
           <Link
             to="/schemes"
-            className="inline-flex items-center gap-2 text-xs font-bold text-[#FF5A1F] hover:text-[#FF7847] transition"
+            className="inline-flex items-center gap-2 text-xs font-bold text-[#3B9EE8] hover:text-[#2589D6] transition"
           >
             <span>Explore All Schemes</span>
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {(Array.isArray(schemes) ? schemes : []).map((s, idx) => (
-            <div
-              key={s._id || idx}
-              className="p-6 rounded-2xl bg-[#151515] border border-[#292929] card-hover-effect flex flex-col justify-between"
-            >
-              <div>
-                <span className="text-[10px] uppercase font-bold tracking-wider text-amber-400 block mb-2">
-                  {s.ministry || s.ministryOrDepartment || 'Government of India'}
-                </span>
-                <h3 className="text-base font-bold text-[#F5F5F5] line-clamp-1">{s.title}</h3>
-                <p className="text-xs text-[#A3A3A3] mt-1 font-medium">
-                  Target:{' '}
-                  {Array.isArray(s.targetAudience)
-                    ? s.targetAudience.join(', ')
-                    : s.targetAudience || s.targetBeneficiary || 'All Citizens'}
-                </p>
-                <p className="text-xs text-[#737373] mt-3 line-clamp-2 leading-relaxed">
-                  {s.benefitsSummary || s.benefits || ''}
-                </p>
-              </div>
-
-              <div className="pt-5 mt-5 border-t border-[#222222]">
-                <Link
-                  to="/schemes"
-                  className="w-full py-2.5 px-4 rounded-xl bg-[#101010] hover:bg-[#1C1C1C] text-[#F5F5F5] text-xs font-semibold flex items-center justify-center gap-2 border border-[#242424] transition"
-                >
-                  <span>Check Eligibility</span>
-                  <ExternalLink className="w-3.5 h-3.5 text-amber-400" />
-                </Link>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* 7. ABOUT SETU (MISSION SECTION) */}
-      <section id="about" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 scroll-mt-24">
-        <div className="p-8 sm:p-12 rounded-3xl bg-[#101010] border border-[#292929]">
-          <div className="max-w-3xl space-y-6">
-            <span className="text-xs font-bold uppercase tracking-wider text-[#FF5A1F]">Our Mission</span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-[#F5F5F5] tracking-tight font-display">
-              Democratizing Opportunities for Every Indian
-            </h2>
-            <p className="text-sm sm:text-base text-[#A3A3A3] leading-relaxed">
-              Traditional hiring systems over-index on formal degrees and legacy credentials, leaving millions of capable Indians behind. SETU reconstructs the hiring lifecycle: discover raw potential through adaptive tests, cultivate hands-on skills through real deliverables, and match directly with employers who value demonstrated ability.
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-              <div className="p-4 rounded-xl bg-[#151515] border border-[#242424]">
-                <CheckCircle2 className="w-5 h-5 text-[#FF5A1F] mb-2" />
-                <h4 className="text-sm font-bold text-[#F5F5F5]">Merit First</h4>
-                <p className="text-xs text-[#737373] mt-1">Evaluated on real practical performance, not pedigree</p>
-              </div>
-              <div className="p-4 rounded-xl bg-[#151515] border border-[#242424]">
-                <CheckCircle2 className="w-5 h-5 text-emerald-400 mb-2" />
-                <h4 className="text-sm font-bold text-[#F5F5F5]">Bilingual & Accessible</h4>
-                <p className="text-xs text-[#737373] mt-1">Full English and Hindi support across every feature</p>
-              </div>
-              <div className="p-4 rounded-xl bg-[#151515] border border-[#242424]">
-                <CheckCircle2 className="w-5 h-5 text-amber-400 mb-2" />
-                <h4 className="text-sm font-bold text-[#F5F5F5]">Zero Platform Fees</h4>
-                <p className="text-xs text-[#737373] mt-1">100% free discovery and application for job seekers</p>
-              </div>
-            </div>
+        {loadingSchemes ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-52 rounded-3xl border border-[#D8ECFA] skeleton-baby" />
+            ))}
           </div>
-        </div>
+        ) : schemes.length === 0 ? (
+          <div className="p-8 rounded-3xl bg-white border border-dashed border-[#BDE0FE] text-center space-y-2 shadow-baby-sm">
+            <p className="text-sm font-semibold text-[#334155]">
+              Explore verified government schemes in our directory.
+            </p>
+            <Link
+              to="/schemes"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-[#3B9EE8] hover:underline"
+            >
+              <span>Open Schemes Directory</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {(Array.isArray(schemes) ? schemes : []).map((s, idx) => (
+              <div
+                key={s._id || idx}
+                className="p-6 rounded-3xl bg-white border border-[#D8ECFA] shadow-baby-sm card-hover-effect flex flex-col justify-between"
+              >
+                <div>
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-[#3B9EE8] block mb-2">
+                    {s.ministry || s.ministryOrDepartment || 'Government of India'}
+                  </span>
+                  <h3 className="text-base font-bold text-[#334155] line-clamp-1">{s.title}</h3>
+                  <p className="text-xs text-[#64748B] mt-1 font-medium">
+                    Target:{' '}
+                    {Array.isArray(s.targetAudience)
+                      ? s.targetAudience.join(', ')
+                      : s.targetAudience || s.targetBeneficiary || 'All Citizens'}
+                  </p>
+                  <p className="text-xs text-[#64748B] mt-3 line-clamp-2 leading-relaxed">
+                    {s.benefitsSummary || s.benefits || ''}
+                  </p>
+                </div>
+
+                <div className="pt-5 mt-5 border-t border-[#EAF7FF]">
+                  <Link
+                    to="/schemes"
+                    className="w-full py-2.5 px-4 rounded-2xl bg-[#EAF7FF] hover:bg-[#D6EEFF] text-[#1E3A5F] text-xs font-semibold flex items-center justify-center gap-2 transition"
+                  >
+                    <span>Check Eligibility</span>
+                    <ExternalLink className="w-3.5 h-3.5 text-[#3B9EE8]" />
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
-      {/* 8. FINAL CONVERSION CTA */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="rounded-3xl bg-gradient-to-r from-[#1A1A1A] via-[#151515] to-[#1A1A1A] border border-[#292929] p-8 sm:p-14 text-center space-y-6 relative overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(#FF5A1F_1px,transparent_1px)] [background-size:24px_24px] opacity-10"></div>
-          <h2 className="text-3xl sm:text-5xl font-extrabold text-[#F5F5F5] font-display tracking-tight">
-            Start Your Journey with SETU Today
-          </h2>
-          <p className="text-sm sm:text-base text-[#A3A3A3] max-w-2xl mx-auto">
-            Whether you are taking your first career step, returning after a pause, or hiring proven talent for your organization, SETU provides the bridge.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-            <Link
-              to="/register?role=seeker"
-              className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-[#FF5A1F] hover:bg-[#FF7847] text-white font-bold text-sm shadow-[0_4px_20px_rgba(255,90,31,0.35)] transition flex items-center justify-center gap-2"
-            >
-              <span>Create Free Account</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-            <Link
-              to="/register?role=employer"
-              className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-[#101010] hover:bg-[#1C1C1C] text-[#F5F5F5] font-semibold text-sm border border-[#292929] transition"
-            >
-              <span>Hire on SETU</span>
-            </Link>
+      {/* 6. ABOUT SETU */}
+      <section id="about" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 scroll-mt-24">
+        <div className="p-8 sm:p-12 rounded-3xl bg-white border border-[#D8ECFA] shadow-baby">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+            <div className="space-y-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#EAF7FF] border border-[#BDE0FE] text-xs font-semibold text-[#1E3A5F]">
+                <Sparkles className="w-3.5 h-3.5 text-[#3B9EE8]" />
+                <span>Our Mission</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#334155] font-display">
+                Bridging Potential to Meaningful Livelihoods
+              </h2>
+              <p className="text-sm text-[#64748B] leading-relaxed">
+                Your potential deserves the right opportunity. SETU connects learners, freshers, career returnees, and skilled workers directly with tailored assessments, practical portfolio projects, government welfare schemes, and verified employers.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-5 rounded-2xl bg-[#F8FCFF] border border-[#D8ECFA] space-y-1.5">
+                <Layers className="w-5 h-5 text-[#3B9EE8]" />
+                <p className="text-sm font-bold text-[#334155]">Profile-Driven</p>
+                <p className="text-xs text-[#64748B]">
+                  Every recommendation adapts to your skills & goals.
+                </p>
+              </div>
+              <div className="p-5 rounded-2xl bg-[#F8FCFF] border border-[#D8ECFA] space-y-1.5">
+                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                <p className="text-sm font-bold text-[#334155]">Transparent</p>
+                <p className="text-xs text-[#64748B]">
+                  Clear explanations of why jobs & schemes match you.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>

@@ -43,7 +43,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
         alt={name || 'User profile'}
         referrerPolicy="no-referrer"
         onError={() => setFailedSrc(trimmedSrc)}
-        className={`${sizeClass} rounded-full object-cover ring-1 ring-[#FF5A1F]/70 bg-[#1C1C1C] shrink-0 ${className}`}
+        className={`${sizeClass} rounded-full object-cover ring-2 ring-[#BDE0FE] bg-[#EAF7FF] shrink-0 ${className}`}
       />
     );
   }
@@ -51,7 +51,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   return (
     <div
       aria-label={name || 'User avatar'}
-      className={`${sizeClass} rounded-full bg-[#FF5A1F] text-white font-bold flex items-center justify-center ring-1 ring-[#292929] shadow-sm shrink-0 select-none ${className}`}
+      className={`${sizeClass} rounded-full bg-gradient-to-br from-[#A2D2FF] to-[#BDE0FE] text-[#1E3A5F] font-bold flex items-center justify-center ring-2 ring-[#D6EEFF] shadow-baby-sm shrink-0 select-none ${className}`}
     >
       {getUserInitials(name)}
     </div>

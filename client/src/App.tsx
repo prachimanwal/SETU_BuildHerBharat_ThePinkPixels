@@ -13,6 +13,7 @@ import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { SeekerDashboardPage } from './pages/SeekerDashboardPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { ProfileOnboardingPage } from './pages/ProfileOnboardingPage';
 import { AssessPage } from './pages/AssessPage';
 import { LearnPage } from './pages/LearnPage';
 import { PortfolioPage } from './pages/PortfolioPage';
@@ -33,8 +34,8 @@ const ProtectedDashboardRoute: React.FC<{
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#080808]">
-        <div className="animate-spin w-8 h-8 border-4 border-[#FF5A1F] border-t-transparent rounded-full" />
+      <div className="min-h-screen flex items-center justify-center bg-[#F8FCFF]">
+        <div className="animate-spin w-8 h-8 border-4 border-[#A2D2FF] border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -60,8 +61,8 @@ const HybridRoute: React.FC<{
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#080808]">
-        <div className="animate-spin w-8 h-8 border-4 border-[#FF5A1F] border-t-transparent rounded-full" />
+      <div className="min-h-screen flex items-center justify-center bg-[#F8FCFF]">
+        <div className="animate-spin w-8 h-8 border-4 border-[#A2D2FF] border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -71,7 +72,7 @@ const HybridRoute: React.FC<{
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#080808] text-[#F5F5F5]">
+    <div className="flex flex-col min-h-screen bg-[#F8FCFF] text-[#334155]">
       <Navbar />
       <main className="flex-1">{children}</main>
       <Footer />
@@ -87,8 +88,8 @@ const AuthOnlyRoute: React.FC<{
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#080808]">
-        <div className="animate-spin w-8 h-8 border-4 border-[#FF5A1F] border-t-transparent rounded-full" />
+      <div className="min-h-screen flex items-center justify-center bg-[#F8FCFF]">
+        <div className="animate-spin w-8 h-8 border-4 border-[#A2D2FF] border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -96,11 +97,15 @@ const AuthOnlyRoute: React.FC<{
   if (user) {
     if (user.role === 'admin') return <Navigate to="/admin" replace />;
     if (user.role === 'employer') return <Navigate to="/employer" replace />;
-    return <Navigate to="/dashboard" replace />;
+    const needsOnboarding =
+      !user.seekerProfile?.onboardingCompleted &&
+      !user.seekerProfile?.onboardingSkipped &&
+      (user.profileCompletion ?? 0) < 40;
+    return <Navigate to={needsOnboarding ? '/onboarding' : '/dashboard'} replace />;
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#080808] text-[#F5F5F5]">
+    <div className="flex flex-col min-h-screen bg-[#F8FCFF] text-[#334155]">
       <main className="flex-1">{children}</main>
       <Footer />
     </div>
@@ -113,8 +118,8 @@ const HomeRoute: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#080808]">
-        <div className="animate-spin w-8 h-8 border-4 border-[#FF5A1F] border-t-transparent rounded-full" />
+      <div className="min-h-screen flex items-center justify-center bg-[#F8FCFF]">
+        <div className="animate-spin w-8 h-8 border-4 border-[#A2D2FF] border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -122,11 +127,15 @@ const HomeRoute: React.FC = () => {
   if (user) {
     if (user.role === 'admin') return <Navigate to="/admin" replace />;
     if (user.role === 'employer') return <Navigate to="/employer" replace />;
-    return <Navigate to="/dashboard" replace />;
+    const needsOnboarding =
+      !user.seekerProfile?.onboardingCompleted &&
+      !user.seekerProfile?.onboardingSkipped &&
+      (user.profileCompletion ?? 0) < 40;
+    return <Navigate to={needsOnboarding ? '/onboarding' : '/dashboard'} replace />;
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#080808] text-[#F5F5F5]">
+    <div className="flex flex-col min-h-screen bg-[#F8FCFF] text-[#334155]">
       <Navbar />
       <main className="flex-1">
         <HomePage />
@@ -214,6 +223,14 @@ export default function App() {
               element={
                 <ProtectedDashboardRoute allowedRoles={['seeker']}>
                   <ProfilePage />
+                </ProtectedDashboardRoute>
+              }
+            />
+            <Route
+              path="/onboarding"
+              element={
+                <ProtectedDashboardRoute allowedRoles={['seeker']}>
+                  <ProfileOnboardingPage />
                 </ProtectedDashboardRoute>
               }
             />

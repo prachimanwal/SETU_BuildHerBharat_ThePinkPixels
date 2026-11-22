@@ -1,80 +1,90 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary-bg: #080808;
-  --color-secondary-bg: #101010;
-  --color-card-bg: #151515;
-  --color-surface-elevated: #1c1c1c;
-  --color-subtle-border: #292929;
-  --color-text-primary: #f5f5f5;
-  --color-text-secondary: #a3a3a3;
-  --color-text-muted: #737373;
-  --color-accent-orange: #ff5a1f;
-  --color-accent-orange-hover: #ff7847;
-  --color-status-success: #22c55e;
+  --color-baby-blue: #bde0fe;
+  --color-sky-blue: #a2d2ff;
+  --color-powder-blue: #d6eeff;
+  --color-ice-blue: #eaf7ff;
+  --color-pastel-blue: #c9e7ff;
+  --color-sky-accent: #3b9ee8;
+  --color-sky-accent-hover: #2589d6;
+  --color-bg-page: #f8fcff;
+  --color-bg-card: #ffffff;
+  --color-border-soft: #d8ecfa;
+  --color-text-primary: #334155;
+  --color-text-secondary: #64748b;
+  --color-status-success: #10b981;
   --color-status-error: #ef4444;
 
-  --font-sans: 'Inter', 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-display: 'Manrope', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Poppins', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 :root {
-  --bg-primary: #080808;
-  --bg-secondary: #101010;
-  --bg-card: #151515;
-  --bg-elevated: #1c1c1c;
-  --border-subtle: #292929;
-  --border-subtle-hover: #383838;
-  --text-primary: #f5f5f5;
-  --text-secondary: #a3a3a3;
-  --text-muted: #737373;
-  --accent-orange: #ff5a1f;
-  --accent-orange-hover: #ff7847;
-  --status-success: #22c55e;
-  --status-error: #ef4444;
+  --baby-blue: #bde0fe;
+  --sky-blue: #a2d2ff;
+  --powder-blue: #d6eeff;
+  --ice-blue: #eaf7ff;
+  --pastel-blue: #c9e7ff;
+  --sky-accent: #3b9ee8;
+  --sky-accent-hover: #2589d6;
+  --bg-page: #f8fcff;
+  --bg-card: #ffffff;
+  --border-soft: #d8ecfa;
+  --text-primary: #334155;
+  --text-secondary: #64748b;
 }
 
 body {
   margin: 0;
   font-family: var(--font-sans);
-  background-color: #080808;
-  color: #f5f5f5;
+  background-color: #f8fcff;
+  color: #334155;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
 }
 
+h1,
+h2,
+h3,
+h4,
+.font-display,
+.font-serif {
+  font-family: var(--font-display);
+}
+
 #root {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: #080808;
+  background-color: #f8fcff;
 }
 
 /* Custom Accessibility Focus Rings */
 :focus-visible {
-  outline: 2px solid #ff5a1f;
+  outline: 2px solid #3b9ee8;
   outline-offset: 2px;
 }
 
-/* Dark mode custom scrollbars */
+/* Soft pastel-blue scrollbars */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #080808;
+  background: #f8fcff;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #222222;
-  border-radius: 4px;
+  background: #bde0fe;
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #2e2e2e;
+  background: #a2d2ff;
 }
 
 /* Smooth micro-interaction transitions */
@@ -82,23 +92,68 @@ body {
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Subtle glow effects */
-.glow-orange-subtle {
-  box-shadow: 0 0 25px -5px rgba(255, 90, 31, 0.15);
+/* Soft Baby-Blue Shadows & Card Elevation */
+.shadow-baby {
+  box-shadow: 0 10px 30px -10px rgba(162, 210, 255, 0.45), 0 2px 8px -2px rgba(51, 65, 85, 0.04);
 }
 
-.glow-orange-button {
-  box-shadow: 0 4px 18px rgba(255, 90, 31, 0.35);
+.shadow-baby-sm {
+  box-shadow: 0 4px 14px -4px rgba(162, 210, 255, 0.4), 0 1px 3px rgba(51, 65, 85, 0.04);
 }
 
-/* Interactive Card Elevation */
 .card-hover-effect {
   transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
 .card-hover-effect:hover {
-  transform: translateY(-2px);
-  border-color: #383838;
+  transform: translateY(-3px);
+  border-color: #a2d2ff;
+  box-shadow: 0 14px 32px -12px rgba(125, 190, 245, 0.5);
+}
+
+/* Baby-Blue Floating Shapes Animation */
+@keyframes floatSlow {
+  0%,
+  100% {
+    transform: translateY(0px) translateX(0px);
+  }
+  50% {
+    transform: translateY(-10px) translateX(6px);
+  }
+}
+
+@keyframes floatGentle {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.animate-float-slow {
+  animation: floatSlow 8s ease-in-out infinite;
+}
+
+.animate-float-gentle {
+  animation: floatGentle 6s ease-in-out infinite;
+}
+
+/* Baby-blue skeleton pulse */
+@keyframes shimmerBaby {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-baby {
+  background: linear-gradient(90deg, #eaf7ff 25%, #d6eeff 50%, #eaf7ff 75%);
+  background-size: 200% 100%;
+  animation: shimmerBaby 1.6s ease-in-out infinite;
 }
 
 /* Reduced motion accessibility */
@@ -113,27 +168,33 @@ body {
   }
 }
 
-/* Dark mode form controls */
+/* Light Baby-Blue Form Controls */
 input:not([type="checkbox"]):not([type="radio"]),
 select,
 textarea {
-  background-color: #101010;
-  color: #ffffff;
-  border-color: #292929;
+  background-color: #ffffff;
+  color: #334155;
+  border-color: #d8ecfa;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):focus,
+select:focus,
+textarea:focus {
+  border-color: #60b6f8;
 }
 
 input::placeholder,
 textarea::placeholder {
-  color: #777777;
+  color: #94a3b8;
 }
 
 select option {
-  background-color: #151515;
-  color: #ffffff;
+  background-color: #ffffff;
+  color: #334155;
 }
 
-/* Modal dark overlay */
-.modal-backdrop-dark {
-  background-color: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(4px);
+/* Modal soft overlay */
+.modal-backdrop-soft {
+  background-color: rgba(51, 65, 85, 0.35);
+  backdrop-filter: blur(6px);
 }

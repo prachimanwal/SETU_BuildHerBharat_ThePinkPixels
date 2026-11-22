@@ -53,40 +53,40 @@ export const Navbar: React.FC = () => {
 
   const navLinks = [
     { label: language === 'hi' ? 'मुख्य पृष्ठ' : 'Home', path: '/' },
-    { label: language === 'hi' ? 'अवसर खोजें' : 'Explore Opportunities', path: '/opportunities' },
+    { label: language === 'hi' ? 'अवसर खोजें' : 'Opportunities', path: '/opportunities' },
     { label: language === 'hi' ? 'सीखें' : 'Learn', path: '/learn' },
     { label: language === 'hi' ? 'मेंटरशिप' : 'Mentorship', path: '/build-her' },
-    { label: language === 'hi' ? 'समुदाय' : 'Community', path: '/schemes' },
+    { label: language === 'hi' ? 'योजनाएं' : 'Schemes', path: '/schemes' },
     { label: language === 'hi' ? 'परिचय' : 'About', path: '/#about' }
   ];
 
   return (
-    <header className="sticky top-0 z-50 bg-[#080808]/95 backdrop-blur-md border-b border-[#292929] transition-all">
+    <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-[#D8ECFA] transition-all">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           {/* LEFT SECTION: Logo and Brand Name */}
           <div className="flex items-center">
             <Link to="/" className="flex items-center gap-3 group">
-              <div className="relative">
+              <div className="p-1.5 rounded-2xl bg-[#EAF7FF] border border-[#D8ECFA] group-hover:bg-[#D6EEFF] transition-colors">
                 <img
                   src="/setu-logo.png"
                   alt="SETU Logo"
-                  className="h-10 w-auto object-contain brightness-110 drop-shadow-[0_0_12px_rgba(255,90,31,0.25)] group-hover:scale-105 transition-transform duration-200"
+                  className="h-8 w-auto object-contain group-hover:scale-105 transition-transform duration-200"
                 />
               </div>
               <div className="flex flex-col">
-                <span className="text-xl font-black tracking-tight text-[#F5F5F5] font-display flex items-center gap-1.5">
+                <span className="text-xl font-extrabold tracking-tight text-[#334155] font-display flex items-center gap-1.5">
                   SETU
-                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#FF5A1F]"></span>
+                  <span className="inline-block w-2 h-2 rounded-full bg-[#A2D2FF]"></span>
                 </span>
-                <span className="text-[10px] text-[#A3A3A3] font-medium tracking-wide hidden sm:block">
+                <span className="text-[10px] text-[#64748B] font-medium tracking-wide hidden sm:block">
                   {language === 'hi' ? 'हुनर से हक़ की कमाई तक' : 'Empowering Futures'}
                 </span>
               </div>
             </Link>
           </div>
 
-          {/* CENTER SECTION: Clean, minimal navigation links */}
+          {/* CENTER SECTION: Clean rounded navigation links */}
           <nav className="hidden lg:flex items-center space-x-1 xl:space-x-2">
             {navLinks.map((link) => {
               const active = isActive(link.path);
@@ -94,16 +94,13 @@ export const Navbar: React.FC = () => {
                 <Link
                   key={link.path}
                   to={link.path}
-                  className={`px-3.5 py-2 rounded-xl text-sm font-medium transition-colors relative ${
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
                     active
-                      ? 'text-[#F5F5F5] font-semibold'
-                      : 'text-[#A3A3A3] hover:text-[#F5F5F5] hover:bg-[#151515]'
+                      ? 'bg-[#EAF7FF] text-[#1E3A5F] font-semibold border border-[#BDE0FE]'
+                      : 'text-[#64748B] hover:text-[#334155] hover:bg-[#F8FCFF]'
                   }`}
                 >
                   {link.label}
-                  {active && (
-                    <span className="absolute bottom-0.5 left-3.5 right-3.5 h-[2px] bg-[#FF5A1F] rounded-full shadow-[0_0_8px_rgba(255,90,31,0.8)]" />
-                  )}
                 </Link>
               );
             })}
@@ -111,74 +108,76 @@ export const Navbar: React.FC = () => {
 
           {/* RIGHT SECTION: Language Selector & Auth */}
           <div className="hidden lg:flex items-center space-x-3">
-            {/* Language Selector */}
             <button
               onClick={toggleLanguage}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#292929] bg-[#101010] hover:bg-[#151515] text-[#A3A3A3] hover:text-[#F5F5F5] text-xs font-semibold transition"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-[#D8ECFA] bg-[#F8FCFF] hover:bg-[#EAF7FF] text-[#334155] text-xs font-semibold transition"
               title="Switch Language / भाषा बदलें"
             >
-              <Globe className="w-3.5 h-3.5 text-[#FF5A1F]" />
+              <Globe className="w-3.5 h-3.5 text-[#3B9EE8]" />
               <span>{language === 'en' ? 'हिन्दी' : 'English'}</span>
             </button>
 
-            {/* Authentication Buttons / Profile */}
             {user ? (
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                  className="flex items-center gap-2.5 p-1.5 pl-2.5 pr-3 rounded-full bg-[#151515] border border-[#292929] hover:border-[#383838] transition focus:outline-none"
+                  className="flex items-center gap-2.5 p-1.5 pl-2 pr-3.5 rounded-full bg-[#F8FCFF] border border-[#D8ECFA] hover:border-[#A2D2FF] hover:bg-[#EAF7FF] transition focus:outline-none"
                 >
                   <UserAvatar
                     name={user.name}
                     src={user.profilePicture || user.avatar}
                     size="sm"
                   />
-                  <span className="text-xs font-semibold text-[#F5F5F5] max-w-[100px] truncate">
+                  <span className="text-xs font-semibold text-[#334155] max-w-[110px] truncate">
                     {user.name}
                   </span>
-                  <ChevronDown className={`w-3.5 h-3.5 text-[#A3A3A3] transition-transform ${userDropdownOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 text-[#64748B] transition-transform ${
+                      userDropdownOpen ? 'rotate-180' : ''
+                    }`}
+                  />
                 </button>
 
                 {userDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-[#151515] border border-[#292929] shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95">
-                    <div className="px-4 py-3 border-b border-[#292929] flex items-center gap-3">
+                  <div className="absolute right-0 mt-2 w-64 rounded-3xl bg-white border border-[#D8ECFA] shadow-baby py-2 z-50">
+                    <div className="px-4 py-3 border-b border-[#EAF7FF] flex items-center gap-3">
                       <UserAvatar
                         name={user.name}
                         src={user.profilePicture || user.avatar}
                         size="md"
                       />
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs font-bold text-[#F5F5F5] truncate">{user.name}</p>
-                        <p className="text-[11px] text-[#A3A3A3] truncate">{user.email}</p>
-                        <span className="inline-block mt-1 text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-[#1C1C1C] text-[#FF5A1F] border border-[#292929]">
+                        <p className="text-xs font-bold text-[#334155] truncate">{user.name}</p>
+                        <p className="text-[11px] text-[#64748B] truncate">{user.email}</p>
+                        <span className="inline-block mt-1 text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-full bg-[#EAF7FF] text-[#1E3A5F] border border-[#BDE0FE]">
                           {user.role === 'seeker' ? 'Job Seeker' : user.role}
                         </span>
                       </div>
                     </div>
 
-                    <div className="py-1">
+                    <div className="py-1.5 px-2 space-y-0.5">
                       <Link
                         to={getDashboardPath()}
                         onClick={() => setUserDropdownOpen(false)}
-                        className="flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-[#F5F5F5] hover:bg-[#1C1C1C] transition"
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-2xl text-xs font-medium text-[#334155] hover:bg-[#EAF7FF] transition"
                       >
-                        <LayoutDashboard className="w-4 h-4 text-[#FF5A1F]" />
+                        <LayoutDashboard className="w-4 h-4 text-[#3B9EE8]" />
                         <span>Go to Dashboard</span>
                       </Link>
                       <Link
                         to="/profile"
                         onClick={() => setUserDropdownOpen(false)}
-                        className="flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-[#A3A3A3] hover:text-[#F5F5F5] hover:bg-[#1C1C1C] transition"
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-2xl text-xs font-medium text-[#64748B] hover:text-[#334155] hover:bg-[#EAF7FF] transition"
                       >
-                        <UserIcon className="w-4 h-4 text-[#A3A3A3]" />
+                        <UserIcon className="w-4 h-4 text-[#64748B]" />
                         <span>My Profile</span>
                       </Link>
                     </div>
 
-                    <div className="pt-1 border-t border-[#292929]">
+                    <div className="pt-1.5 px-2 border-t border-[#EAF7FF]">
                       <button
                         onClick={handleLogout}
-                        className="w-full flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-red-400 hover:bg-red-950/30 transition text-left"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-2xl text-xs font-semibold text-rose-600 hover:bg-rose-50 transition text-left"
                       >
                         <LogOut className="w-4 h-4" />
                         <span>Sign Out</span>
@@ -191,13 +190,13 @@ export const Navbar: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <Link
                   to="/login"
-                  className="px-4 py-2 text-xs font-semibold text-[#F5F5F5] hover:text-white hover:bg-[#151515] rounded-xl transition"
+                  className="px-4 py-2 text-xs font-semibold text-[#334155] hover:bg-[#EAF7FF] rounded-full transition"
                 >
                   Login
                 </Link>
                 <Link
                   to="/register"
-                  className="px-4 py-2 text-xs font-bold text-white bg-[#FF5A1F] hover:bg-[#FF7847] rounded-xl transition shadow-[0_2px_12px_rgba(255,90,31,0.35)] flex items-center gap-1.5"
+                  className="px-5 py-2.5 text-xs font-bold text-[#1E3A5F] bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] hover:from-[#8CC6FA] hover:to-[#A2D2FF] rounded-full transition shadow-baby-sm flex items-center gap-1.5"
                 >
                   <span>Get Started</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -210,13 +209,13 @@ export const Navbar: React.FC = () => {
           <div className="flex items-center gap-2 lg:hidden">
             <button
               onClick={toggleLanguage}
-              className="p-2 rounded-xl border border-[#292929] bg-[#101010] text-[#A3A3A3] text-xs font-semibold"
+              className="px-3 py-2 rounded-full border border-[#D8ECFA] bg-[#F8FCFF] text-[#334155] text-xs font-semibold"
             >
               {language === 'en' ? 'हि' : 'EN'}
             </button>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2.5 rounded-xl border border-[#292929] bg-[#101010] text-[#F5F5F5] hover:bg-[#151515] transition"
+              className="p-2.5 rounded-2xl border border-[#D8ECFA] bg-[#F8FCFF] text-[#334155] hover:bg-[#EAF7FF] transition"
               aria-label="Toggle navigation menu"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -227,7 +226,7 @@ export const Navbar: React.FC = () => {
 
       {/* MOBILE DRAWER */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-[#0A0A0A] border-b border-[#292929] px-4 pt-3 pb-6 space-y-4 animate-in slide-in-from-top duration-200">
+        <div className="lg:hidden bg-white border-b border-[#D8ECFA] px-4 pt-3 pb-6 space-y-4 shadow-baby">
           <nav className="flex flex-col space-y-1">
             {navLinks.map((link) => {
               const active = isActive(link.path);
@@ -236,10 +235,10 @@ export const Navbar: React.FC = () => {
                   key={link.path}
                   to={link.path}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`px-3.5 py-2.5 rounded-xl text-sm font-medium transition ${
+                  className={`px-4 py-2.5 rounded-2xl text-sm font-medium transition ${
                     active
-                      ? 'bg-[#151515] text-[#FF5A1F] font-semibold border border-[#292929]'
-                      : 'text-[#A3A3A3] hover:text-[#F5F5F5]'
+                      ? 'bg-[#EAF7FF] text-[#1E3A5F] font-semibold border border-[#BDE0FE]'
+                      : 'text-[#64748B] hover:text-[#334155] hover:bg-[#F8FCFF]'
                   }`}
                 >
                   {link.label}
@@ -248,13 +247,13 @@ export const Navbar: React.FC = () => {
             })}
           </nav>
 
-          <div className="pt-3 border-t border-[#292929] space-y-2">
+          <div className="pt-3 border-t border-[#EAF7FF] space-y-2">
             {user ? (
               <div className="space-y-2">
                 <Link
                   to={getDashboardPath()}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="w-full py-2.5 px-4 bg-[#FF5A1F] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2"
+                  className="w-full py-2.5 px-4 bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] text-[#1E3A5F] rounded-2xl font-bold text-xs flex items-center justify-center gap-2 shadow-baby-sm"
                 >
                   <LayoutDashboard className="w-4 h-4" />
                   <span>Go to Dashboard</span>
@@ -264,24 +263,24 @@ export const Navbar: React.FC = () => {
                     handleLogout();
                     setMobileMenuOpen(false);
                   }}
-                  className="w-full py-2 px-4 rounded-xl border border-red-900/40 text-red-400 text-xs font-semibold"
+                  className="w-full py-2.5 px-4 rounded-2xl border border-rose-200 bg-rose-50 text-rose-600 text-xs font-semibold"
                 >
                   Sign Out ({user.name})
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2.5">
                 <Link
                   to="/login"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="py-2.5 text-center rounded-xl border border-[#292929] text-xs font-semibold text-[#F5F5F5] hover:bg-[#151515]"
+                  className="py-2.5 text-center rounded-2xl border border-[#D8ECFA] bg-[#F8FCFF] text-xs font-semibold text-[#334155] hover:bg-[#EAF7FF]"
                 >
                   Login
                 </Link>
                 <Link
                   to="/register"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="py-2.5 text-center rounded-xl bg-[#FF5A1F] text-white text-xs font-bold shadow-[0_2px_12px_rgba(255,90,31,0.35)]"
+                  className="py-2.5 text-center rounded-2xl bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] text-[#1E3A5F] text-xs font-bold shadow-baby-sm"
                 >
                   Get Started
                 </Link>

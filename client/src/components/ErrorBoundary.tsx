@@ -19,7 +19,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return {
       hasError: true,
-      errorMessage: error?.message || 'An unexpected rendering error occurred.'
+      errorMessage: error?.message || 'An unexpected display error occurred.'
     };
   }
 
@@ -40,21 +40,21 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   render(): React.ReactNode {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-[#080808] text-[#F5F5F5] flex items-center justify-center p-6">
-          <div className="max-w-md w-full bg-[#151515] border border-[#292929] rounded-2xl p-8 text-center space-y-5 shadow-2xl">
-            <div className="w-12 h-12 rounded-2xl bg-red-950/50 border border-red-800/50 text-red-400 flex items-center justify-center mx-auto">
-              <AlertCircle className="w-6 h-6" />
+        <div className="min-h-screen bg-[#F8FCFF] text-[#334155] flex items-center justify-center p-6">
+          <div className="max-w-md w-full bg-white border border-[#D8ECFA] rounded-3xl p-8 text-center space-y-5 shadow-baby">
+            <div className="w-14 h-14 rounded-2xl bg-[#EAF7FF] border border-[#BDE0FE] text-[#3B9EE8] flex items-center justify-center mx-auto">
+              <AlertCircle className="w-7 h-7" />
             </div>
 
             <div className="space-y-2">
-              <h1 className="text-xl font-bold text-[#F5F5F5] font-display">
+              <h1 className="text-xl font-bold text-[#334155] font-display">
                 Something went wrong
               </h1>
-              <p className="text-xs text-[#A3A3A3] leading-relaxed">
-                SETU encountered an unexpected display error. Your account and data are safe.
+              <p className="text-xs text-[#64748B] leading-relaxed">
+                SETU encountered an unexpected display error. Your account and profile data are completely safe.
               </p>
               {this.state.errorMessage && (
-                <p className="text-[11px] text-[#737373] bg-[#101010] border border-[#242424] rounded-xl p-2.5 font-mono break-words">
+                <p className="text-[11px] text-[#64748B] bg-[#F8FCFF] border border-[#D8ECFA] rounded-2xl p-3 font-mono break-words">
                   {this.state.errorMessage}
                 </p>
               )}
@@ -64,7 +64,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
               <button
                 type="button"
                 onClick={this.handleReload}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#FF5A1F] hover:bg-[#FF7847] text-white text-xs font-bold transition"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] hover:from-[#8CC6FA] hover:to-[#A2D2FF] text-[#1E3A5F] text-xs font-bold shadow-baby-sm transition"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span>Reload Page</span>
@@ -72,7 +72,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
               <button
                 type="button"
                 onClick={this.handleGoHome}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#1C1C1C] hover:bg-[#252525] text-[#F5F5F5] border border-[#292929] text-xs font-semibold transition"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#EAF7FF] hover:bg-[#D6EEFF] text-[#334155] border border-[#D8ECFA] text-xs font-semibold transition"
               >
                 <Home className="w-3.5 h-3.5" />
                 <span>Go Home</span>

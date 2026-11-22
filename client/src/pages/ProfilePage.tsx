@@ -1,78 +1,256 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { User, Award, Settings, CheckCircle, Save, ShieldCheck, Mail } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { Link, useSearchParams } from 'react-router-dom';
+import {
+  User,
+  Award,
+  Settings,
+  CheckCircle2,
+  Save,
+  ShieldCheck,
+  Mail,
+  Sparkles,
+  GraduationCap,
+  Briefcase,
+  Plus,
+  Trash2,
+  ArrowRight,
+  Heart,
+  AlertCircle
+} from 'lucide-react';
+import {
+  useAuth,
+  EducationEntry,
+  DetailedSkill,
+  ExperienceEntry
+} from '../context/AuthContext';
 import { UserAvatar } from '../components/UserAvatar';
+import {
+  EDUCATION_LEVELS,
+  PROFICIENCY_LEVELS,
+  CAREER_INTERESTS,
+  CAREER_GOALS,
+  EMPLOYMENT_TYPES,
+  WORK_MODES,
+  PREFERRED_LANGUAGES,
+  AVAILABILITY_OPTIONS,
+  YEARS_OF_EXPERIENCE_OPTIONS
+} from '../constants/profileOptions';
+
+type ProfileTab = 'profile' | 'skills' | 'preferences' | 'settings';
 
 export const ProfilePage: React.FC = () => {
   const { user, updateProfile } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const tabParam = searchParams.get('tab') || 'profile';
-  const [activeTab, setActiveTab] = useState<'profile' | 'skills' | 'settings'>(
-    tabParam === 'skills' ? 'skills' : tabParam === 'settings' ? 'settings' : 'profile'
+  const [activeTab, setActiveTab] = useState<ProfileTab>(
+    tabParam === 'skills'
+      ? 'skills'
+      : tabParam === 'preferences'
+      ? 'preferences'
+      : tabParam === 'settings'
+      ? 'settings'
+      : 'profile'
   );
 
   useEffect(() => {
-    if (tabParam === 'skills' || tabParam === 'settings' || tabParam === 'profile') {
+    if (
+      tabParam === 'skills' ||
+      tabParam === 'preferences' ||
+      tabParam === 'settings' ||
+      tabParam === 'profile'
+    ) {
       setActiveTab(tabParam);
     }
   }, [tabParam]);
 
-  const handleTabChange = (tab: 'profile' | 'skills' | 'settings') => {
+  const handleTabChange = (tab: ProfileTab) => {
     setActiveTab(tab);
     setSearchParams({ tab });
   };
 
-  const seeker = user?.seekerProfile || {};
+  // Personal & Education
+  const [name, setName] = useState('');
+  const [profilePhoto, setProfilePhoto] = useState('');
+  const [headline, setHeadline] = useState('');
+  const [bio, setBio] = useState('');
+  const [phone, setPhone] = useState('');
+  const [city, setCity] = useState('');
+  const [stateName, setStateName] = useState('');
+  const [country, setCountry] = useState('India');
+  const [preferredLanguage, setPreferredLanguage] = useState('English');
+  const [isRural, setIsRural] = useState(false);
+  const [resumeUrl, setResumeUrl] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [accessibilityPreferences, setAccessibilityPreferences] = useState('');
+  const [educationList, setEducationList] = useState<EducationEntry[]>([]);
+  const [newEduLevel, setNewEduLevel] = useState<string>('Graduate');
+  const [newEduDegree, setNewEduDegree] = useState('');
+  const [newEduSpec, setNewEduSpec] = useState('');
+  const [newEduInst, setNewEduInst] = useState('');
+  const [newEduYear, setNewEduYear] = useState('');
 
-  const [name, setName] = useState(user?.name || '');
-  const [headline, setHeadline] = useState(seeker.headline || '');
-  const [phone, setPhone] = useState(seeker.phone || '');
-  const [city, setCity] = useState(seeker.location?.city || '');
-  const [state, setState] = useState(seeker.location?.state || '');
-  const [isRural, setIsRural] = useState(seeker.location?.isRural || false);
-  const [educationLevel, setEducationLevel] = useState(seeker.educationLevel || 'No formal degree');
-  const [languages, setLanguages] = useState((seeker.languages || []).join(', '));
-  const [skills, setSkills] = useState((seeker.skills || []).join(', '));
-  const [experienceLevel, setExperienceLevel] = useState(
-    seeker.experienceLevel || 'No previous experience / Fresher'
-  );
-  const [careerGoals, setCareerGoals] = useState(seeker.careerGoals || '');
-  const [preferredWorkMode, setPreferredWorkMode] = useState<any>(seeker.preferredWorkMode || 'any');
-  const [resumeUrl, setResumeUrl] = useState(seeker.resumeUrl || '');
-  const [isCareerRestart, setIsCareerRestart] = useState(seeker.isCareerRestart || false);
+  // Skills & Experience
+  const [skillsList, setSkillsList] = useState<DetailedSkill[]>([]);
+  const [newSkillName, setNewSkillName] = useState('');
+  const [newSkillProf, setNewSkillProf] =
+    useState<'Beginner' | 'Intermediate' | 'Advanced'>('Intermediate');
+  const [newSkillSupportTitle, setNewSkillSupportTitle] = useState('');
+  const [newSkillSupportUrl, setNewSkillSupportUrl] = useState('');
+  const [hasExperience, setHasExperience] = useState(false);
+  const [experienceList, setExperienceList] = useState<ExperienceEntry[]>([]);
+  const [newExpTitle, setNewExpTitle] = useState('');
+  const [newExpOrg, setNewExpOrg] = useState('');
+  const [newExpType, setNewExpType] = useState('Full-time');
+  const [newExpResp, setNewExpResp] = useState('');
 
-  // Sync form fields whenever authenticated user changes
-  useEffect(() => {
-    if (!user) return;
-    const sp = user.seekerProfile || {};
-    setName(user.name || '');
-    setHeadline(sp.headline || '');
-    setPhone(sp.phone || '');
-    setCity(sp.location?.city || '');
-    setState(sp.location?.state || '');
-    setIsRural(Boolean(sp.location?.isRural));
-    setEducationLevel(sp.educationLevel || 'No formal degree');
-    setLanguages((sp.languages || []).join(', '));
-    setSkills((sp.skills || []).join(', '));
-    setExperienceLevel(sp.experienceLevel || 'No previous experience / Fresher');
-    setCareerGoals(sp.careerGoals || '');
-    setPreferredWorkMode(sp.preferredWorkMode || 'any');
-    setResumeUrl(sp.resumeUrl || '');
-    setIsCareerRestart(Boolean(sp.isCareerRestart));
-  }, [user]);
-
-  const roleLabel =
-    user?.role === 'employer'
-      ? 'Employer'
-      : user?.role === 'admin'
-      ? 'Administrator'
-      : 'Job Seeker';
+  // Interests & Employment Preferences
+  const [interests, setInterests] = useState<string[]>([]);
+  const [careerGoalsList, setCareerGoalsList] = useState<string[]>([]);
+  const [jobTypes, setJobTypes] = useState<string[]>([]);
+  const [workModes, setWorkModes] = useState<string[]>([]);
+  const [preferredLocationsText, setPreferredLocationsText] = useState('');
+  const [expectedSalary, setExpectedSalary] = useState('');
+  const [availableHours, setAvailableHours] = useState('');
+  const [yearsOfExperience, setYearsOfExperience] = useState('Fresher / 0 years');
+  const [availability, setAvailability] = useState('Immediate');
+  const [willingToRelocate, setWillingToRelocate] = useState(false);
+  const [isCareerRestart, setIsCareerRestart] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Sync form fields from authenticated MongoDB user
+  useEffect(() => {
+    if (!user) return;
+    const sp = user.seekerProfile || {};
+    setName(user.name || '');
+    setProfilePhoto(user.profilePicture || user.avatar || '');
+    setHeadline(sp.headline || '');
+    setBio(sp.bio || '');
+    setPhone(sp.phone || '');
+    setCity(sp.location?.city || '');
+    setStateName(sp.location?.state || '');
+    setCountry(sp.location?.country || 'India');
+    setPreferredLanguage(sp.preferredLanguage || sp.languages?.[0] || 'English');
+    setIsRural(Boolean(sp.location?.isRural));
+    setResumeUrl(sp.resumeUrl || '');
+    setDateOfBirth(sp.dateOfBirth || '');
+    setAccessibilityPreferences(sp.accessibilityPreferences || '');
+
+    if (Array.isArray(sp.education) && sp.education.length > 0) {
+      setEducationList(sp.education);
+    } else if (sp.educationLevel && sp.educationLevel !== 'No formal degree') {
+      setEducationList([{ level: sp.educationLevel }]);
+    } else {
+      setEducationList([]);
+    }
+
+    if (Array.isArray(sp.detailedSkills) && sp.detailedSkills.length > 0) {
+      setSkillsList(sp.detailedSkills);
+    } else if (Array.isArray(sp.skills) && sp.skills.length > 0) {
+      setSkillsList(
+        sp.skills.map((s) => ({
+          name: s,
+          category: 'General',
+          proficiency: 'Intermediate',
+          verified: false,
+          source: 'self_reported'
+        }))
+      );
+    } else {
+      setSkillsList([]);
+    }
+
+    const exps = Array.isArray(sp.experience) ? sp.experience : [];
+    setExperienceList(exps);
+    setHasExperience(Boolean(sp.hasExperience || exps.length > 0));
+
+    setInterests(Array.isArray(sp.interests) ? sp.interests : []);
+    setCareerGoalsList(
+      Array.isArray(sp.careerGoalsList) && sp.careerGoalsList.length > 0
+        ? sp.careerGoalsList
+        : sp.careerGoals
+        ? sp.careerGoals
+            .split(',')
+            .map((g) => g.trim())
+            .filter(Boolean)
+        : []
+    );
+
+    const prefs = sp.employmentPreferences || {};
+    setJobTypes(Array.isArray(prefs.jobTypes) ? prefs.jobTypes : []);
+    setWorkModes(Array.isArray(prefs.workModes) ? prefs.workModes : []);
+    setPreferredLocationsText((prefs.preferredLocations || []).join(', '));
+    setExpectedSalary(prefs.expectedSalary || '');
+    setAvailableHours(prefs.availableHours || '');
+    setYearsOfExperience(prefs.yearsOfExperience || 'Fresher / 0 years');
+    setAvailability(prefs.availability || 'Immediate');
+    setWillingToRelocate(Boolean(prefs.willingToRelocate));
+    setIsCareerRestart(Boolean(sp.isCareerRestart));
+  }, [user]);
+
+  const toggleItem = (list: string[], setter: (v: string[]) => void, value: string) => {
+    if (list.includes(value)) setter(list.filter((i) => i !== value));
+    else setter([...list, value]);
+  };
+
+  const handleAddEducation = () => {
+    if (!newEduLevel) return;
+    setEducationList([
+      ...educationList,
+      {
+        level: newEduLevel,
+        degree: newEduDegree.trim(),
+        specialization: newEduSpec.trim(),
+        institution: newEduInst.trim(),
+        graduationYear: newEduYear.trim()
+      }
+    ]);
+    setNewEduDegree('');
+    setNewEduSpec('');
+    setNewEduInst('');
+    setNewEduYear('');
+  };
+
+  const handleAddSkill = () => {
+    const clean = newSkillName.trim();
+    if (!clean) return;
+    if (skillsList.some((s) => s.name.toLowerCase() === clean.toLowerCase())) return;
+    setSkillsList([
+      ...skillsList,
+      {
+        name: clean,
+        category: 'General',
+        proficiency: newSkillProf,
+        verified: false,
+        source: 'self_reported',
+        supportingTitle: newSkillSupportTitle.trim(),
+        supportingUrl: newSkillSupportUrl.trim()
+      }
+    ]);
+    setNewSkillName('');
+    setNewSkillSupportTitle('');
+    setNewSkillSupportUrl('');
+  };
+
+  const handleAddExperience = () => {
+    if (!newExpTitle.trim() || !newExpOrg.trim()) return;
+    setExperienceList([
+      ...experienceList,
+      {
+        jobTitle: newExpTitle.trim(),
+        organization: newExpOrg.trim(),
+        employmentType: newExpType,
+        responsibilities: newExpResp.trim()
+      }
+    ]);
+    setHasExperience(true);
+    setNewExpTitle('');
+    setNewExpOrg('');
+    setNewExpResp('');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,18 +259,43 @@ export const ProfilePage: React.FC = () => {
     setErrorMsg('');
 
     const payload = {
-      name,
+      name: name.trim(),
+      profilePicture: profilePhoto.trim(),
       seekerProfile: {
-        headline,
-        phone,
-        location: { city, state, isRural },
-        educationLevel,
-        languages: languages.split(',').map((s) => s.trim()).filter(Boolean),
-        skills: skills.split(',').map((s) => s.trim()).filter(Boolean),
-        experienceLevel,
-        careerGoals,
-        preferredWorkMode,
-        resumeUrl,
+        headline: headline.trim() || bio.trim().slice(0, 120),
+        bio: bio.trim(),
+        phone: phone.trim(),
+        dateOfBirth: dateOfBirth.trim(),
+        accessibilityPreferences: accessibilityPreferences.trim(),
+        preferredLanguage,
+        languages: Array.from(new Set([preferredLanguage, 'English'].filter(Boolean))),
+        location: { city: city.trim(), state: stateName.trim(), country: country.trim() || 'India', isRural },
+        education: educationList,
+        detailedSkills: skillsList.map((s) => ({
+          name: s.name,
+          category: s.category || 'General',
+          proficiency: s.proficiency || 'Beginner',
+          supportingTitle: s.supportingTitle || '',
+          supportingUrl: s.supportingUrl || ''
+        })),
+        hasExperience,
+        experience: hasExperience ? experienceList : [],
+        interests,
+        careerGoalsList,
+        employmentPreferences: {
+          jobTypes,
+          workModes,
+          preferredLocations: preferredLocationsText
+            .split(',')
+            .map((l) => l.trim())
+            .filter(Boolean),
+          expectedSalary: expectedSalary.trim(),
+          availableHours: availableHours.trim(),
+          yearsOfExperience,
+          availability,
+          willingToRelocate
+        },
+        resumeUrl: resumeUrl.trim(),
         isCareerRestart
       }
     };
@@ -100,379 +303,809 @@ export const ProfilePage: React.FC = () => {
     const res = await updateProfile(payload);
     setSaving(false);
     if (res.success) {
-      setSuccessMsg('Your profile changes have been saved successfully!');
+      setSuccessMsg('Your career profile has been saved and updated!');
       setTimeout(() => setSuccessMsg(''), 4000);
     } else {
       setErrorMsg(res.error || 'Failed to update profile');
     }
   };
 
+  const completionPct = user?.profileCompletion ?? 15;
+  const missingSections = Array.isArray(user?.missingSections) ? user.missingSections : [];
+  const roleLabel =
+    user?.role === 'employer'
+      ? 'Employer'
+      : user?.role === 'admin'
+      ? 'Administrator'
+      : 'Job Seeker';
+
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="space-y-1 pb-4 border-b border-[#292929]">
-        <h1 className="text-xl sm:text-2xl font-bold text-[#F5F5F5] tracking-tight">
-          Profile & Account Management
-        </h1>
-        <p className="text-xs sm:text-sm text-[#737373]">
-          Manage your personal details, verified skill proficiencies, and career preferences
-        </p>
+    <div className="max-w-4xl mx-auto space-y-6 pb-10">
+      {/* Header + Completion Banner */}
+      <div className="bg-gradient-to-r from-[#EAF7FF] via-white to-[#D6EEFF]/60 rounded-3xl border border-[#BDE0FE] p-6 shadow-baby space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4 min-w-0">
+            <UserAvatar name={user?.name} src={profilePhoto || user?.profilePicture || user?.avatar} size="xl" />
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-extrabold text-[#334155] font-display truncate">
+                {user?.name || 'My Career Profile'}
+              </h1>
+              <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-[#64748B]">
+                <span className="inline-flex items-center gap-1 truncate">
+                  <Mail className="w-3.5 h-3.5 text-[#3B9EE8]" />
+                  <span>{user?.email}</span>
+                </span>
+                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-white text-[#1E3A5F] border border-[#BDE0FE]">
+                  {roleLabel}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <Link
+            to="/onboarding"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] hover:from-[#8CC6FA] hover:to-[#A2D2FF] text-[#1E3A5F] text-xs font-bold shadow-baby-sm transition shrink-0"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>Guided 7-Step Builder</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        {/* Profile Completion Bar */}
+        <div className="space-y-1.5 pt-2 border-t border-[#D8ECFA]">
+          <div className="flex items-center justify-between text-xs font-semibold text-[#334155]">
+            <span>Profile Completion</span>
+            <span className="text-[#1E3A5F] font-bold">{completionPct}%</span>
+          </div>
+          <div className="w-full h-2.5 bg-white rounded-full overflow-hidden border border-[#D8ECFA]">
+            <div
+              className="h-full bg-gradient-to-r from-[#60B6F8] to-[#3B9EE8] rounded-full transition-all duration-500"
+              style={{ width: `${completionPct}%` }}
+            />
+          </div>
+          {missingSections.length > 0 && (
+            <p className="text-[11px] text-[#64748B]">
+              Missing sections: <strong className="text-[#334155]">{missingSections.join(' • ')}</strong>
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-[#292929] pb-1">
-        <button
-          type="button"
-          onClick={() => handleTabChange('profile')}
-          className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl transition ${
-            activeTab === 'profile'
-              ? 'bg-[#1C1C1C] text-[#FF5A1F] border border-orange-200'
-              : 'text-[#A3A3A3] hover:text-[#F5F5F5] hover:bg-[#101010]'
-          }`}
-        >
-          <User className="w-3.5 h-3.5" />
-          <span>My Profile</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleTabChange('skills')}
-          className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl transition ${
-            activeTab === 'skills'
-              ? 'bg-[#1C1C1C] text-[#FF5A1F] border border-orange-200'
-              : 'text-[#A3A3A3] hover:text-[#F5F5F5] hover:bg-[#101010]'
-          }`}
-        >
-          <Award className="w-3.5 h-3.5" />
-          <span>My Skills</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleTabChange('settings')}
-          className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl transition ${
-            activeTab === 'settings'
-              ? 'bg-[#1C1C1C] text-[#FF5A1F] border border-orange-200'
-              : 'text-[#A3A3A3] hover:text-[#F5F5F5] hover:bg-[#101010]'
-          }`}
-        >
-          <Settings className="w-3.5 h-3.5" />
-          <span>Account Settings</span>
-        </button>
+      <div className="flex flex-wrap items-center gap-2">
+        {[
+          { id: 'profile' as ProfileTab, label: 'Personal & Education', icon: User },
+          { id: 'skills' as ProfileTab, label: 'Skills & Experience', icon: Award },
+          { id: 'preferences' as ProfileTab, label: 'Interests & Preferences', icon: Briefcase },
+          { id: 'settings' as ProfileTab, label: 'Account Settings', icon: Settings }
+        ].map((tab) => {
+          const Icon = tab.icon;
+          const active = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => handleTabChange(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-2xl border transition ${
+                active
+                  ? 'bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] text-[#1E3A5F] border-[#60B6F8] shadow-baby-sm'
+                  : 'bg-white text-[#64748B] border-[#D8ECFA] hover:text-[#334155] hover:bg-[#EAF7FF]'
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
       </div>
 
       {successMsg && (
-        <div className="p-3.5 bg-emerald-50 border border-emerald-300 rounded-xl text-emerald-800 text-xs flex items-center gap-2">
-          <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+        <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs flex items-center gap-2 font-medium">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
           <span>{successMsg}</span>
         </div>
       )}
 
       {errorMsg && (
-        <div className="p-3.5 bg-rose-50 border border-rose-300 rounded-xl text-rose-800 text-xs">
-          {errorMsg}
+        <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-rose-700 text-xs flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+          <span>{errorMsg}</span>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="bg-[#151515] rounded-2xl border border-[#292929] p-6 sm:p-8 shadow-xs space-y-6">
-        {/* TAB 1: My Profile */}
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white rounded-3xl border border-[#D8ECFA] p-6 sm:p-8 shadow-baby space-y-6"
+      >
+        {/* TAB 1: Personal & Education */}
         {activeTab === 'profile' && (
-          <div className="space-y-5">
-            {/* Authenticated User Identity & Profile Picture Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-xl bg-[#101010] border border-[#242424]">
-              <UserAvatar
-                name={user?.name}
-                src={user?.profilePicture || user?.avatar}
-                size="xl"
-              />
-              <div className="min-w-0 flex-1 space-y-1">
-                <h3 className="text-base font-bold text-[#F5F5F5] truncate">
-                  {user?.name || 'SETU Member'}
-                </h3>
-                <div className="flex flex-wrap items-center gap-2 text-xs text-[#A3A3A3]">
-                  <span className="inline-flex items-center gap-1.5 truncate">
-                    <Mail className="w-3.5 h-3.5 text-[#737373]" />
-                    <span className="truncate">{user?.email}</span>
-                  </span>
-                  {user?.emailVerified && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-950/50 border border-emerald-800/50 text-emerald-400 text-[10px] font-semibold">
-                      <ShieldCheck className="w-3 h-3" />
-                      <span>Verified Email</span>
-                    </span>
-                  )}
-                </div>
-                <div className="flex flex-wrap items-center gap-2 pt-1">
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded border bg-[#1C1C1C] text-[#FF7847] border-[#292929]">
-                    {roleLabel}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <h3 className="text-sm font-bold text-[#F5F5F5] uppercase tracking-wider pb-2 border-b border-[#222222]">
+          <div className="space-y-6">
+            <h3 className="text-sm font-bold text-[#334155] uppercase tracking-wider pb-2 border-b border-[#EAF7FF]">
               Personal & Location Details
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-[#D4D4D4] mb-1.5">Full Name</label>
+                <label className="block text-xs font-semibold text-[#334155] mb-1.5">Full Name</label>
                 <input
                   type="text"
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#333333] text-sm focus:ring-2 focus:ring-[#FF5A1F] outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-sm outline-none focus:ring-2 focus:ring-[#BDE0FE]"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#D4D4D4] mb-1.5">Email Address</label>
+                <label className="block text-xs font-semibold text-[#334155] mb-1.5">
+                  Profile Photo URL (Optional)
+                </label>
                 <input
-                  type="text"
-                  disabled
-                  value={user?.email || ''}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#292929] bg-[#101010] text-[#737373] text-sm cursor-not-allowed"
+                  type="url"
+                  value={profilePhoto}
+                  onChange={(e) => setProfilePhoto(e.target.value)}
+                  placeholder="https://..."
+                  className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-sm outline-none focus:ring-2 focus:ring-[#BDE0FE]"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#D4D4D4] mb-1.5">Phone Number</label>
+                <label className="block text-xs font-semibold text-[#334155] mb-1.5">Phone Number</label>
                 <input
                   type="text"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="+91 98765 43210"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#333333] text-sm focus:ring-2 focus:ring-[#FF5A1F] outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-sm outline-none focus:ring-2 focus:ring-[#BDE0FE]"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#D4D4D4] mb-1.5">Professional Headline</label>
-                <input
-                  type="text"
-                  value={headline}
-                  onChange={(e) => setHeadline(e.target.value)}
-                  placeholder="e.g. Canva Creative Designer | Social Media Specialist"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#333333] text-sm focus:ring-2 focus:ring-[#FF5A1F] outline-none"
-                />
+                <label className="block text-xs font-semibold text-[#334155] mb-1.5">Preferred Language</label>
+                <select
+                  value={preferredLanguage}
+                  onChange={(e) => setPreferredLanguage(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-sm outline-none"
+                >
+                  {PREFERRED_LANGUAGES.map((l) => (
+                    <option key={l} value={l}>
+                      {l}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#D4D4D4] mb-1.5">City / District</label>
+                <label className="block text-xs font-semibold text-[#334155] mb-1.5">City</label>
                 <input
                   type="text"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  placeholder="e.g. Gurugram, Sonipat"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#333333] text-sm focus:ring-2 focus:ring-[#FF5A1F] outline-none"
+                  placeholder="e.g. Gurugram, Jaipur"
+                  className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-sm outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#D4D4D4] mb-1.5">State</label>
+                <label className="block text-xs font-semibold text-[#334155] mb-1.5">State</label>
                 <input
                   type="text"
-                  value={state}
-                  onChange={(e) => setState(e.target.value)}
-                  placeholder="e.g. Haryana"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#333333] text-sm focus:ring-2 focus:ring-[#FF5A1F] outline-none"
+                  value={stateName}
+                  onChange={(e) => setStateName(e.target.value)}
+                  placeholder="e.g. Haryana, Maharashtra"
+                  className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-sm outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#334155] mb-1.5">Country</label>
+                <input
+                  type="text"
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-sm outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#334155] mb-1.5">Professional Headline</label>
+                <input
+                  type="text"
+                  value={headline}
+                  onChange={(e) => setHeadline(e.target.value)}
+                  placeholder="e.g. B.Tech Student | Aspiring Data Analyst"
+                  className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-sm outline-none"
                 />
               </div>
             </div>
 
-            <div className="flex items-center gap-2 pt-2">
-              <input
-                type="checkbox"
-                id="rural"
-                checked={isRural}
-                onChange={(e) => setIsRural(e.target.checked)}
-                className="rounded text-[#FF5A1F] focus:ring-[#FF5A1F] w-4 h-4"
-              />
-              <label htmlFor="rural" className="text-xs text-[#D4D4D4] cursor-pointer">
-                I reside in a rural or semi-urban area (Enhances matching for rural development roles and regional initiatives)
-              </label>
-            </div>
-
-            <div className="pt-2">
-              <label className="block text-xs font-semibold text-[#D4D4D4] mb-1.5">Optional Resume Link / Portfolio Document</label>
-              <input
-                type="url"
-                value={resumeUrl}
-                onChange={(e) => setResumeUrl(e.target.value)}
-                placeholder="https://drive.google.com/... or resume URL"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-[#333333] text-sm focus:ring-2 focus:ring-[#FF5A1F] outline-none"
-              />
-            </div>
-          </div>
-        )}
-
-        {/* TAB 2: My Skills */}
-        {activeTab === 'skills' && (
-          <div className="space-y-5">
-            <h3 className="text-sm font-bold text-[#F5F5F5] uppercase tracking-wider pb-2 border-b border-[#222222]">
-              Skills & Education Background
-            </h3>
-
             <div>
-              <label className="block text-xs font-semibold text-[#D4D4D4] mb-1.5">
-                Skills & Practical Competencies (comma separated)
+              <label className="block text-xs font-semibold text-[#334155] mb-1.5">
+                Short Professional Introduction
               </label>
-              <input
-                type="text"
-                value={skills}
-                onChange={(e) => setSkills(e.target.value)}
-                placeholder="Canva, Hindi Typing, Social Media, Spreadsheet Formulas, Python, Tailwind"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-[#333333] text-sm focus:ring-2 focus:ring-[#FF5A1F] outline-none"
+              <textarea
+                rows={3}
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                placeholder="Tell employers about your background, strengths, and career aspirations..."
+                className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-sm outline-none"
               />
-              <p className="text-[11px] text-[#555555] mt-1">
-                Tip: Skills verified by SETU assessments will automatically receive verified badges on your job applications.
-              </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-[#D4D4D4] mb-1.5">Education Level</label>
-                <select
-                  value={educationLevel}
-                  onChange={(e) => setEducationLevel(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#333333] text-sm focus:ring-2 focus:ring-[#FF5A1F] outline-none bg-[#151515]"
-                >
-                  <option value="No formal degree">No formal degree / Self-taught</option>
-                  <option value="10th Pass">10th Standard Pass</option>
-                  <option value="12th Pass">12th Standard Pass</option>
-                  <option value="ITI / Vocational Diploma">ITI / Vocational Diploma</option>
-                  <option value="Graduate">Graduate</option>
-                  <option value="Postgraduate">Postgraduate</option>
-                </select>
+                <label className="block text-xs font-semibold text-[#334155] mb-1.5">
+                  Date of Birth <span className="text-[#64748B] font-normal">(Optional)</span>
+                </label>
+                <input
+                  type="date"
+                  value={dateOfBirth}
+                  onChange={(e) => setDateOfBirth(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-sm outline-none"
+                />
               </div>
-
               <div>
-                <label className="block text-xs font-semibold text-[#D4D4D4] mb-1.5">Experience Level</label>
-                <select
-                  value={experienceLevel}
-                  onChange={(e) => setExperienceLevel(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#333333] text-sm focus:ring-2 focus:ring-[#FF5A1F] outline-none bg-[#151515]"
-                >
-                  <option value="No previous experience / Fresher">No previous experience / Fresher</option>
-                  <option value="1-2 years">1-2 years</option>
-                  <option value="3+ years">3+ years</option>
-                  <option value="Career break / Returning to work">Career break / Returning to work</option>
-                </select>
+                <label className="block text-xs font-semibold text-[#334155] mb-1.5">
+                  Resume / Portfolio Link <span className="text-[#64748B] font-normal">(Optional)</span>
+                </label>
+                <input
+                  type="url"
+                  value={resumeUrl}
+                  onChange={(e) => setResumeUrl(e.target.value)}
+                  placeholder="https://..."
+                  className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-sm outline-none"
+                />
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-[#D4D4D4] mb-1.5">Languages Known (comma separated)</label>
-              <input
-                type="text"
-                value={languages}
-                onChange={(e) => setLanguages(e.target.value)}
-                placeholder="Hindi, English, Haryanvi, Punjabi"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-[#333333] text-sm focus:ring-2 focus:ring-[#FF5A1F] outline-none"
-              />
-            </div>
+            {/* Education Section */}
+            <div className="pt-4 border-t border-[#EAF7FF] space-y-4">
+              <div className="flex items-center gap-2">
+                <GraduationCap className="w-4 h-4 text-[#3B9EE8]" />
+                <h3 className="text-sm font-bold text-[#334155] uppercase tracking-wider">
+                  Educational Qualifications ({educationList.length})
+                </h3>
+              </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-[#D4D4D4] mb-1.5">Career Goals & Aspirations</label>
-              <textarea
-                rows={3}
-                value={careerGoals}
-                onChange={(e) => setCareerGoals(e.target.value)}
-                placeholder="Describe what kind of projects or employment opportunities you are looking for..."
-                className="w-full px-3.5 py-2.5 rounded-xl border border-[#333333] text-sm focus:ring-2 focus:ring-[#FF5A1F] outline-none"
-              />
+              <div className="p-4 rounded-2xl bg-[#F8FCFF] border border-[#D8ECFA] grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <select
+                  value={newEduLevel}
+                  onChange={(e) => setNewEduLevel(e.target.value)}
+                  className="px-3.5 py-2 rounded-xl border border-[#D8ECFA] text-xs"
+                >
+                  {EDUCATION_LEVELS.map((lvl) => (
+                    <option key={lvl} value={lvl}>
+                      {lvl}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  value={newEduDegree}
+                  onChange={(e) => setNewEduDegree(e.target.value)}
+                  placeholder="Degree / Stream (e.g. B.Tech CS)"
+                  className="px-3.5 py-2 rounded-xl border border-[#D8ECFA] text-xs"
+                />
+                <input
+                  type="text"
+                  value={newEduSpec}
+                  onChange={(e) => setNewEduSpec(e.target.value)}
+                  placeholder="Specialization"
+                  className="px-3.5 py-2 rounded-xl border border-[#D8ECFA] text-xs"
+                />
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newEduInst}
+                    onChange={(e) => setNewEduInst(e.target.value)}
+                    placeholder="Institution / University"
+                    className="flex-1 px-3.5 py-2 rounded-xl border border-[#D8ECFA] text-xs"
+                  />
+                  <input
+                    type="text"
+                    value={newEduYear}
+                    onChange={(e) => setNewEduYear(e.target.value)}
+                    placeholder="Year"
+                    className="w-20 px-3 py-2 rounded-xl border border-[#D8ECFA] text-xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddEducation}
+                    className="px-3 py-2 rounded-xl bg-[#EAF7FF] hover:bg-[#D6EEFF] text-[#1E3A5F] border border-[#BDE0FE] text-xs font-bold shrink-0"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {educationList.map((ed, idx) => (
+                <div
+                  key={idx}
+                  className="p-3.5 rounded-2xl bg-[#F8FCFF] border border-[#D8ECFA] flex items-center justify-between gap-3"
+                >
+                  <div>
+                    <p className="text-xs font-bold text-[#334155]">
+                      {ed.level}
+                      {ed.degree ? ` — ${ed.degree}` : ''}
+                      {ed.specialization ? ` (${ed.specialization})` : ''}
+                    </p>
+                    <p className="text-[11px] text-[#64748B]">
+                      {[ed.institution, ed.graduationYear || ed.expectedGraduationYear]
+                        .filter(Boolean)
+                        .join(' • ')}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setEducationList(educationList.filter((_, i) => i !== idx))}
+                    className="p-1.5 rounded-xl text-[#64748B] hover:text-rose-500 hover:bg-rose-50"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
         )}
 
-        {/* TAB 3: Account Settings */}
-        {activeTab === 'settings' && (
-          <div className="space-y-5">
-            {/* Connected Account Summary */}
-            <div className="p-4 rounded-xl bg-[#101010] border border-[#242424] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3.5 min-w-0">
-                <UserAvatar
-                  name={user?.name}
-                  src={user?.profilePicture || user?.avatar}
-                  size="lg"
+        {/* TAB 2: Skills & Experience */}
+        {activeTab === 'skills' && (
+          <div className="space-y-6">
+            <h3 className="text-sm font-bold text-[#334155] uppercase tracking-wider pb-2 border-b border-[#EAF7FF]">
+              Skills & Proficiency ({skillsList.length})
+            </h3>
+
+            <div className="p-4 rounded-2xl bg-[#F8FCFF] border border-[#D8ECFA] space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <input
+                  type="text"
+                  value={newSkillName}
+                  onChange={(e) => setNewSkillName(e.target.value)}
+                  placeholder="Skill name (e.g. Python, SQL, Canva)"
+                  className="px-3.5 py-2 rounded-xl border border-[#D8ECFA] text-xs"
                 />
-                <div className="min-w-0">
-                  <p className="text-sm font-bold text-[#F5F5F5] truncate">{user?.name}</p>
-                  <p className="text-xs text-[#A3A3A3] truncate">{user?.email}</p>
-                  <div className="flex flex-wrap items-center gap-2 mt-1">
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded border bg-[#1C1C1C] text-[#FF7847] border-[#292929]">
-                      {roleLabel}
-                    </span>
-                    {user?.emailVerified && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded border bg-emerald-950/50 text-emerald-400 border-emerald-800/50">
-                        <ShieldCheck className="w-3 h-3" />
-                        <span>Verified</span>
-                      </span>
-                    )}
-                  </div>
-                </div>
+                <select
+                  value={newSkillProf}
+                  onChange={(e) => setNewSkillProf(e.target.value as any)}
+                  className="px-3.5 py-2 rounded-xl border border-[#D8ECFA] text-xs"
+                >
+                  {PROFICIENCY_LEVELS.map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={handleAddSkill}
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] text-[#1E3A5F] text-xs font-bold flex items-center justify-center gap-1.5"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Skill</span>
+                </button>
               </div>
-              {user?.lastLogin && (
-                <div className="text-[11px] text-[#737373] sm:text-right shrink-0">
-                  <p className="font-semibold text-[#A3A3A3]">Last Sign-In</p>
-                  <p>{new Date(user.lastLogin).toLocaleString()}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <input
+                  type="text"
+                  value={newSkillSupportTitle}
+                  onChange={(e) => setNewSkillSupportTitle(e.target.value)}
+                  placeholder="Supporting project/certificate title (optional)"
+                  className="px-3.5 py-2 rounded-xl border border-[#D8ECFA] text-xs"
+                />
+                <input
+                  type="url"
+                  value={newSkillSupportUrl}
+                  onChange={(e) => setNewSkillSupportUrl(e.target.value)}
+                  placeholder="Supporting URL (optional)"
+                  className="px-3.5 py-2 rounded-xl border border-[#D8ECFA] text-xs"
+                />
+              </div>
+            </div>
+
+            {skillsList.length === 0 ? (
+              <div className="p-6 rounded-2xl border border-dashed border-[#BDE0FE] bg-[#F8FCFF] text-center text-xs text-[#64748B]">
+                Your skills tell your story. Let's add your first one!
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {skillsList.map((s, idx) => (
+                  <div
+                    key={`${s.name}-${idx}`}
+                    className="p-3.5 rounded-2xl bg-[#F8FCFF] border border-[#D8ECFA] flex items-center justify-between gap-2"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-bold text-[#334155]">{s.name}</span>
+                        {s.verified || s.source === 'assessment_verified' ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <ShieldCheck className="w-3 h-3" />
+                            <span>Assessment-Verified</span>
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white text-[#1E3A5F] border border-[#BDE0FE]">
+                            Self-Reported
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-[#64748B]">Proficiency: {s.proficiency}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSkillsList(skillsList.filter((_, i) => i !== idx))}
+                      className="p-1.5 rounded-xl text-[#64748B] hover:text-rose-500 hover:bg-rose-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Professional Experience */}
+            <div className="pt-4 border-t border-[#EAF7FF] space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-[#334155] uppercase tracking-wider">
+                  Professional Experience
+                </h3>
+                <label className="inline-flex items-center gap-2 text-xs font-semibold text-[#334155] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={hasExperience}
+                    onChange={(e) => setHasExperience(e.target.checked)}
+                    className="w-4 h-4 rounded accent-[#3B9EE8]"
+                  />
+                  <span>I have work / internship experience</span>
+                </label>
+              </div>
+
+              {!hasExperience ? (
+                <div className="p-6 rounded-2xl bg-[#EAF7FF]/70 border border-[#BDE0FE] text-center space-y-1.5">
+                  <Heart className="w-5 h-5 text-[#3B9EE8] fill-[#BDE0FE] mx-auto" />
+                  <p className="text-xs font-bold text-[#334155]">
+                    Everyone starts somewhere! Your skills and potential matter here. 🩵
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="p-4 rounded-2xl bg-[#F8FCFF] border border-[#D8ECFA] grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <input
+                      type="text"
+                      value={newExpTitle}
+                      onChange={(e) => setNewExpTitle(e.target.value)}
+                      placeholder="Job Title"
+                      className="px-3.5 py-2 rounded-xl border border-[#D8ECFA] text-xs"
+                    />
+                    <input
+                      type="text"
+                      value={newExpOrg}
+                      onChange={(e) => setNewExpOrg(e.target.value)}
+                      placeholder="Organization"
+                      className="px-3.5 py-2 rounded-xl border border-[#D8ECFA] text-xs"
+                    />
+                    <select
+                      value={newExpType}
+                      onChange={(e) => setNewExpType(e.target.value)}
+                      className="px-3.5 py-2 rounded-xl border border-[#D8ECFA] text-xs"
+                    >
+                      {EMPLOYMENT_TYPES.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={newExpResp}
+                        onChange={(e) => setNewExpResp(e.target.value)}
+                        placeholder="Key responsibilities"
+                        className="flex-1 px-3.5 py-2 rounded-xl border border-[#D8ECFA] text-xs"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddExperience}
+                        className="px-3 py-2 rounded-xl bg-[#EAF7FF] text-[#1E3A5F] border border-[#BDE0FE] text-xs font-bold"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {experienceList.map((exp, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3.5 rounded-2xl bg-[#F8FCFF] border border-[#D8ECFA] flex items-center justify-between gap-3"
+                    >
+                      <div>
+                        <p className="text-xs font-bold text-[#334155]">
+                          {exp.jobTitle} • {exp.organization}
+                        </p>
+                        <p className="text-[11px] text-[#64748B]">
+                          {exp.employmentType}
+                          {exp.responsibilities ? ` — ${exp.responsibilities}` : ''}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setExperienceList(experienceList.filter((_, i) => i !== idx))}
+                        className="p-1.5 rounded-xl text-[#64748B] hover:text-rose-500 hover:bg-rose-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
+          </div>
+        )}
 
-            <h3 className="text-sm font-bold text-[#F5F5F5] uppercase tracking-wider pb-2 border-b border-[#222222]">
-              Work Preferences & Support Options
-            </h3>
-
+        {/* TAB 3: Interests & Preferences */}
+        {activeTab === 'preferences' && (
+          <div className="space-y-6">
             <div>
-              <label className="block text-xs font-semibold text-[#D4D4D4] mb-1.5">Preferred Work Mode</label>
-              <select
-                value={preferredWorkMode}
-                onChange={(e: any) => setPreferredWorkMode(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-[#333333] text-sm focus:ring-2 focus:ring-[#FF5A1F] outline-none bg-[#151515]"
-              >
-                <option value="any">Any (Flexible - Remote, Hybrid, or On-site)</option>
-                <option value="remote">100% Remote / Work from Home</option>
-                <option value="hybrid">Hybrid (Mix of office and home)</option>
-                <option value="onsite">On-site Local Work</option>
-              </select>
-            </div>
-
-            {/* Build Her Career Restart Flag */}
-            <div className="p-4 bg-pink-50/70 rounded-xl border border-pink-200/80 flex items-start gap-3">
-              <input
-                type="checkbox"
-                id="restart"
-                checked={isCareerRestart}
-                onChange={(e) => setIsCareerRestart(e.target.checked)}
-                className="rounded text-pink-600 focus:ring-pink-500 w-4 h-4 mt-0.5"
-              />
-              <div>
-                <label htmlFor="restart" className="text-xs font-bold text-pink-900 cursor-pointer block">
-                  Build Her Participant: Women Returning to Work / Financial Independence
-                </label>
-                <p className="text-[11px] text-pink-700 mt-0.5 leading-relaxed">
-                  Enables curated career-restart listings with flexible hours and returnee mentorship support.
-                </p>
+              <h3 className="text-sm font-bold text-[#334155] uppercase tracking-wider pb-2 border-b border-[#EAF7FF] mb-3">
+                Career Interests
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {CAREER_INTERESTS.map((item) => {
+                  const selected = interests.includes(item);
+                  return (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() => toggleItem(interests, setInterests, item)}
+                      className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition ${
+                        selected
+                          ? 'bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] border-[#60B6F8] text-[#1E3A5F]'
+                          : 'bg-[#F8FCFF] border-[#D8ECFA] text-[#334155] hover:bg-[#EAF7FF]'
+                      }`}
+                    >
+                      {selected ? '✓ ' : '+ '}
+                      {item}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            <div className="pt-2 text-xs text-[#737373]">
-              <p>Account Type: <strong className="text-[#E5E5E5] uppercase font-semibold">{user?.role}</strong></p>
-              <p className="mt-1">For password changes or email updates, please contact platform support at contact@setu.gov.in.</p>
+            <div>
+              <h3 className="text-sm font-bold text-[#334155] uppercase tracking-wider pb-2 border-b border-[#EAF7FF] mb-3">
+                Career Goals
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {CAREER_GOALS.map((goal) => {
+                  const selected = careerGoalsList.includes(goal);
+                  return (
+                    <button
+                      key={goal}
+                      type="button"
+                      onClick={() => toggleItem(careerGoalsList, setCareerGoalsList, goal)}
+                      className={`px-4 py-2.5 rounded-2xl text-xs font-semibold border text-left transition ${
+                        selected
+                          ? 'bg-[#EAF7FF] border-[#60B6F8] text-[#1E3A5F]'
+                          : 'bg-[#F8FCFF] border-[#D8ECFA] text-[#334155] hover:bg-[#EAF7FF]/70'
+                      }`}
+                    >
+                      {selected ? '✓ ' : '+ '}
+                      {goal}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-2 border-t border-[#EAF7FF]">
+              <h3 className="text-sm font-bold text-[#334155] uppercase tracking-wider">
+                Employment Preferences
+              </h3>
+
+              <div className="space-y-2">
+                <label className="block text-xs font-semibold text-[#64748B]">Employment Types</label>
+                <div className="flex flex-wrap gap-2">
+                  {EMPLOYMENT_TYPES.map((t) => {
+                    const selected = jobTypes.includes(t);
+                    return (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => toggleItem(jobTypes, setJobTypes, t)}
+                        className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition ${
+                          selected
+                            ? 'bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] border-[#60B6F8] text-[#1E3A5F]'
+                            : 'bg-[#F8FCFF] border-[#D8ECFA] text-[#334155]'
+                        }`}
+                      >
+                        {t}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-xs font-semibold text-[#64748B]">Work Modes</label>
+                <div className="flex flex-wrap gap-2">
+                  {WORK_MODES.map((m) => {
+                    const selected = workModes.includes(m);
+                    return (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => toggleItem(workModes, setWorkModes, m)}
+                        className={`px-4 py-2 rounded-2xl text-xs font-bold border transition ${
+                          selected
+                            ? 'bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] border-[#60B6F8] text-[#1E3A5F]'
+                            : 'bg-[#F8FCFF] border-[#D8ECFA] text-[#334155]'
+                        }`}
+                      >
+                        {m}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
+                    Preferred Locations (comma separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={preferredLocationsText}
+                    onChange={(e) => setPreferredLocationsText(e.target.value)}
+                    placeholder="Remote, Delhi NCR, Bengaluru"
+                    className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
+                    Expected Salary / Stipend
+                  </label>
+                  <input
+                    type="text"
+                    value={expectedSalary}
+                    onChange={(e) => setExpectedSalary(e.target.value)}
+                    placeholder="e.g. ₹20,000 / month"
+                    className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
+                    Years of Experience
+                  </label>
+                  <select
+                    value={yearsOfExperience}
+                    onChange={(e) => setYearsOfExperience(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-xs"
+                  >
+                    {YEARS_OF_EXPERIENCE_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">Availability</label>
+                  <select
+                    value={availability}
+                    onChange={(e) => setAvailability(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-xs"
+                  >
+                    {AVAILABILITY_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
+                    Available Working Hours
+                  </label>
+                  <input
+                    type="text"
+                    value={availableHours}
+                    onChange={(e) => setAvailableHours(e.target.value)}
+                    placeholder="e.g. 40 hrs/week"
+                    className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-xs"
+                  />
+                </div>
+                <div className="flex items-end pb-1">
+                  <label className="inline-flex items-center gap-2 text-xs font-semibold text-[#334155] cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={willingToRelocate}
+                      onChange={(e) => setWillingToRelocate(e.target.checked)}
+                      className="w-4 h-4 rounded accent-[#3B9EE8]"
+                    />
+                    <span>Willing to relocate</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4: Account Settings */}
+        {activeTab === 'settings' && (
+          <div className="space-y-5">
+            <h3 className="text-sm font-bold text-[#334155] uppercase tracking-wider pb-2 border-b border-[#EAF7FF]">
+              Account & Support Settings
+            </h3>
+
+            <div className="p-4 rounded-2xl bg-[#F8FCFF] border border-[#D8ECFA] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold text-[#334155]">Account Email: {user?.email}</p>
+                <p className="text-xs text-[#64748B] mt-0.5">
+                  Role: <strong className="text-[#1E3A5F]">{roleLabel}</strong>
+                </p>
+              </div>
+              {user?.lastLogin && (
+                <p className="text-[11px] text-[#64748B]">
+                  Last Sign-In: {new Date(user.lastLogin).toLocaleString()}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-[#334155] mb-1.5">
+                Accessibility / Accommodation Preferences (Optional)
+              </label>
+              <input
+                type="text"
+                value={accessibilityPreferences}
+                onChange={(e) => setAccessibilityPreferences(e.target.value)}
+                placeholder="Share any workplace accessibility preferences if applicable"
+                className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-sm"
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="rural-setting"
+                checked={isRural}
+                onChange={(e) => setIsRural(e.target.checked)}
+                className="w-4 h-4 rounded accent-[#3B9EE8]"
+              />
+              <label htmlFor="rural-setting" className="text-xs text-[#334155] cursor-pointer">
+                I reside in a rural or semi-urban area (helps surface regional livelihood schemes)
+              </label>
+            </div>
+
+            <div className="p-4 bg-pink-50/70 rounded-2xl border border-pink-200 flex items-start gap-3">
+              <input
+                type="checkbox"
+                id="restart-setting"
+                checked={isCareerRestart}
+                onChange={(e) => setIsCareerRestart(e.target.checked)}
+                className="w-4 h-4 mt-0.5 accent-pink-500"
+              />
+              <div>
+                <label htmlFor="restart-setting" className="text-xs font-bold text-pink-900 cursor-pointer block">
+                  Build Her Participant: Women Returning to Work / Financial Independence
+                </label>
+                <p className="text-[11px] text-pink-700 mt-0.5 leading-relaxed">
+                  Enables curated career-restart opportunities with flexible hours and returnee mentorship.
+                </p>
+              </div>
             </div>
           </div>
         )}
 
         {/* Save Button */}
-        <div className="pt-4 border-t border-[#292929] flex justify-end">
+        <div className="pt-5 border-t border-[#EAF7FF] flex justify-end">
           <button
             type="submit"
             disabled={saving}
-            className="px-6 py-2.5 bg-[#FF5A1F] hover:bg-[#FF7847] text-white font-semibold rounded-xl transition text-xs shadow-xs flex items-center gap-2 disabled:opacity-50"
+            className="px-6 py-3 bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] hover:from-[#8CC6FA] hover:to-[#A2D2FF] text-[#1E3A5F] font-bold rounded-2xl transition text-xs shadow-baby-sm flex items-center gap-2 disabled:opacity-50"
           >
             <Save className="w-4 h-4" />
-            <span>{saving ? 'Saving...' : 'Save Profile Changes'}</span>
+            <span>{saving ? 'Saving Changes...' : 'Save Profile Changes'}</span>
           </button>
         </div>
       </form>

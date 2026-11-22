@@ -14,22 +14,73 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Password is required')
 });
 
+const educationEntrySchema = z.object({
+  level: z.string().trim().min(1, 'Qualification level is required'),
+  degree: z.string().trim().optional().default(''),
+  specialization: z.string().trim().optional().default(''),
+  institution: z.string().trim().optional().default(''),
+  currentYearOrSemester: z.string().trim().optional().default(''),
+  expectedGraduationYear: z.string().trim().optional().default(''),
+  graduationYear: z.string().trim().optional().default(''),
+  classCompleted: z.string().trim().optional().default(''),
+  stream: z.string().trim().optional().default(''),
+  status: z.string().trim().optional().default('')
+});
+
+const detailedSkillSchema = z.object({
+  name: z.string().trim().min(1, 'Skill name is required'),
+  category: z.string().trim().optional().default('General'),
+  proficiency: z.enum(['Beginner', 'Intermediate', 'Advanced']).optional().default('Beginner'),
+  supportingTitle: z.string().trim().optional().default(''),
+  supportingUrl: z.string().trim().optional().default('')
+});
+
+const experienceEntrySchema = z.object({
+  jobTitle: z.string().trim().min(1, 'Job title is required'),
+  organization: z.string().trim().min(1, 'Organization is required'),
+  employmentType: z.string().trim().optional().default('Full-time'),
+  startDate: z.string().trim().optional().default(''),
+  endDate: z.string().trim().optional().default(''),
+  isCurrent: z.boolean().optional().default(false),
+  responsibilities: z.string().trim().optional().default(''),
+  achievements: z.string().trim().optional().default('')
+});
+
+const employmentPreferencesSchema = z.object({
+  jobTypes: z.array(z.string().trim()).optional(),
+  workModes: z.array(z.string().trim()).optional(),
+  preferredLocations: z.array(z.string().trim()).optional(),
+  expectedSalary: z.string().trim().optional(),
+  availableHours: z.string().trim().optional(),
+  yearsOfExperience: z.string().trim().optional(),
+  availability: z.string().trim().optional(),
+  willingToRelocate: z.boolean().optional()
+});
+
 export const profileUpdateSchema = z.object({
   name: z.string().trim().min(2).optional(),
+  fullName: z.string().trim().min(2).optional(),
   avatar: z.string().optional(),
+  profilePicture: z.string().optional(),
   seekerProfile: z
     .object({
       headline: z.string().optional(),
+      bio: z.string().max(1500).optional(),
       phone: z.string().optional(),
+      dateOfBirth: z.string().optional(),
+      accessibilityPreferences: z.string().max(500).optional(),
+      preferredLanguage: z.string().optional(),
       location: z
         .object({
           city: z.string().optional(),
           state: z.string().optional(),
+          country: z.string().optional(),
           isRural: z.boolean().optional()
         })
         .optional(),
       languages: z.array(z.string()).optional(),
       educationLevel: z.string().optional(),
+      education: z.array(educationEntrySchema).optional(),
       qualifications: z
         .array(
           z.object({
@@ -40,12 +91,19 @@ export const profileUpdateSchema = z.object({
         )
         .optional(),
       skills: z.array(z.string()).optional(),
+      detailedSkills: z.array(detailedSkillSchema).optional(),
       experienceLevel: z.string().optional(),
+      hasExperience: z.boolean().optional(),
+      experience: z.array(experienceEntrySchema).optional(),
       careerGoals: z.string().optional(),
+      careerGoalsList: z.array(z.string()).optional(),
       interests: z.array(z.string()).optional(),
       preferredWorkMode: z.enum(['remote', 'hybrid', 'onsite', 'any']).optional(),
+      employmentPreferences: employmentPreferencesSchema.optional(),
       resumeUrl: z.string().optional(),
-      isCareerRestart: z.boolean().optional()
+      isCareerRestart: z.boolean().optional(),
+      onboardingCompleted: z.boolean().optional(),
+      onboardingSkipped: z.boolean().optional()
     })
     .optional(),
   employerProfile: z

@@ -1,6 +1,51 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { apiFetch } from '../utils/api';
 
+export interface EducationEntry {
+  level: string;
+  degree?: string;
+  specialization?: string;
+  institution?: string;
+  currentYearOrSemester?: string;
+  expectedGraduationYear?: string;
+  graduationYear?: string;
+  classCompleted?: string;
+  stream?: string;
+  status?: string;
+}
+
+export interface DetailedSkill {
+  name: string;
+  category?: string;
+  proficiency: 'Beginner' | 'Intermediate' | 'Advanced';
+  verified?: boolean;
+  source: 'self_reported' | 'assessment_verified';
+  supportingTitle?: string;
+  supportingUrl?: string;
+}
+
+export interface ExperienceEntry {
+  jobTitle: string;
+  organization: string;
+  employmentType?: string;
+  startDate?: string;
+  endDate?: string;
+  isCurrent?: boolean;
+  responsibilities?: string;
+  achievements?: string;
+}
+
+export interface EmploymentPreferences {
+  jobTypes?: string[];
+  workModes?: string[];
+  preferredLocations?: string[];
+  expectedSalary?: string;
+  availableHours?: string;
+  yearsOfExperience?: string;
+  availability?: string;
+  willingToRelocate?: boolean;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -11,30 +56,45 @@ export interface User {
   profilePicture?: string;
   emailVerified?: boolean;
   profileCompletion?: number;
+  completedSections?: string[];
+  missingSections?: string[];
   lastLogin?: string;
   createdAt?: string;
   seekerProfile?: {
     headline?: string;
+    bio?: string;
     phone?: string;
+    dateOfBirth?: string;
+    accessibilityPreferences?: string;
+    preferredLanguage?: string;
     location?: {
       city?: string;
       state?: string;
+      country?: string;
       isRural?: boolean;
     };
     languages?: string[];
     educationLevel?: string;
+    education?: EducationEntry[];
     qualifications?: Array<{
       title: string;
       institute?: string;
       year?: string;
     }>;
     skills?: string[];
+    detailedSkills?: DetailedSkill[];
     experienceLevel?: string;
+    hasExperience?: boolean;
+    experience?: ExperienceEntry[];
     careerGoals?: string;
+    careerGoalsList?: string[];
     interests?: string[];
     preferredWorkMode?: 'remote' | 'hybrid' | 'onsite' | 'any';
+    employmentPreferences?: EmploymentPreferences;
     resumeUrl?: string;
     isCareerRestart?: boolean;
+    onboardingCompleted?: boolean;
+    onboardingSkipped?: boolean;
   };
   employerProfile?: {
     companyName?: string;
@@ -66,11 +126,12 @@ interface AuthContextType {
   sessionNotice: string;
   clearSessionNotice: () => void;
   successNotice: string;
+  setSuccessNotice: (msg: string) => void;
   clearSuccessNotice: () => void;
   login: (email: string, password: string) => Promise<AuthResult>;
   register: (data: any) => Promise<AuthResult>;
   logout: () => Promise<void>;
-  updateProfile: (data: any) => Promise<{ success: boolean; error?: string }>;
+  updateProfile: (data: any) => Promise<{ success: boolean; user?: User; error?: string }>;
   refreshUser: () => Promise<void>;
 }
 
@@ -103,8 +164,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const hadPriorSession =
       Boolean(storedToken) || sessionStorage.getItem(SESSION_MARKER_KEY) === '1';
 
-    // Avoid firing an unauthenticated /api/auth/me request (which logs 401 in browser console)
-    // when a visitor has no active session token or session marker.
     if (!forceCheck && !hadPriorSession) {
       setUser(null);
       setLoading(false);
@@ -195,7 +254,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       sessionStorage.setItem(SESSION_MARKER_KEY, '1');
 
-      setSuccessNotice('Account created successfully! Welcome to SETU.');
+      setSuccessNotice('Account created successfully! Welcome to SETU 🩵');
       setUser(userData);
       return { success: true, user: userData || undefined };
     } catch (err: any) {
@@ -220,7 +279,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateProfile = async (data: any) => {
     try {
-      const res = await apiFetch('/api/users/profile', {
+      const res = await apiFetch('/api/profile', {
         method: 'PUT',
         body: JSON.stringify(data)
       });
@@ -233,7 +292,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (userData) {
         setUser(userData);
       }
-      return { success: true };
+      return { success: true, user: userData || undefined };
     } catch (err: any) {
       return { success: false, error: err.message || 'Network error' };
     }
@@ -251,6 +310,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         sessionNotice,
         clearSessionNotice,
         successNotice,
+        setSuccessNotice,
         clearSuccessNotice,
         login,
         register,

@@ -22,10 +22,19 @@ export const LoginPage: React.FC = () => {
 
   const displayedError = error || sessionNotice;
 
-  const redirectByRole = (role?: string) => {
-    if (role === 'admin') navigate('/admin');
-    else if (role === 'employer') navigate('/employer');
-    else navigate('/dashboard');
+  const redirectByRole = (userObj?: any) => {
+    const role = userObj?.role;
+    if (role === 'admin') {
+      navigate('/admin');
+    } else if (role === 'employer') {
+      navigate('/employer');
+    } else {
+      const needsOnboarding =
+        !userObj?.seekerProfile?.onboardingCompleted &&
+        !userObj?.seekerProfile?.onboardingSkipped &&
+        (userObj?.profileCompletion ?? 0) < 40;
+      navigate(needsOnboarding ? '/onboarding' : '/dashboard');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -38,80 +47,84 @@ export const LoginPage: React.FC = () => {
     setLoading(false);
 
     if (res.success) {
-      redirectByRole(res.user?.role);
+      redirectByRole(res.user);
     } else {
       setError(res.error || 'Invalid email or password. Please try again.');
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#080808] flex">
-      {/* DESKTOP LEFT COLUMN: Inspirational Branding */}
-      <div className="hidden lg:flex lg:w-1/2 relative bg-[#0C0C0C] border-r border-[#222222] p-12 flex-col justify-between overflow-hidden">
-        <div className="absolute top-1/3 left-1/3 w-96 h-96 bg-[#FF5A1F]/10 rounded-full blur-[140px] pointer-events-none"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(#262626_1px,transparent_1px)] [background-size:28px_28px] opacity-20 pointer-events-none"></div>
+    <div className="min-h-screen bg-[#F8FCFF] flex">
+      {/* DESKTOP LEFT COLUMN: Cheerful Baby-Blue Welcome Panel */}
+      <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-[#EAF7FF] via-[#D6EEFF] to-[#BDE0FE]/70 border-r border-[#D8ECFA] p-12 flex-col justify-between overflow-hidden">
+        <div className="absolute top-1/4 left-1/4 w-80 h-80 bg-white/50 rounded-full blur-3xl pointer-events-none animate-float-slow" />
+        <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-[#A2D2FF]/45 rounded-full blur-3xl pointer-events-none animate-float-gentle" />
 
         <div className="relative z-10">
           <Link to="/" className="inline-flex items-center gap-3 group">
-            <img
-              src="/setu-logo.png"
-              alt="SETU"
-              className="h-10 w-auto object-contain brightness-110 drop-shadow-[0_0_12px_rgba(255,90,31,0.3)]"
-            />
-            <span className="text-2xl font-black text-[#F5F5F5] font-display tracking-tight">
+            <div className="p-2 rounded-2xl bg-white border border-[#D8ECFA] shadow-baby-sm">
+              <img
+                src="/setu-logo.png"
+                alt="SETU"
+                className="h-8 w-auto object-contain"
+              />
+            </div>
+            <span className="text-2xl font-extrabold text-[#334155] font-display tracking-tight">
               SETU
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#FF5A1F] ml-1"></span>
+              <span className="inline-block w-2 h-2 rounded-full bg-[#3B9EE8] ml-1.5" />
             </span>
           </Link>
         </div>
 
         <div className="relative z-10 space-y-6 max-w-lg">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#151515] border border-[#292929] text-xs font-semibold text-[#FF7847]">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Welcome Back</span>
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-[#D8ECFA] text-xs font-semibold text-[#1E3A5F] shadow-baby-sm">
+            <Sparkles className="w-3.5 h-3.5 text-[#3B9EE8]" />
+            <span>Welcome Back 🩵</span>
           </div>
 
-          <h1 className="text-4xl font-extrabold text-[#F5F5F5] tracking-tight font-display leading-tight">
-            Continue building your path toward meaningful employment.
+          <h1 className="text-4xl font-extrabold text-[#334155] tracking-tight font-display leading-tight">
+            Small progress today, big achievements tomorrow!
           </h1>
 
-          <p className="text-sm text-[#A3A3A3] leading-relaxed">
-            Access your verified skill assessments, practice assignments, application statuses, and interview schedules.
+          <p className="text-sm text-[#475569] leading-relaxed">
+            Sign in to access your career profile, personalized job recommendations, government schemes, skill assessments, and learning pathways.
           </p>
 
-          <div className="p-4 rounded-2xl bg-[#151515] border border-[#292929] space-y-2">
-            <div className="flex items-center gap-2 text-xs font-bold text-[#F5F5F5]">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>Verified Enterprise Network</span>
+          <div className="p-5 rounded-3xl bg-white/85 backdrop-blur-xs border border-[#D8ECFA] shadow-baby-sm space-y-2">
+            <div className="flex items-center gap-2 text-xs font-bold text-[#334155]">
+              <ShieldCheck className="w-4 h-4 text-emerald-500" />
+              <span>Verified Career Ecosystem</span>
             </div>
-            <p className="text-xs text-[#737373]">
-              All employers on SETU are reviewed and verified before their opportunities appear in public discovery.
+            <p className="text-xs text-[#64748B] leading-relaxed">
+              Your profile stays secure and powers transparent recommendations tailored to your real skills and goals.
             </p>
           </div>
         </div>
 
-        <div className="relative z-10 text-xs text-[#737373]">
+        <div className="relative z-10 text-xs text-[#64748B]">
           <p>© 2026 SETU Platform. Bridging Skills, Opportunities & Employment.</p>
         </div>
       </div>
 
-      {/* RIGHT COLUMN: Modern Dark Login Card */}
+      {/* RIGHT COLUMN: Clean Baby-Blue Login Card */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8 lg:p-12">
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
           <div className="lg:hidden text-center mb-6">
-            <Link to="/" className="inline-flex items-center gap-2">
-              <img src="/setu-logo.png" alt="SETU" className="h-9 w-auto object-contain brightness-110" />
-              <span className="text-xl font-bold text-[#F5F5F5] font-display">SETU</span>
+            <Link to="/" className="inline-flex items-center gap-2.5">
+              <div className="p-1.5 rounded-2xl bg-[#EAF7FF] border border-[#D8ECFA]">
+                <img src="/setu-logo.png" alt="SETU" className="h-8 w-auto object-contain" />
+              </div>
+              <span className="text-xl font-extrabold text-[#334155] font-display">SETU</span>
             </Link>
           </div>
 
-          <div className="bg-[#151515] border border-[#292929] rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
+          <div className="bg-white border border-[#D8ECFA] rounded-3xl p-6 sm:p-8 shadow-baby space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-[#F5F5F5] font-display tracking-tight">
+              <h2 className="text-2xl font-bold text-[#334155] font-display tracking-tight">
                 Sign In
               </h2>
-              <p className="text-xs text-[#A3A3A3] mt-1">
+              <p className="text-xs text-[#64748B] mt-1">
                 Enter your registered email address and password to access your SETU dashboard
               </p>
             </div>
@@ -120,16 +133,16 @@ export const LoginPage: React.FC = () => {
             {displayedError && (
               <div
                 role="alert"
-                className="p-3.5 rounded-xl bg-red-950/40 border border-red-800/60 text-red-300 text-xs flex items-start gap-2.5 animate-in fade-in"
+                className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2.5"
               >
-                <AlertCircle className="w-4 h-4 shrink-0 text-red-400 mt-0.5" />
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-500 mt-0.5" />
                 <span className="leading-relaxed">{displayedError}</span>
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-[#A3A3A3] mb-1.5">
+                <label className="block text-xs font-semibold text-[#334155] mb-1.5">
                   Email Address
                 </label>
                 <input
@@ -138,16 +151,16 @@ export const LoginPage: React.FC = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@example.com"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#101010] border border-[#292929] text-sm text-[#FFFFFF] placeholder-[#777777] focus:border-[#FF5A1F] focus:ring-1 focus:ring-[#FF5A1F] outline-none transition"
+                  className="w-full px-4 py-3 rounded-2xl bg-[#F8FCFF] border border-[#D8ECFA] text-sm text-[#334155] placeholder-[#94A3B8] focus:bg-white focus:border-[#60B6F8] focus:ring-2 focus:ring-[#BDE0FE]/60 outline-none transition"
                 />
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-semibold text-[#A3A3A3]">
+                  <label className="block text-xs font-semibold text-[#334155]">
                     Password
                   </label>
-                  <span className="text-[11px] text-[#737373]">Case-sensitive</span>
+                  <span className="text-[11px] text-[#64748B]">Case-sensitive</span>
                 </div>
                 <div className="relative">
                   <input
@@ -156,12 +169,12 @@ export const LoginPage: React.FC = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter your password"
-                    className="w-full px-3.5 py-2.5 pr-10 rounded-xl bg-[#101010] border border-[#292929] text-sm text-[#FFFFFF] placeholder-[#777777] focus:border-[#FF5A1F] focus:ring-1 focus:ring-[#FF5A1F] outline-none transition"
+                    className="w-full px-4 py-3 pr-10 rounded-2xl bg-[#F8FCFF] border border-[#D8ECFA] text-sm text-[#334155] placeholder-[#94A3B8] focus:bg-white focus:border-[#60B6F8] focus:ring-2 focus:ring-[#BDE0FE]/60 outline-none transition"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#737373] hover:text-[#F5F5F5] focus:outline-none"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#64748B] hover:text-[#334155] focus:outline-none"
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -172,11 +185,11 @@ export const LoginPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 px-4 bg-[#FF5A1F] hover:bg-[#FF7847] text-white font-bold rounded-xl transition text-sm shadow-[0_4px_20px_rgba(255,90,31,0.35)] flex items-center justify-center gap-2 disabled:opacity-50 mt-2"
+                className="w-full py-3.5 px-4 bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] hover:from-[#8CC6FA] hover:to-[#A2D2FF] text-[#1E3A5F] font-bold rounded-2xl transition text-sm shadow-baby-sm flex items-center justify-center gap-2 disabled:opacity-50 mt-2"
               >
                 {loading ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-2 border-[#1E3A5F] border-t-transparent rounded-full animate-spin" />
                     <span>Signing In...</span>
                   </>
                 ) : (
@@ -188,11 +201,11 @@ export const LoginPage: React.FC = () => {
               </button>
             </form>
 
-            <p className="text-center text-xs text-[#737373] pt-2 border-t border-[#242424]">
+            <p className="text-center text-xs text-[#64748B] pt-3 border-t border-[#EAF7FF]">
               Don't have an account yet?{' '}
               <Link
                 to="/register"
-                className="font-semibold text-[#FF5A1F] hover:text-[#FF7847] underline-offset-2 hover:underline"
+                className="font-bold text-[#3B9EE8] hover:text-[#2589D6] underline-offset-2 hover:underline"
               >
                 Create Account
               </Link>

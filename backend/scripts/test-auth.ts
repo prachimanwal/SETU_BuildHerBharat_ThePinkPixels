@@ -308,10 +308,80 @@ async function run() {
     assert.equal(escalateRes.status, 200);
     assert.equal(escalateRes.body.data.user.role, 'seeker', 'Role must never change to admin');
 
+    // 6b. Stage 2 Complete Profile System (/api/profile & /api/profile/completion)
+    const fullProfileRes = await request(port, 'PUT', '/api/profile', {
+      cookie: seekerCookie,
+      body: {
+        name: 'Ananya Verma',
+        seekerProfile: {
+          bio: 'B.Tech CS student passionate about data analytics and visualization.',
+          preferredLanguage: 'English',
+          location: { city: 'Gurugram', state: 'Haryana', country: 'India' },
+          education: [
+            {
+              level: 'Undergraduate student',
+              degree: 'B.Tech',
+              specialization: 'Computer Science',
+              institution: 'K.R. Mangalam University',
+              currentYearOrSemester: '3rd Year',
+              expectedGraduationYear: '2027',
+              status: 'Pursuing'
+            }
+          ],
+          detailedSkills: [
+            {
+              name: 'Python',
+              category: 'Technical',
+              proficiency: 'Intermediate',
+              verified: true, // Client attempt to spoof verified flag must be ignored!
+              source: 'assessment_verified'
+            },
+            { name: 'SQL', category: 'Technical', proficiency: 'Beginner' }
+          ],
+          interests: ['Technology', 'Design'],
+          careerGoalsList: ['Find an internship', 'Develop new skills'],
+          employmentPreferences: {
+            jobTypes: ['Internship', 'Part-time'],
+            workModes: ['Remote', 'Hybrid'],
+            preferredLocations: ['Gurugram', 'Remote'],
+            expectedSalary: '₹15,000 / month',
+            yearsOfExperience: 'Fresher / 0 years',
+            availability: 'Immediate',
+            willingToRelocate: true
+          },
+          hasExperience: false,
+          onboardingCompleted: true
+        }
+      }
+    });
+    assert.equal(fullProfileRes.status, 200);
+    assert.equal(fullProfileRes.body.data.profileCompletionPercentage, 100);
+    assert.deepEqual(fullProfileRes.body.data.missingSections, []);
+    assert.equal(fullProfileRes.body.data.user.seekerProfile.education.length, 1);
+    assert.equal(fullProfileRes.body.data.user.seekerProfile.detailedSkills.length, 2);
+    assert.equal(
+      fullProfileRes.body.data.user.seekerProfile.detailedSkills[0].verified,
+      false,
+      'User-submitted skills must stay self-reported, never client-spoofed as verified'
+    );
+    assert.equal(
+      fullProfileRes.body.data.user.seekerProfile.detailedSkills[0].source,
+      'self_reported'
+    );
+
+    const getProfileRes = await request(port, 'GET', '/api/profile', { cookie: seekerCookie });
+    assert.equal(getProfileRes.status, 200);
+    assert.equal(getProfileRes.body.data.user.seekerProfile.location.city, 'Gurugram');
+
+    const compRes = await request(port, 'GET', '/api/profile/completion', { cookie: seekerCookie });
+    assert.equal(compRes.status, 200);
+    assert.equal(compRes.body.data.completionPercentage, 100);
+    console.log('  ✓ 6b. Complete Profile API (/api/profile & /api/profile/completion) saves & calculates 100% accurately');
+
     const dashRes = await request(port, 'GET', '/api/dashboard', { cookie: seekerCookie });
     assert.equal(dashRes.status, 200);
     assert.equal(dashRes.body.data.user.email, seekerEmail);
-    assert.deepEqual(dashRes.body.data.savedSkills, ['Canva']);
+    assert.deepEqual(dashRes.body.data.savedSkills, ['Python', 'SQL']);
 
     const seekerToAdminRes = await request(port, 'GET', '/api/admin/employers', {
       cookie: seekerCookie

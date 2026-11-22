@@ -95,6 +95,9 @@ app.get('/api/health', (_req, res) => {
 // Primary RESTful Routes
 app.use('/api/auth', auth_routes_1.default);
 app.use('/api/users', user_routes_1.default);
+app.get('/api/profile', auth_middleware_1.authenticate, user_controller_1.getProfile);
+app.put('/api/profile', auth_middleware_1.authenticate, user_controller_1.updateProfile);
+app.get('/api/profile/completion', auth_middleware_1.authenticate, user_controller_1.getProfileCompletion);
 app.get('/api/dashboard', auth_middleware_1.authenticate, user_controller_1.getDashboard);
 app.use('/api/opportunities', opportunity_routes_1.default);
 app.use('/api/assessments', assessment_routes_1.default);

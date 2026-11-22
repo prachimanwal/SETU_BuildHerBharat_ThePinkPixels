@@ -140,15 +140,15 @@ export const LearnPage: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
       {/* Header */}
-      <div className="space-y-1 pb-4 border-b border-[#292929]">
-        <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-[#FF7847]">
+      <div className="space-y-1 pb-4 border-b border-[#D8ECFA]">
+        <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-[#2589D6]">
           <BookOpen className="w-4 h-4" />
           <span>Stage 3 & 4: Learn & Practice</span>
         </div>
-        <h1 className="text-2xl sm:text-3xl font-bold font-serif text-[#F5F5F5]">
+        <h1 className="text-2xl sm:text-3xl font-bold font-serif text-[#334155]">
           {language === 'hi' ? 'सीखें और व्यावहारिक अभ्यास करें' : 'Learn & Hands-on Practice'}
         </h1>
-        <p className="text-xs sm:text-sm text-[#A3A3A3] max-w-3xl">
+        <p className="text-xs sm:text-sm text-[#64748B] max-w-3xl">
           Build practical proof-of-work. Complete guided assignments, submit your work sample links, and publish deliverables directly to your portfolio.
         </p>
       </div>
@@ -156,11 +156,11 @@ export const LearnPage: React.FC = () => {
       {/* Filter Tabs */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         {/* Type Filter */}
-        <div className="flex items-center space-x-1.5 p-1 bg-[#1C1C1C] rounded-xl">
+        <div className="flex items-center space-x-1.5 p-1 bg-[#EAF7FF] rounded-xl">
           <button
             onClick={() => setFilterType('all')}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-              filterType === 'all' ? 'bg-[#151515] text-[#F5F5F5] shadow-sm' : 'text-[#A3A3A3] hover:text-[#F5F5F5]'
+              filterType === 'all' ? 'bg-white text-[#334155] shadow-sm' : 'text-[#64748B] hover:text-[#334155]'
             }`}
           >
             All Resources
@@ -168,7 +168,7 @@ export const LearnPage: React.FC = () => {
           <button
             onClick={() => setFilterType('practical_assignment')}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1 ${
-              filterType === 'practical_assignment' ? 'bg-[#151515] text-[#FF7847] shadow-sm' : 'text-[#A3A3A3] hover:text-[#F5F5F5]'
+              filterType === 'practical_assignment' ? 'bg-white text-[#2589D6] shadow-sm' : 'text-[#64748B] hover:text-[#334155]'
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
@@ -177,7 +177,7 @@ export const LearnPage: React.FC = () => {
           <button
             onClick={() => setFilterType('tutorial')}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-              filterType === 'tutorial' ? 'bg-[#151515] text-[#F5F5F5] shadow-sm' : 'text-[#A3A3A3] hover:text-[#F5F5F5]'
+              filterType === 'tutorial' ? 'bg-white text-[#334155] shadow-sm' : 'text-[#64748B] hover:text-[#334155]'
             }`}
           >
             Tutorials
@@ -185,7 +185,7 @@ export const LearnPage: React.FC = () => {
           <button
             onClick={() => setFilterType('refresher')}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-              filterType === 'refresher' ? 'bg-[#151515] text-pink-700 shadow-sm' : 'text-[#A3A3A3] hover:text-[#F5F5F5]'
+              filterType === 'refresher' ? 'bg-white text-pink-700 shadow-sm' : 'text-[#64748B] hover:text-[#334155]'
             }`}
           >
             Build Her Refreshers
@@ -194,11 +194,11 @@ export const LearnPage: React.FC = () => {
 
         {/* Domain Filter */}
         <div className="flex items-center space-x-2 text-xs">
-          <span className="text-[#A3A3A3] font-medium">Domain:</span>
+          <span className="text-[#64748B] font-medium">Domain:</span>
           <select
             value={filterDomain}
             onChange={(e) => setFilterDomain(e.target.value)}
-            className="px-3 py-1.5 rounded-lg border border-[#292929] bg-[#151515] text-[#D4D4D4] font-medium outline-none focus:ring-2 focus:ring-[#FF5A1F]"
+            className="px-3 py-1.5 rounded-lg border border-[#D8ECFA] bg-white text-[#475569] font-medium outline-none focus:ring-2 focus:ring-[#BDE0FE]"
           >
             <option value="all">All Domains</option>
             <option value="graphic_design">Graphic Design</option>
@@ -210,14 +210,14 @@ export const LearnPage: React.FC = () => {
       </div>
 
       {loadError && (
-        <div className="p-4 rounded-xl bg-red-950/40 border border-red-800/60 text-red-300 text-xs">
+        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
           {loadError}
         </div>
       )}
 
       {/* Resources Grid */}
       {filteredResources.length === 0 && !loadError ? (
-        <div className="bg-[#151515] rounded-2xl border border-dashed border-[#333333] p-12 text-center text-[#737373] text-sm">
+        <div className="bg-white rounded-2xl border border-dashed border-[#BDE0FE] p-12 text-center text-[#64748B] text-sm">
           No learning resources found for the selected filters.
         </div>
       ) : (
@@ -231,37 +231,37 @@ export const LearnPage: React.FC = () => {
           return (
             <div
               key={r._id || idx}
-              className={`bg-[#151515] rounded-2xl border p-5 shadow-sm transition flex flex-col justify-between space-y-4 ${
-                isCompleted ? 'border-emerald-300 bg-emerald-50/10' : 'border-[#292929] hover:border-orange-300'
+              className={`bg-white rounded-2xl border p-5 shadow-sm transition flex flex-col justify-between space-y-4 ${
+                isCompleted ? 'border-emerald-300 bg-emerald-50/10' : 'border-[#D8ECFA] hover:border-[#A2D2FF]'
               }`}
             >
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#1C1C1C] text-[#D4D4D4] uppercase">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#EAF7FF] text-[#475569] uppercase">
                     {r.type.replace('_', ' ')}
                   </span>
-                  <div className="flex items-center space-x-2 text-xs text-[#A3A3A3]">
+                  <div className="flex items-center space-x-2 text-xs text-[#64748B]">
                     <Clock className="w-3.5 h-3.5" />
                     <span>{r.durationMinutes} mins</span>
                   </div>
                 </div>
 
                 <div>
-                  <span className="text-[11px] font-bold text-[#FF7847] bg-[#1C1C1C] px-2 py-0.5 rounded">
+                  <span className="text-[11px] font-bold text-[#2589D6] bg-[#EAF7FF] px-2 py-0.5 rounded">
                     {r.skillTag}
                   </span>
-                  <h4 className="font-bold text-[#F5F5F5] text-base leading-snug mt-1.5">
+                  <h4 className="font-bold text-[#334155] text-base leading-snug mt-1.5">
                     {r.title}
                   </h4>
                 </div>
 
-                <p className="text-xs text-[#A3A3A3] leading-relaxed line-clamp-3">
+                <p className="text-xs text-[#64748B] leading-relaxed line-clamp-3">
                   {r.summary}
                 </p>
 
                 {r.assignmentBrief && (
-                  <div className="p-3 bg-[#101010] rounded-xl border border-[#292929]/60 text-xs text-[#D4D4D4] space-y-1">
-                    <span className="font-bold text-[#F5F5F5] block flex items-center space-x-1">
+                  <div className="p-3 bg-[#F8FCFF] rounded-xl border border-[#D8ECFA]/60 text-xs text-[#475569] space-y-1">
+                    <span className="font-bold text-[#334155] block flex items-center space-x-1">
                       <Sparkles className="w-3.5 h-3.5 text-amber-600" />
                       <span>Assignment Goal:</span>
                     </span>
@@ -270,7 +270,7 @@ export const LearnPage: React.FC = () => {
                 )}
               </div>
 
-              <div className="pt-3 border-t border-[#222222] space-y-2">
+              <div className="pt-3 border-t border-[#EAF7FF] space-y-2">
                 {isCompleted ? (
                   <div className="flex items-center justify-between text-xs py-1.5 px-3 rounded-lg bg-emerald-100 text-emerald-800 font-semibold">
                     <span className="flex items-center space-x-1">
@@ -287,7 +287,7 @@ export const LearnPage: React.FC = () => {
                 ) : (
                   <button
                     onClick={() => openAssignmentModal(r)}
-                    className="w-full py-2.5 rounded-xl bg-[#E65100] hover:bg-[#FF7847] text-white font-bold text-xs transition flex items-center justify-center space-x-1.5 shadow-sm"
+                    className="w-full py-2.5 rounded-xl bg-[#E65100] hover:bg-[#8CC6FA] text-white font-bold text-xs transition flex items-center justify-center space-x-1.5 shadow-sm"
                   >
                     <span>
                       {r.type === 'practical_assignment' ? 'Complete Assignment & Add to Portfolio' : 'Open Tutorial'}
@@ -304,21 +304,21 @@ export const LearnPage: React.FC = () => {
 
       {/* Assignment Completion Modal */}
       {selectedResource && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-[#151515] rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-[#292929] animate-in zoom-in-95">
+        <div className="fixed inset-0 z-50 bg-[#EAF7FF]/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-[#D8ECFA] animate-in zoom-in-95">
             {/* Header */}
-            <div className="p-5 border-b border-[#292929] flex items-center justify-between">
+            <div className="p-5 border-b border-[#D8ECFA] flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#FF7847]">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#2589D6]">
                   {selectedResource.type === 'practical_assignment' ? 'Practical Assignment' : 'Learning Guide'}
                 </span>
-                <h3 className="font-bold text-[#F5F5F5] text-lg font-serif">
+                <h3 className="font-bold text-[#334155] text-lg font-serif">
                   {selectedResource.title}
                 </h3>
               </div>
               <button
                 onClick={() => setSelectedResource(null)}
-                className="p-1.5 rounded-lg text-[#737373] hover:bg-[#1C1C1C]"
+                className="p-1.5 rounded-lg text-[#64748B] hover:bg-[#EAF7FF]"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -334,8 +334,8 @@ export const LearnPage: React.FC = () => {
               )}
 
               {/* Instructions / Markdown */}
-              <div className="p-4 bg-[#101010] rounded-xl border border-[#292929] text-xs text-[#D4D4D4] space-y-2 whitespace-pre-line">
-                <span className="font-bold text-[#F5F5F5] block text-sm">Brief & Instructions:</span>
+              <div className="p-4 bg-[#F8FCFF] rounded-xl border border-[#D8ECFA] text-xs text-[#475569] space-y-2 whitespace-pre-line">
+                <span className="font-bold text-[#334155] block text-sm">Brief & Instructions:</span>
                 {selectedResource.contentMarkdown}
               </div>
 
@@ -345,7 +345,7 @@ export const LearnPage: React.FC = () => {
                     href={selectedResource.externalUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center text-xs font-semibold text-[#FF5A1F] hover:underline"
+                    className="inline-flex items-center text-xs font-semibold text-[#3B9EE8] hover:underline"
                   >
                     <span>Open external learning reference / tool</span>
                     <ExternalLink className="w-3.5 h-3.5 ml-1" />
@@ -354,13 +354,13 @@ export const LearnPage: React.FC = () => {
               )}
 
               {/* Submission Form */}
-              <form onSubmit={handleCompleteAssignment} className="space-y-4 pt-2 border-t border-[#292929]">
-                <h4 className="font-bold text-[#F5F5F5] text-sm">
+              <form onSubmit={handleCompleteAssignment} className="space-y-4 pt-2 border-t border-[#D8ECFA]">
+                <h4 className="font-bold text-[#334155] text-sm">
                   Record Deliverable & Proof of Practical Work:
                 </h4>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#D4D4D4] mb-1">
+                  <label className="block text-xs font-semibold text-[#475569] mb-1">
                     Deliverable Project Title *
                   </label>
                   <input
@@ -369,12 +369,12 @@ export const LearnPage: React.FC = () => {
                     value={deliverableTitle}
                     onChange={(e) => setDeliverableTitle(e.target.value)}
                     placeholder="e.g. Rural Artisan Recruitment Poster Design"
-                    className="w-full px-3.5 py-2 rounded-lg border border-[#333333] text-sm outline-none focus:ring-2 focus:ring-[#FF5A1F]"
+                    className="w-full px-3.5 py-2 rounded-lg border border-[#BDE0FE] text-sm outline-none focus:ring-2 focus:ring-[#BDE0FE]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#D4D4D4] mb-1">
+                  <label className="block text-xs font-semibold text-[#475569] mb-1">
                     Work Sample Link (Canva, Google Sheets, GitHub, Figma, etc.)
                   </label>
                   <input
@@ -382,12 +382,12 @@ export const LearnPage: React.FC = () => {
                     value={workLink}
                     onChange={(e) => setWorkLink(e.target.value)}
                     placeholder="e.g. https://www.canva.com/design/DAF.../view"
-                    className="w-full px-3.5 py-2 rounded-lg border border-[#333333] text-sm outline-none focus:ring-2 focus:ring-[#FF5A1F]"
+                    className="w-full px-3.5 py-2 rounded-lg border border-[#BDE0FE] text-sm outline-none focus:ring-2 focus:ring-[#BDE0FE]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#D4D4D4] mb-1">
+                  <label className="block text-xs font-semibold text-[#475569] mb-1">
                     Notes & Deliverable Description
                   </label>
                   <textarea
@@ -395,17 +395,17 @@ export const LearnPage: React.FC = () => {
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     placeholder="e.g. Applied 60-30-10 color rule with high contrast cards for mobile phone readability."
-                    className="w-full px-3.5 py-2 rounded-lg border border-[#333333] text-sm outline-none focus:ring-2 focus:ring-[#FF5A1F]"
+                    className="w-full px-3.5 py-2 rounded-lg border border-[#BDE0FE] text-sm outline-none focus:ring-2 focus:ring-[#BDE0FE]"
                   />
                 </div>
 
-                <div className="p-3 bg-[#1C1C1C] rounded-xl border border-orange-200 flex items-center space-x-2.5">
+                <div className="p-3 bg-[#EAF7FF] rounded-xl border border-[#BDE0FE] flex items-center space-x-2.5">
                   <input
                     type="checkbox"
                     id="addPort"
                     checked={addToPortfolio}
                     onChange={(e) => setAddToPortfolio(e.target.checked)}
-                    className="rounded text-[#FF5A1F] focus:ring-[#FF5A1F] w-4 h-4"
+                    className="rounded text-[#3B9EE8] focus:ring-[#BDE0FE] w-4 h-4"
                   />
                   <label htmlFor="addPort" className="text-xs font-bold text-orange-950 cursor-pointer">
                     Stage 5: Automatically add this completed deliverable to my Public Portfolio
@@ -416,14 +416,14 @@ export const LearnPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setSelectedResource(null)}
-                    className="px-4 py-2 rounded-lg border border-[#333333] text-xs font-semibold text-[#D4D4D4] hover:bg-[#1C1C1C]"
+                    className="px-4 py-2 rounded-lg border border-[#BDE0FE] text-xs font-semibold text-[#475569] hover:bg-[#EAF7FF]"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={savingProgress}
-                    className="px-5 py-2 rounded-lg bg-[#E65100] hover:bg-[#FF7847] text-white font-bold text-xs shadow-sm transition disabled:opacity-50"
+                    className="px-5 py-2 rounded-lg bg-[#E65100] hover:bg-[#8CC6FA] text-white font-bold text-xs shadow-sm transition disabled:opacity-50"
                   >
                     {savingProgress ? 'Saving...' : 'Mark Completed & Save to Portfolio'}
                   </button>

@@ -108,8 +108,8 @@ export const AssessPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-16 text-center text-[#A3A3A3]">
-        <div className="inline-block animate-spin w-8 h-8 border-4 border-[#FF5A1F] border-t-transparent rounded-full mb-3"></div>
+      <div className="max-w-6xl mx-auto px-4 py-16 text-center text-[#64748B]">
+        <div className="inline-block animate-spin w-8 h-8 border-4 border-[#60B6F8] border-t-transparent rounded-full mb-3"></div>
         <p className="text-sm font-medium">Loading assessments...</p>
       </div>
     );
@@ -118,22 +118,22 @@ export const AssessPage: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
       {/* Header */}
-      <div className="space-y-1 pb-4 border-b border-[#292929]">
-        <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-[#FF7847]">
+      <div className="space-y-1 pb-4 border-b border-[#D8ECFA]">
+        <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-[#2589D6]">
           <Award className="w-4 h-4" />
           <span>Stage 2: Assess Skills</span>
         </div>
-        <h1 className="text-2xl sm:text-3xl font-bold font-serif text-[#F5F5F5]">
+        <h1 className="text-2xl sm:text-3xl font-bold font-serif text-[#334155]">
           {language === 'hi' ? 'व्यावहारिक कौशल मूल्यांकन' : 'Interactive Skill Assessments'}
         </h1>
-        <p className="text-xs sm:text-sm text-[#A3A3A3] max-w-3xl">
+        <p className="text-xs sm:text-sm text-[#64748B] max-w-3xl">
           Short, scenario-based evaluations scored on the server. Identify your verified strengths, detect skill gaps, and get instant recommendations linked to hands-on practice.
         </p>
       </div>
 
       {/* Available Assessments Grid */}
       <div className="space-y-4">
-        <h3 className="text-base font-bold text-[#F5F5F5] font-serif">
+        <h3 className="text-base font-bold text-[#334155] font-serif">
           {language === 'hi' ? 'उपलब्ध मूल्यांकन परीक्षाएं' : 'Available Assessments'}
         </h3>
 
@@ -146,37 +146,37 @@ export const AssessPage: React.FC = () => {
             return (
               <div
                 key={a._id}
-                className="bg-[#151515] rounded-2xl border border-[#292929] p-6 shadow-sm hover:border-orange-300 transition flex flex-col justify-between space-y-4"
+                className="bg-white rounded-2xl border border-[#D8ECFA] p-6 shadow-sm hover:border-[#A2D2FF] transition flex flex-col justify-between space-y-4"
               >
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#1C1C1C] text-[#D4D4D4] uppercase">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#EAF7FF] text-[#475569] uppercase">
                       {a.domain.replace('_', ' ')}
                     </span>
-                    <span className="text-xs text-[#A3A3A3] flex items-center space-x-1">
+                    <span className="text-xs text-[#64748B] flex items-center space-x-1">
                       <Clock className="w-3.5 h-3.5" />
                       <span>{a.estimatedMinutes} mins</span>
                     </span>
                   </div>
 
-                  <h4 className="font-bold text-[#F5F5F5] text-base leading-snug">
+                  <h4 className="font-bold text-[#334155] text-base leading-snug">
                     {language === 'hi' && a.titleHindi ? a.titleHindi : a.title}
                   </h4>
 
-                  <p className="text-xs text-[#A3A3A3] line-clamp-3 leading-relaxed">
+                  <p className="text-xs text-[#64748B] line-clamp-3 leading-relaxed">
                     {language === 'hi' && a.descriptionHindi ? a.descriptionHindi : a.description}
                   </p>
 
-                  <div className="text-[11px] text-[#A3A3A3] flex items-center space-x-3 pt-1">
+                  <div className="text-[11px] text-[#64748B] flex items-center space-x-3 pt-1">
                     <span>{a.questions?.length || 5} Questions</span>
                     <span>•</span>
                     <span>Passing: {a.passingScore}%</span>
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-[#222222] space-y-2">
+                <div className="pt-3 border-t border-[#EAF7FF] space-y-2">
                   {pastAttemptForThis && (
-                    <div className="flex items-center justify-between text-xs py-1 px-2 rounded bg-[#101010] text-[#D4D4D4]">
+                    <div className="flex items-center justify-between text-xs py-1 px-2 rounded bg-[#F8FCFF] text-[#475569]">
                       <span>Last Score:</span>
                       <span className={`font-bold ${pastAttemptForThis.passed ? 'text-emerald-700' : 'text-amber-700'}`}>
                         {pastAttemptForThis.percentage}% ({pastAttemptForThis.passed ? 'Passed' : 'Needs Practice'})
@@ -186,7 +186,7 @@ export const AssessPage: React.FC = () => {
 
                   <button
                     onClick={() => handleStartQuiz(a)}
-                    className="w-full py-2.5 rounded-xl bg-[#E65100] hover:bg-[#FF7847] text-white font-bold text-xs transition flex items-center justify-center space-x-1.5 shadow-sm"
+                    className="w-full py-2.5 rounded-xl bg-[#E65100] hover:bg-[#8CC6FA] text-white font-bold text-xs transition flex items-center justify-center space-x-1.5 shadow-sm"
                   >
                     <span>{pastAttemptForThis ? 'Retake Assessment' : 'Start Assessment'}</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -199,13 +199,13 @@ export const AssessPage: React.FC = () => {
       </div>
 
       {/* Past Assessment Attempts Table */}
-      <div className="bg-[#151515] rounded-2xl border border-[#292929] p-6 shadow-sm space-y-4">
-        <h3 className="text-base font-bold text-[#F5F5F5] font-serif">
+      <div className="bg-white rounded-2xl border border-[#D8ECFA] p-6 shadow-sm space-y-4">
+        <h3 className="text-base font-bold text-[#334155] font-serif">
           {language === 'hi' ? 'पूर्व मूल्यांकन परिणाम व विश्लेषण' : 'Assessment History & Gap Analysis'}
         </h3>
 
         {pastAttempts.length === 0 ? (
-          <div className="text-center py-8 text-[#A3A3A3] text-xs">
+          <div className="text-center py-8 text-[#64748B] text-xs">
             No assessment attempts recorded yet. Take your first assessment above to discover your strengths!
           </div>
         ) : (
@@ -213,19 +213,19 @@ export const AssessPage: React.FC = () => {
             {pastAttempts.map((attempt) => (
               <div
                 key={attempt._id}
-                className="p-4 rounded-xl border border-[#292929] bg-stone-50/50 space-y-3"
+                className="p-4 rounded-xl border border-[#D8ECFA] bg-stone-50/50 space-y-3"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
-                    <h5 className="font-bold text-[#F5F5F5] text-sm">
+                    <h5 className="font-bold text-[#334155] text-sm">
                       {attempt.assessmentId?.title || attempt.domain}
                     </h5>
-                    <span className="text-[11px] text-[#A3A3A3]">
+                    <span className="text-[11px] text-[#64748B]">
                       Completed on {new Date(attempt.completedAt).toLocaleDateString()}
                     </span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-[#151515] border border-[#292929]">
+                    <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-white border border-[#D8ECFA]">
                       Score: {attempt.score} / {attempt.maxScore} ({attempt.percentage}%)
                     </span>
                     <span
@@ -241,7 +241,7 @@ export const AssessPage: React.FC = () => {
                 </div>
 
                 {/* Strengths & Gaps */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-[#292929]/60 text-xs">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-[#D8ECFA]/60 text-xs">
                   <div>
                     <span className="font-bold text-emerald-800 block mb-1">
                       ✓ Demonstrated Strengths:
@@ -269,13 +269,13 @@ export const AssessPage: React.FC = () => {
                           {g.linkedResourceId ? (
                             <Link
                               to={`/learn`}
-                              className="text-[11px] font-bold text-[#FF7847] hover:underline flex items-center space-x-1"
+                              className="text-[11px] font-bold text-[#2589D6] hover:underline flex items-center space-x-1"
                             >
                               <span>Learn This</span>
                               <ChevronRight className="w-3 h-3" />
                             </Link>
                           ) : (
-                            <span className="text-[10px] text-[#A3A3A3]">Review tutorials</span>
+                            <span className="text-[10px] text-[#64748B]">Review tutorials</span>
                           )}
                         </div>
                       ))}
@@ -290,21 +290,21 @@ export const AssessPage: React.FC = () => {
 
       {/* Quiz Runner Modal */}
       {activeQuiz && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-[#151515] rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-[#292929] animate-in zoom-in-95">
+        <div className="fixed inset-0 z-50 bg-[#EAF7FF]/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-[#D8ECFA] animate-in zoom-in-95">
             {/* Modal Header */}
-            <div className="p-5 border-b border-[#292929] flex items-center justify-between">
+            <div className="p-5 border-b border-[#D8ECFA] flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#FF7847]">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#2589D6]">
                   Skill Assessment Runner
                 </span>
-                <h3 className="font-bold text-[#F5F5F5] text-lg font-serif">
+                <h3 className="font-bold text-[#334155] text-lg font-serif">
                   {activeQuiz.title}
                 </h3>
               </div>
               <button
                 onClick={() => setActiveQuiz(null)}
-                className="p-1.5 rounded-lg text-[#737373] hover:bg-[#1C1C1C]"
+                className="p-1.5 rounded-lg text-[#64748B] hover:bg-[#EAF7FF]"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -328,10 +328,10 @@ export const AssessPage: React.FC = () => {
                   </div>
 
                   <div>
-                    <h4 className="text-2xl font-bold font-serif text-[#F5F5F5]">
+                    <h4 className="text-2xl font-bold font-serif text-[#334155]">
                       {quizResult.passed ? 'Assessment Passed!' : 'Assessment Completed'}
                     </h4>
-                    <p className="text-sm font-semibold text-[#A3A3A3] mt-1">
+                    <p className="text-sm font-semibold text-[#64748B] mt-1">
                       Score: {quizResult.score} / {quizResult.maxScore} ({quizResult.percentage}%)
                     </p>
                   </div>
@@ -345,7 +345,7 @@ export const AssessPage: React.FC = () => {
                       {quizResult.strengths?.map((s: string, idx: number) => (
                         <span
                           key={idx}
-                          className="bg-[#151515] text-emerald-900 px-2.5 py-1 rounded-md text-xs font-semibold border border-emerald-300"
+                          className="bg-white text-emerald-900 px-2.5 py-1 rounded-md text-xs font-semibold border border-emerald-300"
                         >
                           {s}
                         </span>
@@ -363,18 +363,18 @@ export const AssessPage: React.FC = () => {
                         {quizResult.gaps.map((gap: any, idx: number) => (
                           <div
                             key={idx}
-                            className="flex items-center justify-between bg-[#151515] p-2.5 rounded-lg border border-amber-200 text-xs"
+                            className="flex items-center justify-between bg-white p-2.5 rounded-lg border border-amber-200 text-xs"
                           >
                             <div>
-                              <span className="font-bold text-[#F5F5F5] block">{gap.skillTag}</span>
-                              <span className="text-[11px] text-[#A3A3A3]">
+                              <span className="font-bold text-[#334155] block">{gap.skillTag}</span>
+                              <span className="text-[11px] text-[#64748B]">
                                 Recommended: {gap.resourceTitle}
                               </span>
                             </div>
                             <Link
                               to="/learn"
                               onClick={() => setActiveQuiz(null)}
-                              className="px-3 py-1 bg-[#E65100] text-white rounded font-semibold text-[11px] hover:bg-[#FF7847] transition"
+                              className="px-3 py-1 bg-[#E65100] text-white rounded font-semibold text-[11px] hover:bg-[#8CC6FA] transition"
                             >
                               Practice Now
                             </Link>
@@ -387,7 +387,7 @@ export const AssessPage: React.FC = () => {
                   <div className="pt-4 flex justify-end">
                     <button
                       onClick={() => setActiveQuiz(null)}
-                      className="px-6 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs"
+                      className="px-6 py-2.5 rounded-xl bg-[#EAF7FF] text-white font-bold text-xs"
                     >
                       Close & Return
                     </button>
@@ -403,17 +403,17 @@ export const AssessPage: React.FC = () => {
                   )}
 
                   {activeQuiz.questions?.map((q: any, qIdx: number) => (
-                    <div key={q.id} className="p-4 rounded-xl border border-[#292929] space-y-3">
+                    <div key={q.id} className="p-4 rounded-xl border border-[#D8ECFA] space-y-3">
                       <div className="flex items-start justify-between">
-                        <span className="text-xs font-bold text-[#FF7847] bg-[#1C1C1C] px-2 py-0.5 rounded">
+                        <span className="text-xs font-bold text-[#2589D6] bg-[#EAF7FF] px-2 py-0.5 rounded">
                           Question {qIdx + 1}
                         </span>
-                        <span className="text-[10px] text-[#A3A3A3] bg-[#1C1C1C] px-2 py-0.5 rounded">
+                        <span className="text-[10px] text-[#64748B] bg-[#EAF7FF] px-2 py-0.5 rounded">
                           {q.skillTag}
                         </span>
                       </div>
 
-                      <p className="font-semibold text-[#F5F5F5] text-sm">
+                      <p className="font-semibold text-[#334155] text-sm">
                         {language === 'hi' && q.questionHindi ? q.questionHindi : q.question}
                       </p>
 
@@ -431,8 +431,8 @@ export const AssessPage: React.FC = () => {
                               onClick={() => handleSelectOption(q.id, optIdx)}
                               className={`flex items-start p-2.5 rounded-lg border text-xs cursor-pointer transition ${
                                 isSelected
-                                  ? 'border-[#FF5A1F] bg-[#1C1C1C]/60 font-semibold text-orange-950'
-                                  : 'border-[#292929] hover:bg-[#101010] text-[#D4D4D4]'
+                                  ? 'border-[#60B6F8] bg-[#EAF7FF]/60 font-semibold text-orange-950'
+                                  : 'border-[#D8ECFA] hover:bg-[#F8FCFF] text-[#475569]'
                               }`}
                             >
                               <input
@@ -440,7 +440,7 @@ export const AssessPage: React.FC = () => {
                                 name={`q_${q.id}`}
                                 checked={isSelected}
                                 onChange={() => handleSelectOption(q.id, optIdx)}
-                                className="mt-0.5 mr-2.5 text-[#FF5A1F] focus:ring-[#FF5A1F]"
+                                className="mt-0.5 mr-2.5 text-[#3B9EE8] focus:ring-[#BDE0FE]"
                               />
                               <span className="flex-1">{optLabel}</span>
                             </label>
@@ -455,22 +455,22 @@ export const AssessPage: React.FC = () => {
 
             {/* Modal Footer */}
             {!quizResult && (
-              <div className="p-4 border-t border-[#292929] flex items-center justify-between bg-stone-50/50">
-                <span className="text-xs text-[#A3A3A3]">
+              <div className="p-4 border-t border-[#D8ECFA] flex items-center justify-between bg-stone-50/50">
+                <span className="text-xs text-[#64748B]">
                   Answered {Object.keys(selectedAnswers).length} of {activeQuiz.questions?.length || 0}
                 </span>
 
                 <div className="flex space-x-2">
                   <button
                     onClick={() => setActiveQuiz(null)}
-                    className="px-4 py-2 rounded-lg border border-[#333333] text-xs font-semibold text-[#D4D4D4] hover:bg-[#1C1C1C]"
+                    className="px-4 py-2 rounded-lg border border-[#BDE0FE] text-xs font-semibold text-[#475569] hover:bg-[#EAF7FF]"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleSubmitQuiz}
                     disabled={submitting || Object.keys(selectedAnswers).length === 0}
-                    className="px-5 py-2 rounded-lg bg-[#E65100] hover:bg-[#FF7847] text-white font-bold text-xs shadow-sm transition disabled:opacity-50"
+                    className="px-5 py-2 rounded-lg bg-[#E65100] hover:bg-[#8CC6FA] text-white font-bold text-xs shadow-sm transition disabled:opacity-50"
                   >
                     {submitting ? 'Scoring on Server...' : 'Submit Answers'}
                   </button>

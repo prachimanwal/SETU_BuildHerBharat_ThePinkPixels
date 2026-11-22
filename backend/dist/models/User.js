@@ -60,18 +60,37 @@ const UserSchema = new mongoose_1.Schema({
     avatar: { type: String, default: '' },
     profilePicture: { type: String, default: '' },
     emailVerified: { type: Boolean, default: false },
-    profileCompletion: { type: Number, default: 15, min: 0, max: 100 },
+    profileCompletion: { type: Number, default: 10, min: 0, max: 100 },
     lastLogin: { type: Date },
     seekerProfile: {
         headline: { type: String, default: '' },
+        bio: { type: String, default: '' },
         phone: { type: String, default: '' },
+        dateOfBirth: { type: String, default: '' },
+        accessibilityPreferences: { type: String, default: '' },
+        preferredLanguage: { type: String, default: 'English' },
         location: {
             city: { type: String, default: '' },
             state: { type: String, default: '' },
+            country: { type: String, default: 'India' },
             isRural: { type: Boolean, default: false }
         },
         languages: { type: [String], default: [] },
         educationLevel: { type: String, default: '' },
+        education: [
+            {
+                level: { type: String, required: true },
+                degree: { type: String, default: '' },
+                specialization: { type: String, default: '' },
+                institution: { type: String, default: '' },
+                currentYearOrSemester: { type: String, default: '' },
+                expectedGraduationYear: { type: String, default: '' },
+                graduationYear: { type: String, default: '' },
+                classCompleted: { type: String, default: '' },
+                stream: { type: String, default: '' },
+                status: { type: String, default: '' }
+            }
+        ],
         qualifications: [
             {
                 title: { type: String, required: true },
@@ -80,19 +99,64 @@ const UserSchema = new mongoose_1.Schema({
             }
         ],
         skills: { type: [String], default: [] },
+        detailedSkills: [
+            {
+                name: { type: String, required: true, trim: true },
+                category: { type: String, default: 'General' },
+                proficiency: {
+                    type: String,
+                    enum: ['Beginner', 'Intermediate', 'Advanced'],
+                    default: 'Beginner'
+                },
+                verified: { type: Boolean, default: false },
+                source: {
+                    type: String,
+                    enum: ['self_reported', 'assessment_verified'],
+                    default: 'self_reported'
+                },
+                supportingTitle: { type: String, default: '' },
+                supportingUrl: { type: String, default: '' }
+            }
+        ],
         experienceLevel: {
             type: String,
             default: ''
         },
+        hasExperience: { type: Boolean, default: false },
+        experience: [
+            {
+                jobTitle: { type: String, required: true, trim: true },
+                organization: { type: String, required: true, trim: true },
+                employmentType: { type: String, default: 'Full-time' },
+                startDate: { type: String, default: '' },
+                endDate: { type: String, default: '' },
+                isCurrent: { type: Boolean, default: false },
+                responsibilities: { type: String, default: '' },
+                achievements: { type: String, default: '' }
+            }
+        ],
         careerGoals: { type: String, default: '' },
+        careerGoalsList: { type: [String], default: [] },
         interests: { type: [String], default: [] },
         preferredWorkMode: {
             type: String,
             enum: ['remote', 'hybrid', 'onsite', 'any'],
             default: 'any'
         },
+        employmentPreferences: {
+            jobTypes: { type: [String], default: [] },
+            workModes: { type: [String], default: [] },
+            preferredLocations: { type: [String], default: [] },
+            expectedSalary: { type: String, default: '' },
+            availableHours: { type: String, default: '' },
+            yearsOfExperience: { type: String, default: '' },
+            availability: { type: String, default: '' },
+            willingToRelocate: { type: Boolean, default: false }
+        },
         resumeUrl: { type: String, default: '' },
-        isCareerRestart: { type: Boolean, default: false }
+        isCareerRestart: { type: Boolean, default: false },
+        onboardingCompleted: { type: Boolean, default: false },
+        onboardingSkipped: { type: Boolean, default: false }
     },
     employerProfile: {
         companyName: { type: String, default: '' },
