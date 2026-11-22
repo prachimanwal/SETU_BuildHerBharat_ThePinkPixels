@@ -13,7 +13,9 @@
     "seed:dev-opportunities": "tsx src/seed/seedDevSampleOpportunities.ts",
     "verify": "tsx scripts/verify-all.ts",
     "test:auth": "tsx scripts/test-auth.ts",
-    "test:platform": "tsx scripts/test-platform.ts"
+    "test:platform": "tsx scripts/test-platform.ts",
+    "test:gemini": "tsx scripts/test-cane-gemini.ts",
+    "check:gemini": "tsx scripts/check-gemini.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
