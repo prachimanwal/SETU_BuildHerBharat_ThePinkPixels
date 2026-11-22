@@ -8,7 +8,13 @@ export interface IPortfolio extends Document {
   title: string;
   description: string;
   skills: string[];
+  technologies?: string[];
+  projectType?: 'Individual' | 'Team';
+  role?: string;
+  duration?: string;
   workSampleUrl: string;
+  githubUrl?: string;
+  documentUrl?: string;
   category?: string;
   source: PortfolioSource;
   featured: boolean;
@@ -27,7 +33,17 @@ const PortfolioSchema = new Schema<IPortfolio>(
     title: { type: String, required: true, trim: true },
     description: { type: String, required: true },
     skills: { type: [String], default: [] },
-    workSampleUrl: { type: String, required: true, trim: true },
+    technologies: { type: [String], default: [] },
+    projectType: {
+      type: String,
+      enum: ['Individual', 'Team'],
+      default: 'Individual'
+    },
+    role: { type: String, default: '' },
+    duration: { type: String, default: '' },
+    workSampleUrl: { type: String, default: '', trim: true },
+    githubUrl: { type: String, default: '', trim: true },
+    documentUrl: { type: String, default: '', trim: true },
     category: { type: String, default: 'Practical Project' },
     source: {
       type: String,

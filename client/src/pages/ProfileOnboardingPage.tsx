@@ -29,6 +29,7 @@ import {
 } from '../context/AuthContext';
 import { UserAvatar } from '../components/UserAvatar';
 import { EducationManager } from '../components/EducationManager';
+import { ResumeUploadReviewModal } from '../components/ResumeUploadReviewModal';
 import {
   formatAcademicScore,
   formatEducationTitle,
@@ -75,6 +76,8 @@ export const ProfileOnboardingPage: React.FC = () => {
   const [saving, setSaving] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [statusMsg, setStatusMsg] = useState<string>('');
+  const [showResumeUpload, setShowResumeUpload] = useState<boolean>(false);
+  const [hideResumeCard, setHideResumeCard] = useState<boolean>(false);
 
   // Step 1: Personal Information
   const [fullName, setFullName] = useState('');
@@ -467,6 +470,57 @@ export const ProfileOnboardingPage: React.FC = () => {
           })}
         </div>
       </div>
+
+      {/* Optional Initial Setup Resume Upload Card (Step 1) */}
+      {step === 1 && !hideResumeCard && (
+        <div className="bg-gradient-to-r from-[#EAF7FF] via-white to-[#FCE7F3]/40 rounded-3xl border border-[#BDE0FE] p-5 shadow-baby-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <h3 className="text-sm font-extrabold text-[#334155] font-display">
+              Upload Your Resume (Optional Quick Start)
+            </h3>
+            <p className="text-xs text-[#64748B] max-w-xl">
+              Already have a resume? Upload a PDF or DOCX (max 5 MB) to help SETU extract your
+              education, skills, projects, and experience — you&apos;ll confirm everything before
+              saving.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => setShowResumeUpload(true)}
+              className="px-4 py-2 rounded-2xl bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] text-[#1E3A5F] text-xs font-bold shadow-baby-sm"
+            >
+              Upload Resume
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/portfolio?action=build')}
+              className="px-3.5 py-2 rounded-2xl bg-white hover:bg-[#EAF7FF] text-[#1E3A5F] border border-[#BDE0FE] text-xs font-bold"
+            >
+              Create Resume with SETU
+            </button>
+            <button
+              type="button"
+              onClick={() => setHideResumeCard(true)}
+              className="px-3 py-2 rounded-2xl text-[#64748B] hover:text-[#334155] text-xs font-semibold"
+            >
+              Skip for Now
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showResumeUpload && (
+        <ResumeUploadReviewModal
+          showSkipOption
+          onClose={() => setShowResumeUpload(false)}
+          onConfirmed={() => {
+            setStatusMsg('Confirmed resume details merged into your SETU profile! 🩵');
+            setHideResumeCard(true);
+          }}
+          onCreateWithSetu={() => navigate('/portfolio?action=build')}
+        />
+      )}
 
       {/* Error & Status Alerts */}
       {errorMsg && (

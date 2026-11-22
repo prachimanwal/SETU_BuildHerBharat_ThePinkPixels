@@ -45,7 +45,17 @@ const PortfolioSchema = new mongoose_1.Schema({
     title: { type: String, required: true, trim: true },
     description: { type: String, required: true },
     skills: { type: [String], default: [] },
-    workSampleUrl: { type: String, required: true, trim: true },
+    technologies: { type: [String], default: [] },
+    projectType: {
+        type: String,
+        enum: ['Individual', 'Team'],
+        default: 'Individual'
+    },
+    role: { type: String, default: '' },
+    duration: { type: String, default: '' },
+    workSampleUrl: { type: String, default: '', trim: true },
+    githubUrl: { type: String, default: '', trim: true },
+    documentUrl: { type: String, default: '', trim: true },
     category: { type: String, default: 'Practical Project' },
     source: {
         type: String,

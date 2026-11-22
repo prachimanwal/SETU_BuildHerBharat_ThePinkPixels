@@ -9,6 +9,9 @@ const Portfolio_1 = require("../models/Portfolio");
 const Opportunity_1 = require("../models/Opportunity");
 const LearningResource_1 = require("../models/LearningResource");
 const GovernmentScheme_1 = require("../models/GovernmentScheme");
+const Resume_1 = require("../models/Resume");
+const UploadedResumeFile_1 = require("../models/UploadedResumeFile");
+const CaneRoadmap_1 = require("../models/CaneRoadmap");
 const opportunity_controller_1 = require("./opportunity.controller");
 const scheme_controller_1 = require("./scheme.controller");
 const response_1 = require("../utils/response");
@@ -402,11 +405,109 @@ const getDashboard = async (req, res) => {
         ];
         const completedStagesCount = journeyStages.filter((s) => s.completed).length;
         const journeyPercentage = Math.round((completedStagesCount / 7) * 100);
+        // Resume status + saved CANE roadmaps (safe non-fatal lookups)
+        let savedResumes = [];
+        let uploadedFiles = [];
+        let savedRoadmaps = [];
+        try {
+            [savedResumes, uploadedFiles, savedRoadmaps] = await Promise.all([
+                Resume_1.Resume.find({ userId }).sort({ isDefault: -1, updatedAt: -1 }).limit(5),
+                UploadedResumeFile_1.UploadedResumeFile.find({ userId })
+                    .select('-fileData -extractedText')
+                    .sort({ updatedAt: -1 })
+                    .limit(3),
+                CaneRoadmap_1.CaneRoadmap.find({ userId }).sort({ createdAt: -1 }).limit(3)
+            ]);
+        }
+        catch {
+            savedResumes = [];
+            uploadedFiles = [];
+            savedRoadmaps = [];
+        }
+        const latestResume = savedResumes[0] || null;
+        const latestUpload = uploadedFiles[0] || null;
+        let resumeState = 'incomplete';
+        let resumeLabel = 'Resume Incomplete';
+        let resumeLastUpdated = null;
+        if (latestResume && latestResume.status === 'ready') {
+            resumeState = 'ready';
+            resumeLabel = 'Resume Ready';
+            resumeLastUpdated = latestResume.updatedAt;
+        }
+        else if (latestUpload) {
+            resumeState = 'uploaded';
+            resumeLabel = 'Resume Uploaded';
+            resumeLastUpdated = latestUpload.updatedAt;
+        }
+        else if (latestResume) {
+            resumeState = 'incomplete';
+            resumeLabel = 'Draft In Progress';
+            resumeLastUpdated = latestResume.updatedAt;
+        }
+        const resumeStatus = {
+            state: resumeState,
+            label: resumeLabel,
+            savedCount: savedResumes.length,
+            uploadedCount: uploadedFiles.length,
+            lastUpdated: resumeLastUpdated
+        };
+        const continueLearning = learningProgress
+            .filter((p) => p.status === 'started' || p.status === 'in_progress')
+            .slice(0, 4);
+        // Compact real progress points for dashboard mini-graph
+        const compactProgressPoints = attempts.slice(0, 6).reverse().map((att) => ({
+            label: att.domain || 'Assessment',
+            value: att.percentage
+        }));
+        // Suggested Next Step strictly from recorded activity
+        let suggestedNextStep = {
+            title: 'Explore Matched Opportunities',
+            description: 'Review jobs, internships, and official government portals aligned with your skills.',
+            actionLabel: 'Explore Opportunities',
+            route: '/opportunities'
+        };
+        if (profileCompletionPercentage < 70) {
+            suggestedNextStep = {
+                title: 'Complete Your SETU Profile',
+                description: `Your profile is ${profileCompletionPercentage}% complete. Add missing sections to unlock sharper recommendations.`,
+                actionLabel: 'Complete Profile',
+                route: '/onboarding'
+            };
+        }
+        else if (attempts.length === 0) {
+            suggestedNextStep = {
+                title: 'Complete Your First Skill Assessment',
+                description: 'Benchmark your strengths and earn Verified Skill Badges employers trust.',
+                actionLabel: 'Start Assessment',
+                route: '/assess'
+            };
+        }
+        else if (portfolioProjects.length === 0) {
+            suggestedNextStep = {
+                title: 'Add a Project to Your Portfolio',
+                description: 'Showcase a real project or submit a practical assignment to prove hands-on ability.',
+                actionLabel: 'Open Portfolio',
+                route: '/portfolio'
+            };
+        }
+        else if (resumeState === 'incomplete') {
+            suggestedNextStep = {
+                title: 'Build or Update Your Resume Before Applying',
+                description: 'Generate an ATS-friendly PDF/DOCX resume using your SETU profile and verified skills.',
+                actionLabel: 'Build Resume',
+                route: '/portfolio?tab=resume'
+            };
+        }
         const dashboardData = {
             user: (0, userSerializer_1.serializeUser)(req.user),
             profileCompletionPercentage,
             missingSections: completionDetails.missingSections,
             careerReadiness,
+            resumeStatus,
+            suggestedNextStep,
+            continueLearning,
+            savedRoadmaps,
+            compactProgressPoints,
             savedSkills: req.user.seekerProfile?.skills || [],
             skillsVerifiedCount: effectiveVerifiedCount,
             verifiedSkills: passedDomains,

@@ -47,6 +47,9 @@ import applicationRoutes from './routes/application.routes';
 import employerRoutes from './routes/employer.routes';
 import adminRoutes from './routes/admin.routes';
 import schemeRoutes from './routes/scheme.routes';
+import analyticsRoutes from './routes/analytics.routes';
+import resumeRoutes from './routes/resume.routes';
+import caneRoutes from './routes/cane.routes';
 
 const app = express();
 
@@ -135,6 +138,9 @@ app.use('/api/applications', applicationRoutes);
 app.use('/api/employer', employerRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/schemes', schemeRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/resumes', resumeRoutes);
+app.use('/api/cane', caneRoutes);
 
 // Backward-Compatible Seeker Aliases
 app.get('/api/seeker/assessments/my-attempts', authenticate, async (req: AuthenticatedRequest, res) => {
@@ -213,7 +219,6 @@ app.use('/api/seeker/applications', applicationRoutes);
 app.post('/api/seeker/applications/apply', authenticate, createApplication);
 
 // Backward-Compatible Employer & Analytics Aliases
-app.get('/api/analytics/seeker/progress', authenticate, getDashboard);
 app.get('/api/analytics/employer/stats', authenticate, requireRole('employer'), getEmployerDashboard);
 app.get('/api/analytics/admin/stats', authenticate, requireRole('admin'), getAdminStats);
 

@@ -435,12 +435,19 @@ export const GovernmentSchemesPage: React.FC = () => {
                   <div className="flex items-center justify-between text-[11px] text-[#64748B]">
                     <span className="inline-flex items-center gap-1">
                       <Calendar className="w-3.5 h-3.5 text-[#3B9EE8]" />
-                      Reviewed: {scheme.lastReviewedDate || '2026-03-01'}
+                      Checked: {scheme.lastReviewedDate || '2026-11-22'}
                     </span>
-                    <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold">
-                      <ShieldCheck className="w-3.5 h-3.5" />
-                      Official Portal
-                    </span>
+                    {scheme.verificationStatus === 'verified' ? (
+                      <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold">
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        Verified Official Source
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-amber-700 font-semibold">
+                        <HelpCircle className="w-3.5 h-3.5" />
+                        Pending Verification
+                      </span>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-2 gap-2.5">
@@ -507,6 +514,26 @@ export const GovernmentSchemesPage: React.FC = () => {
                 <p className="text-xs text-[#475569] leading-relaxed">
                   {selectedScheme.eligibilitySummary}
                 </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 text-[11px]">
+                  {selectedScheme.ageRequirements && (
+                    <div className="p-2.5 rounded-xl bg-white border border-[#D8ECFA]">
+                      <span className="font-bold text-[#1E3A5F] block">Age Criteria</span>
+                      <span className="text-[#475569]">{selectedScheme.ageRequirements}</span>
+                    </div>
+                  )}
+                  {selectedScheme.educationRequirements && (
+                    <div className="p-2.5 rounded-xl bg-white border border-[#D8ECFA]">
+                      <span className="font-bold text-[#1E3A5F] block">Education</span>
+                      <span className="text-[#475569]">{selectedScheme.educationRequirements}</span>
+                    </div>
+                  )}
+                  {selectedScheme.stateApplicability && (
+                    <div className="p-2.5 rounded-xl bg-white border border-[#D8ECFA]">
+                      <span className="font-bold text-[#1E3A5F] block">Applicability</span>
+                      <span className="text-[#475569]">{selectedScheme.stateApplicability}</span>
+                    </div>
+                  )}
+                </div>
                 {selectedScheme.eligibilityExplanation && (
                   <p className="text-xs font-semibold text-[#2589D6] pt-1">
                     Profile Hint ({selectedScheme.eligibilityStatus}):{' '}

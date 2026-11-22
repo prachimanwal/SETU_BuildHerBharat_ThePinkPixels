@@ -7,7 +7,10 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
-    "seed": "tsx src/seed/seed.ts",
+    "seed": "tsx src/seed/seedCatalogs.ts",
+    "seed:catalogs": "tsx src/seed/seedCatalogs.ts",
+    "seed:catalogs:update": "tsx src/seed/seedCatalogs.ts --update",
+    "seed:dev-opportunities": "tsx src/seed/seedDevSampleOpportunities.ts",
     "verify": "tsx scripts/verify-all.ts",
     "test:auth": "tsx scripts/test-auth.ts",
     "test:platform": "tsx scripts/test-platform.ts"
@@ -16,10 +19,15 @@
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
+    "docx": "^9.16.0",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
+    "mammoth": "^1.13.0",
     "mongoose": "^9.2.3",
+    "multer": "^2.5.0",
+    "pdf-parse": "^2.4.5",
+    "pdfkit": "^0.21.0",
     "zod": "^3.24.2"
   },
   "devDependencies": {
@@ -28,7 +36,9 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^2.3.0",
     "@types/node": "^24.11.1",
+    "@types/pdfkit": "^0.17.7",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   }

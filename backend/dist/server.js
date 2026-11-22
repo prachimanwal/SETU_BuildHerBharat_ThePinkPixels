@@ -6,12 +6,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const app_1 = __importDefault(require("./app"));
 const database_1 = require("./config/database");
 const env_1 = require("./config/env");
-const catalogBootstrap_1 = require("./seed/catalogBootstrap");
 const DB_RETRY_INTERVAL_MS = 10000;
 const connectWithRetry = async () => {
     try {
         await (0, database_1.connectDB)();
-        await (0, catalogBootstrap_1.ensurePlatformCatalogs)();
     }
     catch (error) {
         console.error(`[Server] Initial MongoDB connection failed (${error?.message || 'unknown error'}).`);

@@ -24,6 +24,7 @@ import { GovernmentSchemesPage } from './pages/GovernmentSchemesPage';
 import { BuildHerPage } from './pages/BuildHerPage';
 import { EmployerDashboardPage } from './pages/EmployerDashboardPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
+import { CanePage } from './pages/CanePage';
 
 // Helper for Protected Authenticated Routes with 20:80 SaaS Layout
 const ProtectedDashboardRoute: React.FC<{
@@ -263,6 +264,14 @@ export default function App() {
               element={
                 <ProtectedDashboardRoute allowedRoles={['seeker']}>
                   <MyProgressPage />
+                </ProtectedDashboardRoute>
+              }
+            />
+            <Route
+              path="/cane"
+              element={
+                <ProtectedDashboardRoute allowedRoles={['seeker', 'employer', 'admin']}>
+                  <CanePage />
                 </ProtectedDashboardRoute>
               }
             />

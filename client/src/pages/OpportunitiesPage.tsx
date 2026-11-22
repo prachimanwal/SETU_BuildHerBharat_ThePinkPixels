@@ -377,10 +377,13 @@ export const OpportunitiesPage: React.FC = () => {
           <div className="flex flex-wrap gap-1.5">
             {[
               { id: 'all', label: 'All Types' },
-              { id: 'job', label: 'Full-Time / Part-Time Job' },
+              { id: 'full_time', label: 'Full-Time' },
+              { id: 'part_time', label: 'Part-Time' },
+              { id: 'entry_level', label: 'Entry-Level' },
               { id: 'internship', label: 'Internship' },
               { id: 'apprenticeship', label: 'Apprenticeship' },
-              { id: 'freelance', label: 'Freelance' }
+              { id: 'freelance', label: 'Freelance' },
+              { id: 'entrepreneurship', label: 'Entrepreneurship' }
             ].map((t) => (
               <button
                 key={t.id}

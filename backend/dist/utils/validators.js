@@ -174,7 +174,18 @@ exports.opportunitySchema = zod_1.z.object({
         isRuralFocus: zod_1.z.boolean().default(false)
     }),
     workMode: zod_1.z.enum(['remote', 'hybrid', 'onsite']).default('hybrid'),
-    opportunityType: zod_1.z.enum(['job', 'internship', 'freelance', 'apprenticeship']).default('job'),
+    opportunityType: zod_1.z
+        .enum([
+        'job',
+        'full_time',
+        'part_time',
+        'internship',
+        'freelance',
+        'apprenticeship',
+        'entry_level',
+        'entrepreneurship'
+    ])
+        .default('job'),
     stipendOrSalary: zod_1.z.string().trim().default('Competitive / Market Standard'),
     duration: zod_1.z.string().trim().default('Full-Time'),
     isCareerRestart: zod_1.z.boolean().default(false)
@@ -187,7 +198,13 @@ exports.portfolioSchema = zod_1.z.object({
     title: zod_1.z.string().trim().min(3, 'Title must be at least 3 characters'),
     description: zod_1.z.string().trim().min(10, 'Description must be at least 10 characters'),
     skills: zod_1.z.array(zod_1.z.string()).default([]),
-    workSampleUrl: zod_1.z.string().trim().min(1, 'Work sample link is required'),
+    technologies: zod_1.z.array(zod_1.z.string()).optional().default([]),
+    projectType: zod_1.z.enum(['Individual', 'Team']).optional().default('Individual'),
+    role: zod_1.z.string().trim().optional().default(''),
+    duration: zod_1.z.string().trim().optional().default(''),
+    workSampleUrl: zod_1.z.string().trim().optional().default(''),
+    githubUrl: zod_1.z.string().trim().optional().default(''),
+    documentUrl: zod_1.z.string().trim().optional().default(''),
     category: zod_1.z.string().optional().default('Practical Deliverable'),
     source: zod_1.z.enum(['self_created', 'practice_assignment']).default('self_created'),
     featured: zod_1.z.boolean().default(false)

@@ -35,6 +35,9 @@ const application_routes_1 = __importDefault(require("./routes/application.route
 const employer_routes_1 = __importDefault(require("./routes/employer.routes"));
 const admin_routes_1 = __importDefault(require("./routes/admin.routes"));
 const scheme_routes_1 = __importDefault(require("./routes/scheme.routes"));
+const analytics_routes_1 = __importDefault(require("./routes/analytics.routes"));
+const resume_routes_1 = __importDefault(require("./routes/resume.routes"));
+const cane_routes_1 = __importDefault(require("./routes/cane.routes"));
 const app = (0, express_1.default)();
 // Trust reverse proxies (important for Render, Netlify, and secure cookies)
 app.set('trust proxy', 1);
@@ -108,6 +111,9 @@ app.use('/api/applications', application_routes_1.default);
 app.use('/api/employer', employer_routes_1.default);
 app.use('/api/admin', admin_routes_1.default);
 app.use('/api/schemes', scheme_routes_1.default);
+app.use('/api/analytics', analytics_routes_1.default);
+app.use('/api/resumes', resume_routes_1.default);
+app.use('/api/cane', cane_routes_1.default);
 // Backward-Compatible Seeker Aliases
 app.get('/api/seeker/assessments/my-attempts', auth_middleware_1.authenticate, async (req, res) => {
     try {
@@ -176,7 +182,6 @@ app.use('/api/seeker/portfolio', portfolio_routes_1.default);
 app.use('/api/seeker/applications', application_routes_1.default);
 app.post('/api/seeker/applications/apply', auth_middleware_1.authenticate, application_controller_1.createApplication);
 // Backward-Compatible Employer & Analytics Aliases
-app.get('/api/analytics/seeker/progress', auth_middleware_1.authenticate, user_controller_1.getDashboard);
 app.get('/api/analytics/employer/stats', auth_middleware_1.authenticate, (0, role_middleware_1.requireRole)('employer'), employer_controller_1.getEmployerDashboard);
 app.get('/api/analytics/admin/stats', auth_middleware_1.authenticate, (0, role_middleware_1.requireRole)('admin'), admin_controller_1.getAdminStats);
 app.get('/api/employer/opportunities', auth_middleware_1.authenticate, (0, role_middleware_1.requireRole)('employer'), async (req, res) => {

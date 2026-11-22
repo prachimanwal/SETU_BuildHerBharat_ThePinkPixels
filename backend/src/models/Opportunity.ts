@@ -1,7 +1,15 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export type WorkMode = 'remote' | 'hybrid' | 'onsite';
-export type OpportunityType = 'job' | 'internship' | 'freelance' | 'apprenticeship';
+export type OpportunityType =
+  | 'job'
+  | 'full_time'
+  | 'part_time'
+  | 'internship'
+  | 'freelance'
+  | 'apprenticeship'
+  | 'entry_level'
+  | 'entrepreneurship';
 export type OpportunityStatus = 'draft' | 'published' | 'closed' | 'archived';
 
 export interface IOpportunity extends Document {
@@ -28,6 +36,7 @@ export interface IOpportunity extends Document {
   applicationDeadline?: string;
   externalApplyUrl?: string;
   isCareerRestart: boolean;
+  isSampleExample?: boolean;
   status: OpportunityStatus;
   moderationStatus: 'clean' | 'flagged' | 'hidden';
   createdAt: Date;
@@ -59,7 +68,16 @@ const OpportunitySchema = new Schema<IOpportunity>(
     },
     opportunityType: {
       type: String,
-      enum: ['job', 'internship', 'freelance', 'apprenticeship'],
+      enum: [
+        'job',
+        'full_time',
+        'part_time',
+        'internship',
+        'freelance',
+        'apprenticeship',
+        'entry_level',
+        'entrepreneurship'
+      ],
       default: 'job',
       required: true
     },
@@ -73,6 +91,7 @@ const OpportunitySchema = new Schema<IOpportunity>(
     applicationDeadline: { type: String, default: '' },
     externalApplyUrl: { type: String, default: '' },
     isCareerRestart: { type: Boolean, default: false, index: true },
+    isSampleExample: { type: Boolean, default: false, index: true },
     status: {
       type: String,
       enum: ['draft', 'published', 'closed', 'archived'],

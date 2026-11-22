@@ -15,6 +15,7 @@ import { useAuth } from '../context/AuthContext';
 import { Sidebar } from './Sidebar';
 import { Footer } from './Footer';
 import { UserAvatar } from './UserAvatar';
+import { CaneFloatingWidget } from './CaneChatWidget';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -64,6 +65,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
     if (p.startsWith('/portfolio')) return 'My Portfolio';
     if (p.startsWith('/applications')) return 'Applications Desk';
     if (p.startsWith('/progress')) return 'My Progress & Journey';
+    if (p.startsWith('/cane')) return 'CANE AI Career Companion';
     if (p.startsWith('/profile')) return 'My Career Profile';
     if (p.startsWith('/employer')) return 'Employer Desk';
     if (p.startsWith('/admin')) return 'Administrator Console';
@@ -245,6 +247,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
 
         <Footer />
       </div>
+
+      {/* Floating CANE AI Assistant available across all authenticated SETU pages */}
+      {user && !location.pathname.startsWith('/cane') && <CaneFloatingWidget />}
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
+import { ENV } from '../config/env';
 import { Opportunity } from '../models/Opportunity';
 import { Application } from '../models/Application';
 import { sendSuccess, sendError } from '../utils/response';
@@ -255,6 +256,11 @@ export const getOpportunities = async (req: AuthenticatedRequest, res: Response)
       status: 'published',
       moderationStatus: 'clean'
     };
+
+    // Never show development sample examples in production
+    if (ENV.NODE_ENV === 'production') {
+      filter.isSampleExample = { $ne: true };
+    }
 
     const qText = String(query || search || '').trim();
     if (qText) {

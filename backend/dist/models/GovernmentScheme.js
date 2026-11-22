@@ -56,6 +56,14 @@ const GovernmentSchemeSchema = new mongoose_1.Schema({
     description: { type: String, default: '' },
     benefitsSummary: { type: String, required: true },
     eligibilitySummary: { type: String, required: true },
+    ageRequirements: { type: String, default: 'Check official portal for current age rules' },
+    educationRequirements: { type: String, default: 'Varies by program — see official portal' },
+    stateApplicability: { type: String, default: 'All India (Central Scheme)' },
+    verificationStatus: {
+        type: String,
+        enum: ['verified', 'pending_verification'],
+        default: 'pending_verification'
+    },
     requiredDocuments: { type: [String], default: [] },
     applicationProcess: { type: String, default: '' },
     applicationStatus: {

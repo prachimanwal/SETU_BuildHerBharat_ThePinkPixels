@@ -59,7 +59,16 @@ const OpportunitySchema = new mongoose_1.Schema({
     },
     opportunityType: {
         type: String,
-        enum: ['job', 'internship', 'freelance', 'apprenticeship'],
+        enum: [
+            'job',
+            'full_time',
+            'part_time',
+            'internship',
+            'freelance',
+            'apprenticeship',
+            'entry_level',
+            'entrepreneurship'
+        ],
         default: 'job',
         required: true
     },
@@ -73,6 +82,7 @@ const OpportunitySchema = new mongoose_1.Schema({
     applicationDeadline: { type: String, default: '' },
     externalApplyUrl: { type: String, default: '' },
     isCareerRestart: { type: Boolean, default: false, index: true },
+    isSampleExample: { type: Boolean, default: false, index: true },
     status: {
         type: String,
         enum: ['draft', 'published', 'closed', 'archived'],

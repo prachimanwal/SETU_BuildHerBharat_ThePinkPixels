@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.toggleSaveOpportunity = exports.getSavedOpportunities = exports.getMatchedOpportunities = exports.deleteOpportunity = exports.updateOpportunity = exports.createOpportunity = exports.getOpportunityById = exports.getOpportunities = exports.scoreOpportunityForUser = void 0;
+const env_1 = require("../config/env");
 const Opportunity_1 = require("../models/Opportunity");
 const Application_1 = require("../models/Application");
 const response_1 = require("../utils/response");
@@ -195,6 +196,10 @@ const getOpportunities = async (req, res) => {
             status: 'published',
             moderationStatus: 'clean'
         };
+        // Never show development sample examples in production
+        if (env_1.ENV.NODE_ENV === 'production') {
+            filter.isSampleExample = { $ne: true };
+        }
         const qText = String(query || search || '').trim();
         if (qText) {
             const qRegex = new RegExp(qText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');

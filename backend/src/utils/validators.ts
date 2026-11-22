@@ -184,7 +184,18 @@ export const opportunitySchema = z.object({
     isRuralFocus: z.boolean().default(false)
   }),
   workMode: z.enum(['remote', 'hybrid', 'onsite']).default('hybrid'),
-  opportunityType: z.enum(['job', 'internship', 'freelance', 'apprenticeship']).default('job'),
+  opportunityType: z
+    .enum([
+      'job',
+      'full_time',
+      'part_time',
+      'internship',
+      'freelance',
+      'apprenticeship',
+      'entry_level',
+      'entrepreneurship'
+    ])
+    .default('job'),
   stipendOrSalary: z.string().trim().default('Competitive / Market Standard'),
   duration: z.string().trim().default('Full-Time'),
   isCareerRestart: z.boolean().default(false)
@@ -199,7 +210,13 @@ export const portfolioSchema = z.object({
   title: z.string().trim().min(3, 'Title must be at least 3 characters'),
   description: z.string().trim().min(10, 'Description must be at least 10 characters'),
   skills: z.array(z.string()).default([]),
-  workSampleUrl: z.string().trim().min(1, 'Work sample link is required'),
+  technologies: z.array(z.string()).optional().default([]),
+  projectType: z.enum(['Individual', 'Team']).optional().default('Individual'),
+  role: z.string().trim().optional().default(''),
+  duration: z.string().trim().optional().default(''),
+  workSampleUrl: z.string().trim().optional().default(''),
+  githubUrl: z.string().trim().optional().default(''),
+  documentUrl: z.string().trim().optional().default(''),
   category: z.string().optional().default('Practical Deliverable'),
   source: z.enum(['self_created', 'practice_assignment']).default('self_created'),
   featured: z.boolean().default(false)
