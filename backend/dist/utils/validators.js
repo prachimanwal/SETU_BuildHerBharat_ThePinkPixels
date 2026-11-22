@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.schemeSchema = exports.portfolioSchema = exports.applicationSchema = exports.opportunitySchema = exports.profileUpdateSchema = exports.googleAuthSchema = exports.loginSchema = exports.registerSchema = void 0;
+exports.schemeSchema = exports.portfolioSchema = exports.applicationSchema = exports.opportunitySchema = exports.profileUpdateSchema = exports.loginSchema = exports.registerSchema = void 0;
 const zod_1 = require("zod");
 exports.registerSchema = zod_1.z.object({
     name: zod_1.z.string().trim().min(2, 'Name must be at least 2 characters long'),
@@ -13,12 +13,6 @@ exports.registerSchema = zod_1.z.object({
 exports.loginSchema = zod_1.z.object({
     email: zod_1.z.string().trim().email('Invalid email address'),
     password: zod_1.z.string().min(1, 'Password is required')
-});
-exports.googleAuthSchema = zod_1.z.object({
-    credential: zod_1.z
-        .string({ required_error: 'Google authentication credential is required' })
-        .trim()
-        .min(1, 'Google authentication credential is required')
 });
 exports.profileUpdateSchema = zod_1.z.object({
     name: zod_1.z.string().trim().min(2).optional(),

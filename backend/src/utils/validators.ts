@@ -14,13 +14,6 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Password is required')
 });
 
-export const googleAuthSchema = z.object({
-  credential: z
-    .string({ required_error: 'Google authentication credential is required' })
-    .trim()
-    .min(1, 'Google authentication credential is required')
-});
-
 export const profileUpdateSchema = z.object({
   name: z.string().trim().min(2).optional(),
   avatar: z.string().optional(),

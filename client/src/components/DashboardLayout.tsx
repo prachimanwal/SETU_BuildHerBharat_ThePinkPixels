@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Menu, ChevronDown, User as UserIcon, Award, Settings, LogOut } from 'lucide-react';
+import { Menu, ChevronDown, User as UserIcon, Award, Settings, LogOut, CheckCircle2, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Sidebar } from './Sidebar';
 import { Footer } from './Footer';
@@ -11,12 +11,20 @@ interface DashboardLayoutProps {
 }
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, successNotice, clearSuccessNotice } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    if (!successNotice) return;
+    const timer = window.setTimeout(() => {
+      clearSuccessNotice();
+    }, 5000);
+    return () => window.clearTimeout(timer);
+  }, [successNotice, clearSuccessNotice]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -146,11 +154,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
                       >
                         {roleInfo.text}
                       </span>
-                      {user?.authProvider === 'google' && (
-                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded border bg-blue-950/40 text-blue-300 border-blue-800/50">
-                          Google
-                        </span>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -200,6 +203,25 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
 
         {/* Dynamic 80% Content Workspace */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto bg-[#080808]">
+          {successNotice && (
+            <div
+              role="status"
+              className="mb-6 max-w-6xl mx-auto p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-800/60 text-emerald-300 text-xs flex items-center justify-between gap-3 animate-in fade-in"
+            >
+              <div className="flex items-center gap-2.5">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                <span>{successNotice}</span>
+              </div>
+              <button
+                type="button"
+                onClick={clearSuccessNotice}
+                className="text-emerald-400 hover:text-emerald-200 transition"
+                aria-label="Dismiss notification"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
           {children}
         </main>
 

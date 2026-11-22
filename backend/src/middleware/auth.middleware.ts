@@ -4,7 +4,6 @@ import mongoose from 'mongoose';
 import { ENV } from '../config/env';
 import { User, IUser } from '../models/User';
 import { sendError } from '../utils/response';
-import { isDemoUser } from '../utils/userSerializer';
 
 export interface AuthenticatedRequest extends Request {
   user?: IUser;
@@ -16,9 +15,7 @@ export const generateToken = (user: IUser): string => {
     {
       id: user._id.toString(),
       email: user.email,
-      role: user.role,
-      authProvider: user.authProvider || 'local',
-      isDemoAccount: isDemoUser(user)
+      role: user.role
     },
     ENV.JWT_SECRET,
     { expiresIn: '7d' }

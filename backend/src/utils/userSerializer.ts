@@ -1,18 +1,5 @@
 import { IUser } from '../models/User';
 
-const DEMO_ADMIN_EMAIL = 'admin@setu.gov.in';
-
-export const isDemoEmail = (email?: string): boolean => {
-  if (!email) return false;
-  const lower = email.toLowerCase().trim();
-  return lower.endsWith('@setu.demo') || lower === DEMO_ADMIN_EMAIL;
-};
-
-export const isDemoUser = (user?: Partial<IUser> | null): boolean => {
-  if (!user) return false;
-  return Boolean(user.isDemoAccount || user.authProvider === 'demo' || isDemoEmail(user.email));
-};
-
 export const calculateProfileCompletion = (user: any): number => {
   if (!user) return 0;
 
@@ -67,9 +54,7 @@ export const serializeUser = (user: IUser) => {
     role: user.role,
     avatar: picture,
     profilePicture: picture,
-    authProvider: user.authProvider || (isDemoUser(user) ? 'demo' : 'local'),
     emailVerified: Boolean(user.emailVerified),
-    isDemoAccount: isDemoUser(user),
     profileCompletion,
     lastLogin: user.lastLogin,
     createdAt: user.createdAt,

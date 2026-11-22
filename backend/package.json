@@ -1,7 +1,7 @@
 {
   "name": "setu-backend",
   "version": "1.0.0",
-  "description": "SETU Standalone Backend API (Node.js, Express, TypeScript, MongoDB Atlas, Zod, JWT, Google OAuth)",
+  "description": "SETU Standalone Backend API (Node.js, Express, TypeScript, MongoDB Atlas, Zod, JWT)",
   "main": "dist/server.js",
   "scripts": {
     "build": "tsc",
@@ -9,7 +9,7 @@
     "dev": "tsx watch src/server.ts",
     "seed": "tsx src/seed/seed.ts",
     "verify": "tsx scripts/verify-all.ts",
-    "test:auth": "tsx scripts/test-google-auth.ts"
+    "test:auth": "tsx scripts/test-auth.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -17,7 +17,6 @@
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
-    "google-auth-library": "^11.3.4",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.2.3",
     "zod": "^3.24.2"

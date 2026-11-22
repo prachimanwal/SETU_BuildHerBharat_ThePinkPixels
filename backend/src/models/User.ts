@@ -2,7 +2,6 @@ import mongoose, { Document, Schema } from 'mongoose';
 import bcrypt from 'bcryptjs';
 
 export type UserRole = 'seeker' | 'employer' | 'admin';
-export type AuthProvider = 'local' | 'google' | 'demo';
 
 export interface ISeekerProfile {
   headline?: string;
@@ -50,14 +49,11 @@ export interface IUser extends Document {
   name: string;
   fullName?: string;
   email: string;
-  passwordHash?: string;
+  passwordHash: string;
   role: UserRole;
   avatar?: string;
   profilePicture?: string;
-  googleId?: string;
-  authProvider: AuthProvider;
   emailVerified: boolean;
-  isDemoAccount: boolean;
   profileCompletion: number;
   lastLogin?: Date;
   seekerProfile?: ISeekerProfile;
@@ -79,7 +75,7 @@ const UserSchema = new Schema<IUser>(
       trim: true,
       index: true
     },
-    passwordHash: { type: String, required: false },
+    passwordHash: { type: String, required: true },
     role: {
       type: String,
       enum: ['seeker', 'employer', 'admin'],
@@ -88,14 +84,7 @@ const UserSchema = new Schema<IUser>(
     },
     avatar: { type: String, default: '' },
     profilePicture: { type: String, default: '' },
-    googleId: { type: String, unique: true, sparse: true, index: true },
-    authProvider: {
-      type: String,
-      enum: ['local', 'google', 'demo'],
-      default: 'local'
-    },
     emailVerified: { type: Boolean, default: false },
-    isDemoAccount: { type: Boolean, default: false },
     profileCompletion: { type: Number, default: 15, min: 0, max: 100 },
     lastLogin: { type: Date },
     seekerProfile: {

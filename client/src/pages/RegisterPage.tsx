@@ -8,16 +8,12 @@ import {
   User,
   Building2,
   CheckCircle2,
-  ShieldCheck,
-  Award,
-  Sparkles,
-  Lock
+  Sparkles
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { GoogleSignInButton } from '../components/GoogleSignInButton';
 
 export const RegisterPage: React.FC = () => {
-  const { register, loginWithGoogle } = useAuth();
+  const { register } = useAuth();
   const navigate = useNavigate();
 
   const [role, setRole] = useState<'seeker' | 'employer'>('seeker');
@@ -29,8 +25,8 @@ export const RegisterPage: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
 
   // Password strength calculator
   const calculateStrength = (pass: string) => {
@@ -49,6 +45,12 @@ export const RegisterPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccessMsg('');
+
+    if (name.trim().length < 2) {
+      setError('Full name must be at least 2 characters long.');
+      return;
+    }
 
     if (password !== confirmPassword) {
       setError('Passwords do not match. Please verify both password fields.');
@@ -72,7 +74,8 @@ export const RegisterPage: React.FC = () => {
     setLoading(false);
 
     if (res.success) {
-      if (role === 'employer') {
+      setSuccessMsg('Account created successfully! Redirecting to your dashboard...');
+      if (res.user?.role === 'employer' || role === 'employer') {
         navigate('/employer');
       } else {
         navigate('/dashboard');
@@ -80,42 +83,6 @@ export const RegisterPage: React.FC = () => {
     } else {
       setError(res.error || 'Registration was unsuccessful. Please try again.');
     }
-  };
-
-  const handleGoogleCredential = async (credential: string) => {
-    setError('');
-    setGoogleLoading(true);
-
-    const res = await loginWithGoogle(credential);
-    setGoogleLoading(false);
-
-    if (res.success && res.user) {
-      if (res.user.role === 'admin') {
-        navigate('/admin');
-      } else if (res.user.role === 'employer') {
-        navigate('/employer');
-      } else {
-        navigate('/dashboard');
-      }
-    } else {
-      setError(res.error || 'Google registration was unsuccessful. Please try again.');
-    }
-  };
-
-  const fillDemoCandidate = (demoRole: 'seeker' | 'employer') => {
-    setRole(demoRole);
-    if (demoRole === 'seeker') {
-      setName('Aarti Verma');
-      setEmail('aarti.verma@example.com');
-      setPassword('SetuPass@2026');
-      setConfirmPassword('SetuPass@2026');
-    } else {
-      setName('Rajesh Khanna');
-      setEmail('rajesh.khanna@innovatecorp.in');
-      setPassword('SetuPass@2026');
-      setConfirmPassword('SetuPass@2026');
-    }
-    setError('');
   };
 
   return (
@@ -153,7 +120,7 @@ export const RegisterPage: React.FC = () => {
           </h1>
 
           <p className="text-sm text-[#A3A3A3] leading-relaxed">
-            Join thousands of job seekers, career restarters, and verified employers across India. Demonstrate what you can do through real practical work.
+            Join thousands of job seekers, career restarters, and verified employers across India. Show what you can do through real practical work.
           </p>
 
           <div className="space-y-3 pt-2">
@@ -205,30 +172,6 @@ export const RegisterPage: React.FC = () => {
               </p>
             </div>
 
-            {/* Quick Demo Fill Buttons (Helpful for Judges/Testing) */}
-            <div className="p-2.5 rounded-xl bg-[#101010] border border-[#242424] flex items-center justify-between text-xs">
-              <span className="text-[11px] font-semibold text-[#737373] flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-[#FF5A1F]" />
-                Demo Fill:
-              </span>
-              <div className="flex gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => fillDemoCandidate('seeker')}
-                  className="px-2.5 py-1 rounded-lg bg-[#181818] hover:bg-[#202020] text-[#D4D4D4] hover:text-[#FF5A1F] text-[11px] font-medium border border-[#292929] transition"
-                >
-                  Job Seeker
-                </button>
-                <button
-                  type="button"
-                  onClick={() => fillDemoCandidate('employer')}
-                  className="px-2.5 py-1 rounded-lg bg-[#181818] hover:bg-[#202020] text-[#D4D4D4] hover:text-[#FF5A1F] text-[11px] font-medium border border-[#292929] transition"
-                >
-                  Employer
-                </button>
-              </div>
-            </div>
-
             {/* Account Type Selector (Seeker / Employer) */}
             <div>
               <label className="block text-xs font-semibold text-[#A3A3A3] mb-2 uppercase tracking-wider">
@@ -238,7 +181,7 @@ export const RegisterPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setRole('seeker')}
-                  className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold transition ${
+                  className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-semibold transition ${
                     role === 'seeker'
                       ? 'bg-[#FF5A1F] text-white shadow-[0_2px_10px_rgba(255,90,31,0.4)]'
                       : 'text-[#A3A3A3] hover:text-[#F5F5F5]'
@@ -250,7 +193,7 @@ export const RegisterPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setRole('employer')}
-                  className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold transition ${
+                  className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-semibold transition ${
                     role === 'employer'
                       ? 'bg-[#FF5A1F] text-white shadow-[0_2px_10px_rgba(255,90,31,0.4)]'
                       : 'text-[#A3A3A3] hover:text-[#F5F5F5]'
@@ -273,33 +216,16 @@ export const RegisterPage: React.FC = () => {
               </div>
             )}
 
-            {/* Continue with Google (Official Google Identity Services) */}
-            <div className="space-y-1.5">
-              <GoogleSignInButton
-                mode="signup"
-                loading={googleLoading}
-                disabled={loading}
-                onCredential={handleGoogleCredential}
-                onError={(msg) => setError(msg)}
-              />
-              {role === 'employer' && (
-                <p className="text-[11px] text-[#737373] text-center">
-                  Google Sign-In creates a Job Seeker account. For Employer accounts, please register with email below.
-                </p>
-              )}
-            </div>
-
-            {/* Subtle Divider */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-[#292929]" />
+            {/* Success Banner */}
+            {successMsg && (
+              <div
+                role="status"
+                className="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-800/60 text-emerald-300 text-xs flex items-start gap-2.5 animate-in fade-in"
+              >
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400 mt-0.5" />
+                <span className="leading-relaxed">{successMsg}</span>
               </div>
-              <div className="relative flex justify-center text-[10px] uppercase">
-                <span className="bg-[#151515] px-3 text-[#737373] font-bold tracking-wider">
-                  Or register with email
-                </span>
-              </div>
-            </div>
+            )}
 
             {/* Registration Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -312,7 +238,7 @@ export const RegisterPage: React.FC = () => {
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Aarti Verma"
+                  placeholder="Enter your full name"
                   className="w-full px-3.5 py-2.5 rounded-xl bg-[#101010] border border-[#292929] text-sm text-[#FFFFFF] placeholder-[#777777] focus:border-[#FF5A1F] focus:ring-1 focus:ring-[#FF5A1F] outline-none transition"
                 />
               </div>
@@ -355,7 +281,7 @@ export const RegisterPage: React.FC = () => {
                   </button>
                 </div>
 
-                {/* Password Strength Indicator (Task 5 requirement) */}
+                {/* Password Strength Indicator */}
                 {password.length > 0 && (
                   <div className="mt-2 space-y-1">
                     <div className="flex items-center justify-between text-[11px]">
@@ -426,7 +352,7 @@ export const RegisterPage: React.FC = () => {
               </button>
             </form>
 
-            <p className="text-center text-xs text-[#737373] pt-2">
+            <p className="text-center text-xs text-[#737373] pt-2 border-t border-[#242424]">
               Already have an account?{' '}
               <Link
                 to="/login"

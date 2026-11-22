@@ -9,14 +9,11 @@ const mongoose_1 = __importDefault(require("mongoose"));
 const env_1 = require("../config/env");
 const User_1 = require("../models/User");
 const response_1 = require("../utils/response");
-const userSerializer_1 = require("../utils/userSerializer");
 const generateToken = (user) => {
     return jsonwebtoken_1.default.sign({
         id: user._id.toString(),
         email: user.email,
-        role: user.role,
-        authProvider: user.authProvider || 'local',
-        isDemoAccount: (0, userSerializer_1.isDemoUser)(user)
+        role: user.role
     }, env_1.ENV.JWT_SECRET, { expiresIn: '7d' });
 };
 exports.generateToken = generateToken;

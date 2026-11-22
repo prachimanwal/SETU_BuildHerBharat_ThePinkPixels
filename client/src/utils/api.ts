@@ -75,8 +75,6 @@ export const apiFetch = async (
         if (endpoint.includes('/auth/me')) {
           localStorage.removeItem('setu_auth_token');
           errorMsg = serverMessage || 'Your authentication session has expired. Please sign in again.';
-        } else if (endpoint.includes('/auth/google')) {
-          errorMsg = serverMessage || 'Invalid Google credential. Please try signing in again.';
         } else if (endpoint.includes('/auth/login')) {
           errorMsg = serverMessage || 'Invalid email or password. Please try again.';
         } else {

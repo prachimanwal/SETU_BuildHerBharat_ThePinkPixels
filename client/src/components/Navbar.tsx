@@ -5,7 +5,6 @@ import {
   X,
   Globe,
   ChevronDown,
-  Sparkles,
   User as UserIcon,
   LogOut,
   LayoutDashboard,
@@ -16,13 +15,11 @@ import { useLanguage } from '../context/LanguageContext';
 import { UserAvatar } from './UserAvatar';
 
 export const Navbar: React.FC = () => {
-  const { user, logout, login } = useAuth();
+  const { user, logout } = useAuth();
   const { language, toggleLanguage } = useLanguage();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [demoMenuOpen, setDemoMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const demoRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -30,9 +27,6 @@ export const Navbar: React.FC = () => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setUserDropdownOpen(false);
-      }
-      if (demoRef.current && !demoRef.current.contains(e.target as Node)) {
-        setDemoMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -43,16 +37,6 @@ export const Navbar: React.FC = () => {
     await logout();
     setUserDropdownOpen(false);
     navigate('/');
-  };
-
-  const handleQuickDemoLogin = async (email: string, pass: string) => {
-    setDemoMenuOpen(false);
-    const res = await login(email, pass);
-    if (res.success) {
-      if (email.includes('admin')) navigate('/admin');
-      else if (email.includes('employer') || email.includes('pending')) navigate('/employer');
-      else navigate('/dashboard');
-    }
   };
 
   const getDashboardPath = () => {
@@ -125,7 +109,7 @@ export const Navbar: React.FC = () => {
             })}
           </nav>
 
-          {/* RIGHT SECTION: Controls, Language, Demo switcher, Auth */}
+          {/* RIGHT SECTION: Language Selector & Auth */}
           <div className="hidden lg:flex items-center space-x-3">
             {/* Language Selector */}
             <button
@@ -136,57 +120,6 @@ export const Navbar: React.FC = () => {
               <Globe className="w-3.5 h-3.5 text-[#FF5A1F]" />
               <span>{language === 'en' ? 'हिन्दी' : 'English'}</span>
             </button>
-
-            {/* Quick Demo Logins Dropdown (For Evaluators) */}
-            <div className="relative" ref={demoRef}>
-              <button
-                onClick={() => setDemoMenuOpen(!demoMenuOpen)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#292929] bg-[#151515] hover:border-[#FF5A1F]/50 text-xs font-semibold text-[#F5F5F5] transition"
-                aria-label="Quick Demo Logins"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-[#FF5A1F]" />
-                <span>Demo Access</span>
-                <ChevronDown className={`w-3 h-3 text-[#A3A3A3] transition-transform ${demoMenuOpen ? 'rotate-180' : ''}`} />
-              </button>
-
-              {demoMenuOpen && (
-                <div className="absolute right-0 mt-2 w-72 rounded-2xl bg-[#151515] border border-[#292929] shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95">
-                  <div className="px-3 py-2 border-b border-[#292929] mb-1">
-                    <p className="text-[11px] font-bold text-[#A3A3A3] uppercase tracking-wider">
-                      1-Click Evaluator Profiles
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => handleQuickDemoLogin('seeker@setu.demo', 'SetuDemo@2026')}
-                    className="w-full text-left px-3 py-2.5 hover:bg-[#1C1C1C] rounded-xl text-xs flex flex-col gap-0.5 group transition"
-                  >
-                    <span className="font-semibold text-[#F5F5F5] group-hover:text-[#FF5A1F]">Job Seeker: Priya Sharma</span>
-                    <span className="text-[11px] text-[#A3A3A3]">Career restart, verified Canva skill, scheduled interview</span>
-                  </button>
-                  <button
-                    onClick={() => handleQuickDemoLogin('employer@techcorp.demo', 'SetuDemo@2026')}
-                    className="w-full text-left px-3 py-2.5 hover:bg-[#1C1C1C] rounded-xl text-xs flex flex-col gap-0.5 group transition"
-                  >
-                    <span className="font-semibold text-[#F5F5F5] group-hover:text-emerald-400">Approved Employer: Gramin Digital</span>
-                    <span className="text-[11px] text-[#A3A3A3]">Verified enterprise, publish jobs & review applicants</span>
-                  </button>
-                  <button
-                    onClick={() => handleQuickDemoLogin('pending@startup.demo', 'SetuDemo@2026')}
-                    className="w-full text-left px-3 py-2.5 hover:bg-[#1C1C1C] rounded-xl text-xs flex flex-col gap-0.5 group transition"
-                  >
-                    <span className="font-semibold text-[#F5F5F5] group-hover:text-amber-400">Pending Employer: BharatTech</span>
-                    <span className="text-[11px] text-[#A3A3A3]">Awaiting platform admin verification</span>
-                  </button>
-                  <button
-                    onClick={() => handleQuickDemoLogin('admin@setu.gov.in', 'SetuAdmin@2026')}
-                    className="w-full text-left px-3 py-2.5 hover:bg-[#1C1C1C] rounded-xl text-xs flex flex-col gap-0.5 group transition border-t border-[#292929] mt-1 pt-2"
-                  >
-                    <span className="font-semibold text-[#F5F5F5] group-hover:text-blue-400">Platform Administrator</span>
-                    <span className="text-[11px] text-[#A3A3A3]">Full moderation, verification & safety reports</span>
-                  </button>
-                </div>
-              )}
-            </div>
 
             {/* Authentication Buttons / Profile */}
             {user ? (

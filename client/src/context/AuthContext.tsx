@@ -1,22 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { apiFetch } from '../utils/api';
 
-declare global {
-  interface Window {
-    google?: {
-      accounts?: {
-        id?: {
-          initialize: (config: Record<string, any>) => void;
-          renderButton: (parent: HTMLElement, options: Record<string, any>) => void;
-          prompt: (momentListener?: (notification: any) => void) => void;
-          disableAutoSelect: () => void;
-          cancel: () => void;
-        };
-      };
-    };
-  }
-}
-
 export interface User {
   id: string;
   name: string;
@@ -25,9 +9,7 @@ export interface User {
   role: 'seeker' | 'employer' | 'admin';
   avatar?: string;
   profilePicture?: string;
-  authProvider?: 'local' | 'google' | 'demo';
   emailVerified?: boolean;
-  isDemoAccount?: boolean;
   profileCompletion?: number;
   lastLogin?: string;
   createdAt?: string;
@@ -75,7 +57,6 @@ export interface User {
 interface AuthResult {
   success: boolean;
   user?: User;
-  isNewUser?: boolean;
   error?: string;
 }
 
@@ -84,8 +65,9 @@ interface AuthContextType {
   loading: boolean;
   sessionNotice: string;
   clearSessionNotice: () => void;
+  successNotice: string;
+  clearSuccessNotice: () => void;
   login: (email: string, password: string) => Promise<AuthResult>;
-  loginWithGoogle: (credential: string) => Promise<AuthResult>;
   register: (data: any) => Promise<AuthResult>;
   logout: () => Promise<void>;
   updateProfile: (data: any) => Promise<{ success: boolean; error?: string }>;
@@ -100,6 +82,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [sessionNotice, setSessionNotice] = useState<string>('');
+  const [successNotice, setSuccessNotice] = useState<string>('');
 
   const extractUser = (resData: any): User | null => {
     if (!resData) return null;
@@ -152,17 +135,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const clearSessionNotice = () => setSessionNotice('');
+  const clearSuccessNotice = () => setSuccessNotice('');
 
   const login = async (email: string, password: string): Promise<AuthResult> => {
     try {
       setSessionNotice('');
+      setSuccessNotice('');
       const res = await apiFetch('/api/auth/login', {
         method: 'POST',
         body: JSON.stringify({ email, password })
       });
 
       if (!res.ok) {
-        return { success: false, error: res.error || 'Login failed. Please try again.' };
+        return { success: false, error: res.error || 'Invalid email or password. Please try again.' };
       }
 
       const userData = extractUser(res.data);
@@ -182,59 +167,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const loginWithGoogle = async (credential: string): Promise<AuthResult> => {
-    if (!credential || !credential.trim()) {
-      return {
-        success: false,
-        error: 'Google sign-in was cancelled or did not return a valid credential.'
-      };
-    }
-
-    try {
-      setSessionNotice('');
-      const res = await apiFetch('/api/auth/google', {
-        method: 'POST',
-        body: JSON.stringify({ credential })
-      });
-
-      if (!res.ok) {
-        return {
-          success: false,
-          error: res.error || 'Google authentication failed. Please try again.'
-        };
-      }
-
-      const userData = extractUser(res.data);
-      if (!userData) {
-        return {
-          success: false,
-          error: 'Could not retrieve your verified account details. Please try again.'
-        };
-      }
-
-      const token = extractToken(res.data);
-      if (token) {
-        localStorage.setItem('setu_auth_token', token);
-      }
-      sessionStorage.setItem(SESSION_MARKER_KEY, '1');
-
-      setUser(userData);
-      return {
-        success: true,
-        user: userData,
-        isNewUser: Boolean(res.data?.data?.isNewUser)
-      };
-    } catch (err: any) {
-      return {
-        success: false,
-        error: err.message || 'Network connection failed during Google sign-in. Please try again.'
-      };
-    }
-  };
-
   const register = async (data: any): Promise<AuthResult> => {
     try {
       setSessionNotice('');
+      setSuccessNotice('');
       const res = await apiFetch('/api/auth/register', {
         method: 'POST',
         body: JSON.stringify(data)
@@ -251,6 +187,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       sessionStorage.setItem(SESSION_MARKER_KEY, '1');
 
+      setSuccessNotice('Account created successfully! Welcome to SETU.');
       setUser(userData);
       return { success: true, user: userData || undefined };
     } catch (err: any) {
@@ -268,11 +205,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.removeItem('setu_auth_token');
       sessionStorage.removeItem(SESSION_MARKER_KEY);
       setSessionNotice('');
-      try {
-        window.google?.accounts?.id?.disableAutoSelect();
-      } catch {
-        // Ignore if Google Identity Services script isn't loaded
-      }
+      setSuccessNotice('');
       setUser(null);
     }
   };
@@ -309,8 +242,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loading,
         sessionNotice,
         clearSessionNotice,
+        successNotice,
+        clearSuccessNotice,
         login,
-        loginWithGoogle,
         register,
         logout,
         updateProfile,

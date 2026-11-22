@@ -156,11 +156,6 @@ export const SeekerDashboardPage: React.FC = () => {
               <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#1C1C1C] border border-[#292929] text-[#FF7847] text-[10px] font-semibold">
                 {roleLabel}
               </span>
-              {user?.authProvider === 'google' && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-950/40 border border-blue-800/50 text-blue-300 text-[10px] font-semibold">
-                  Google Account
-                </span>
-              )}
             </div>
             <p className="text-xs text-[#737373] mt-1.5">
               Your journey towards better opportunities starts here.

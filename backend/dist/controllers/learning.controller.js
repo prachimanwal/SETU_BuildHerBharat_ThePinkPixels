@@ -105,7 +105,7 @@ const completeLearning = async (req, res) => {
                     title: resource.title,
                     description: `Practical work deliverable completed via SETU learning path: ${resource.description}`,
                     skills: [resource.skillTag],
-                    workSampleUrl: submissionUrl || resource.contentUrl || 'https://setu.demo/deliverables',
+                    workSampleUrl: submissionUrl || resource.contentUrl || 'https://oursetu.netlify.app/portfolio',
                     category: 'Practical Assignment Deliverable',
                     source: 'practice_assignment',
                     featured: true

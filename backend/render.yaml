@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: setu-backend-api
+    name: setu-buildherbharat-thepinkpixels
     runtime: node
     plan: free
     region: oregon
@@ -19,9 +19,3 @@ services:
         generateValue: true
       - key: SESSION_SECRET
         generateValue: true
-      - key: GOOGLE_CLIENT_ID
-        sync: false
-      - key: GOOGLE_CLIENT_SECRET
-        sync: false
-      - key: GOOGLE_CALLBACK_URL
-        value: https://setu-backend-api.onrender.com/api/auth/google/callback

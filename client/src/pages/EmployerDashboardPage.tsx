@@ -56,7 +56,7 @@ export const EmployerDashboardPage: React.FC = () => {
   const [interviewDate, setInterviewDate] = useState('2026-11-25');
   const [interviewTime, setInterviewTime] = useState('02:00 PM IST');
   const [interviewInstructions, setInterviewInstructions] = useState('');
-  const [meetLink, setMeetLink] = useState('https://meet.google.com/setu-interview');
+  const [meetLink, setMeetLink] = useState('');
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
   // Verification Submission Form State
@@ -207,7 +207,7 @@ export const EmployerDashboardPage: React.FC = () => {
       setInterviewDate('2026-11-25');
       setInterviewTime('03:00 PM IST');
       setInterviewInstructions('Prepare to discuss practical deliverable and availability.');
-      setMeetLink('https://meet.google.com/setu-demo-interview');
+      setMeetLink('');
     }
   };
 

@@ -7,7 +7,6 @@ const Opportunity_1 = require("../models/Opportunity");
 const Application_1 = require("../models/Application");
 const Report_1 = require("../models/Report");
 const response_1 = require("../utils/response");
-const userSerializer_1 = require("../utils/userSerializer");
 const getAdminStats = async (_req, res) => {
     try {
         const [totalUsers, totalSeekers, totalEmployers, pendingEmployers, totalOpportunities, totalApplications, pendingReports] = await Promise.all([
@@ -41,10 +40,6 @@ const getEmployers = async (req, res) => {
     try {
         const { status } = req.query;
         const filter = { role: 'employer' };
-        // Demo administrator accounts must never access real users' private data
-        if ((0, userSerializer_1.isDemoUser)(req.user)) {
-            filter.$or = [{ isDemoAccount: true }, { email: { $regex: /\.demo$/i } }];
-        }
         if (status && status !== 'all') {
             filter['employerProfile.verificationStatus'] = status;
         }

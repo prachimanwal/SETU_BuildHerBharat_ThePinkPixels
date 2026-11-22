@@ -70,13 +70,6 @@ export const ProfilePage: React.FC = () => {
       ? 'Administrator'
       : 'Job Seeker';
 
-  const authProviderLabel =
-    user?.authProvider === 'google'
-      ? 'Google Account'
-      : user?.authProvider === 'demo'
-      ? 'Demonstration Account'
-      : 'Email & Password';
-
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -211,9 +204,6 @@ export const ProfilePage: React.FC = () => {
                 <div className="flex flex-wrap items-center gap-2 pt-1">
                   <span className="text-[10px] font-semibold px-2 py-0.5 rounded border bg-[#1C1C1C] text-[#FF7847] border-[#292929]">
                     {roleLabel}
-                  </span>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded border bg-blue-950/40 text-blue-300 border-blue-800/50">
-                    {authProviderLabel}
                   </span>
                 </div>
               </div>
@@ -398,7 +388,7 @@ export const ProfilePage: React.FC = () => {
         {/* TAB 3: Account Settings */}
         {activeTab === 'settings' && (
           <div className="space-y-5">
-            {/* Connected Account Summary with Google Profile Picture */}
+            {/* Connected Account Summary */}
             <div className="p-4 rounded-xl bg-[#101010] border border-[#242424] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3.5 min-w-0">
                 <UserAvatar
@@ -412,9 +402,6 @@ export const ProfilePage: React.FC = () => {
                   <div className="flex flex-wrap items-center gap-2 mt-1">
                     <span className="text-[10px] font-semibold px-2 py-0.5 rounded border bg-[#1C1C1C] text-[#FF7847] border-[#292929]">
                       {roleLabel}
-                    </span>
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded border bg-blue-950/40 text-blue-300 border-blue-800/50">
-                      Signed in via {authProviderLabel}
                     </span>
                     {user?.emailVerified && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded border bg-emerald-950/50 text-emerald-400 border-emerald-800/50">

@@ -50,7 +50,7 @@ const UserSchema = new mongoose_1.Schema({
         trim: true,
         index: true
     },
-    passwordHash: { type: String, required: false },
+    passwordHash: { type: String, required: true },
     role: {
         type: String,
         enum: ['seeker', 'employer', 'admin'],
@@ -59,14 +59,7 @@ const UserSchema = new mongoose_1.Schema({
     },
     avatar: { type: String, default: '' },
     profilePicture: { type: String, default: '' },
-    googleId: { type: String, unique: true, sparse: true, index: true },
-    authProvider: {
-        type: String,
-        enum: ['local', 'google', 'demo'],
-        default: 'local'
-    },
     emailVerified: { type: Boolean, default: false },
-    isDemoAccount: { type: Boolean, default: false },
     profileCompletion: { type: Number, default: 15, min: 0, max: 100 },
     lastLogin: { type: Date },
     seekerProfile: {

@@ -335,11 +335,6 @@ export const OpportunitiesPage: React.FC = () => {
                             Build Her Friendly
                           </span>
                         )}
-                        {opp.isDemoData && (
-                          <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-[#1C1C1C] text-[#A3A3A3]">
-                            Demo Data
-                          </span>
-                        )}
                       </div>
 
                       <h3 className="text-lg sm:text-xl font-bold font-serif text-[#F5F5F5] pt-1">

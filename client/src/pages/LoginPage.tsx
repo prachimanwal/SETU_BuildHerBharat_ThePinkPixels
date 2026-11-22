@@ -9,10 +9,9 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { GoogleSignInButton } from '../components/GoogleSignInButton';
 
 export const LoginPage: React.FC = () => {
-  const { login, loginWithGoogle, sessionNotice, clearSessionNotice } = useAuth();
+  const { login, sessionNotice, clearSessionNotice } = useAuth();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState('');
@@ -20,7 +19,6 @@ export const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
 
   const displayedError = error || sessionNotice;
 
@@ -44,28 +42,6 @@ export const LoginPage: React.FC = () => {
     } else {
       setError(res.error || 'Invalid email or password. Please try again.');
     }
-  };
-
-  const handleGoogleCredential = async (credential: string) => {
-    setError('');
-    clearSessionNotice();
-    setGoogleLoading(true);
-
-    const res = await loginWithGoogle(credential);
-    setGoogleLoading(false);
-
-    if (res.success && res.user) {
-      redirectByRole(res.user.role);
-    } else {
-      setError(res.error || 'Google authentication failed. Please try again.');
-    }
-  };
-
-  const fillDemoAccount = (demoEmail: string, demoPass: string) => {
-    setEmail(demoEmail);
-    setPassword(demoPass);
-    setError('');
-    clearSessionNotice();
   };
 
   return (
@@ -136,7 +112,7 @@ export const LoginPage: React.FC = () => {
                 Sign In
               </h2>
               <p className="text-xs text-[#A3A3A3] mt-1">
-                Sign in with your Google account or email credentials to access your SETU dashboard
+                Enter your registered email address and password to access your SETU dashboard
               </p>
             </div>
 
@@ -150,26 +126,6 @@ export const LoginPage: React.FC = () => {
                 <span className="leading-relaxed">{displayedError}</span>
               </div>
             )}
-
-            {/* Official Google Identity Services Sign In */}
-            <GoogleSignInButton
-              mode="signin"
-              loading={googleLoading}
-              disabled={loading}
-              onCredential={handleGoogleCredential}
-              onError={(msg) => setError(msg)}
-            />
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-[#292929]" />
-              </div>
-              <div className="relative flex justify-center text-[10px] uppercase">
-                <span className="bg-[#151515] px-3 text-[#737373] font-bold tracking-wider">
-                  Or sign in with email
-                </span>
-              </div>
-            </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -215,7 +171,7 @@ export const LoginPage: React.FC = () => {
 
               <button
                 type="submit"
-                disabled={loading || googleLoading}
+                disabled={loading}
                 className="w-full py-3 px-4 bg-[#FF5A1F] hover:bg-[#FF7847] text-white font-bold rounded-xl transition text-sm shadow-[0_4px_20px_rgba(255,90,31,0.35)] flex items-center justify-center gap-2 disabled:opacity-50 mt-2"
               >
                 {loading ? (
@@ -232,46 +188,7 @@ export const LoginPage: React.FC = () => {
               </button>
             </form>
 
-            {/* Separate Demonstration Login Section for Hackathon Evaluation */}
-            <div className="pt-2 border-t border-[#242424]">
-              <div className="bg-[#101010] border border-[#242424] rounded-xl p-3">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-bold text-[#A3A3A3] uppercase tracking-wider flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-[#FF5A1F]" />
-                    Demo Login (Demonstration Only)
-                  </span>
-                  <span className="text-[10px] text-[#737373]">Evaluators</span>
-                </div>
-                <div className="grid grid-cols-3 gap-1.5 text-xs">
-                  <button
-                    type="button"
-                    onClick={() => fillDemoAccount('seeker@setu.demo', 'SetuDemo@2026')}
-                    className="py-1.5 px-2 bg-[#181818] border border-[#292929] rounded-lg text-[#D4D4D4] hover:border-[#FF5A1F] hover:text-[#FF5A1F] transition font-medium text-center text-[11px]"
-                  >
-                    Seeker
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => fillDemoAccount('employer@techcorp.demo', 'SetuDemo@2026')}
-                    className="py-1.5 px-2 bg-[#181818] border border-[#292929] rounded-lg text-[#D4D4D4] hover:border-[#FF5A1F] hover:text-[#FF5A1F] transition font-medium text-center text-[11px]"
-                  >
-                    Employer
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => fillDemoAccount('admin@setu.gov.in', 'SetuAdmin@2026')}
-                    className="py-1.5 px-2 bg-[#181818] border border-[#292929] rounded-lg text-[#D4D4D4] hover:border-[#FF5A1F] hover:text-[#FF5A1F] transition font-medium text-center text-[11px]"
-                  >
-                    Admin
-                  </button>
-                </div>
-                <p className="text-[10px] text-[#666666] mt-2">
-                  Prefills isolated sample credentials for hackathon evaluation. Separate from real Google accounts.
-                </p>
-              </div>
-            </div>
-
-            <p className="text-center text-xs text-[#737373] pt-1">
+            <p className="text-center text-xs text-[#737373] pt-2 border-t border-[#242424]">
               Don't have an account yet?{' '}
               <Link
                 to="/register"
