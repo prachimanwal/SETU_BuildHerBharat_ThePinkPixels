@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
+import { apiFetch, extractArray, toStringArray } from '../utils/api';
 
 export const GovernmentSchemesPage: React.FC = () => {
   const { language } = useLanguage();
@@ -21,6 +22,7 @@ export const GovernmentSchemesPage: React.FC = () => {
 
   const [schemes, setSchemes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -42,19 +44,24 @@ export const GovernmentSchemesPage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
 
   const loadSchemes = async () => {
+    setLoadError('');
     try {
       const params = new URLSearchParams();
       if (searchQuery) params.append('query', searchQuery);
       if (categoryFilter !== 'all') params.append('category', categoryFilter);
       if (audienceFilter !== 'all') params.append('audience', audienceFilter);
 
-      const res = await fetch(`/api/public/schemes?${params.toString()}`);
+      const res = await apiFetch(`/api/public/schemes?${params.toString()}`);
       if (res.ok) {
-        const data = await res.json();
-        setSchemes(data || []);
+        setSchemes(extractArray(res.data, ['schemes', 'results']));
+      } else {
+        setSchemes([]);
+        setLoadError(res.error || 'Unable to load government schemes right now.');
       }
     } catch (err) {
       console.error('Failed to load schemes:', err);
+      setSchemes([]);
+      setLoadError('Unable to load government schemes right now.');
     } finally {
       setLoading(false);
     }
@@ -88,9 +95,9 @@ export const GovernmentSchemesPage: React.FC = () => {
     setEditingScheme(s);
     setTitle(s.title);
     setHindiTitle(s.hindiTitle || '');
-    setMinistry(s.ministryOrDepartment);
+    setMinistry(s.ministry || s.ministryOrDepartment || '');
     setCategory(s.category);
-    setTargetAudience(s.targetAudience?.join(', ') || 'all');
+    setTargetAudience(toStringArray(s.targetAudience).join(', ') || 'all');
     setBenefitsSummary(s.benefitsSummary);
     setEligibilitySummary(s.eligibilitySummary);
     setOfficialUrl(s.officialUrl);
@@ -105,9 +112,10 @@ export const GovernmentSchemesPage: React.FC = () => {
     const payload = {
       title,
       hindiTitle,
+      ministry,
       ministryOrDepartment: ministry,
       category,
-      targetAudience: targetAudience.split(',').map((a) => a.trim().toLowerCase()).filter(Boolean),
+      targetAudience: targetAudience.trim() || 'All Citizens',
       benefitsSummary,
       eligibilitySummary,
       officialUrl,
@@ -115,22 +123,15 @@ export const GovernmentSchemesPage: React.FC = () => {
     };
 
     try {
-      let res;
-      if (editingScheme) {
-        res = await fetch(`/api/admin/schemes/${editingScheme._id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify(payload)
-        });
-      } else {
-        res = await fetch('/api/admin/schemes', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify(payload)
-        });
-      }
+      const res = editingScheme
+        ? await apiFetch(`/api/schemes/${editingScheme._id}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload)
+          })
+        : await apiFetch('/api/schemes', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+          });
 
       if (res.ok) {
         setModalOpen(false);
@@ -146,9 +147,8 @@ export const GovernmentSchemesPage: React.FC = () => {
   const handleDeleteScheme = async (id: string) => {
     if (!window.confirm('Delete this government scheme entry?')) return;
     try {
-      const res = await fetch(`/api/admin/schemes/${id}`, {
-        method: 'DELETE',
-        credentials: 'include'
+      const res = await apiFetch(`/api/schemes/${id}`, {
+        method: 'DELETE'
       });
       if (res.ok) {
         await loadSchemes();
@@ -249,21 +249,25 @@ export const GovernmentSchemesPage: React.FC = () => {
           <div className="inline-block animate-spin w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full mb-3"></div>
           <p className="text-sm">Loading verified government schemes...</p>
         </div>
+      ) : loadError ? (
+        <div className="bg-red-950/30 rounded-2xl border border-red-800/50 p-8 text-center text-red-300 text-xs">
+          {loadError}
+        </div>
       ) : schemes.length === 0 ? (
         <div className="bg-[#151515] rounded-2xl border border-dashed border-[#333333] p-12 text-center text-[#737373]">
           No schemes found matching the selected filters.
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {schemes.map((s) => (
+          {(Array.isArray(schemes) ? schemes : []).map((s, idx) => (
             <div
-              key={s._id}
+              key={s._id || idx}
               className="bg-[#151515] rounded-2xl border border-[#292929] p-6 shadow-sm hover:border-amber-300 transition flex flex-col justify-between space-y-4"
             >
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 uppercase">
-                    {s.category.replace('_', ' ')}
+                    {(s.category || 'scheme').replace('_', ' ')}
                   </span>
                   <span className="text-[10px] text-[#A3A3A3]">
                     Reviewed: {s.lastReviewedDate || 'Confirmed Active'}
@@ -275,14 +279,16 @@ export const GovernmentSchemesPage: React.FC = () => {
                     {s.title}
                   </h3>
                   {s.hindiTitle && (
-                    <p className="text-xs text-amber-900 font-serif mt-0.5">{s.hindiTitle}</p>
+                    <p className="text-xs text-amber-400 font-serif mt-0.5">{s.hindiTitle}</p>
                   )}
-                  <p className="text-xs text-[#A3A3A3] mt-1">{s.ministryOrDepartment}</p>
+                  <p className="text-xs text-[#A3A3A3] mt-1">
+                    {s.ministry || s.ministryOrDepartment}
+                  </p>
                 </div>
 
                 {/* Target Audience Badges */}
                 <div className="flex flex-wrap gap-1.5 pt-1">
-                  {s.targetAudience?.map((aud: string, aIdx: number) => (
+                  {toStringArray(s.targetAudience).map((aud: string, aIdx: number) => (
                     <span
                       key={aIdx}
                       className="bg-[#1C1C1C] text-[#D4D4D4] px-2 py-0.5 rounded text-[10px] font-semibold uppercase"

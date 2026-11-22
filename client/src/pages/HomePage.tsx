@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   Compass,
   ArrowRight,
@@ -20,84 +20,89 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
-import { useAuth } from '../context/AuthContext';
 import { JourneyBridge } from '../components/JourneyBridge';
+import { apiFetch, extractArray, formatLocation, toStringArray } from '../utils/api';
+
+const FALLBACK_OPPORTUNITIES = [
+  {
+    _id: '1',
+    title: 'Digital Graphic Associate',
+    organisationName: 'Gramin Digital Services Pvt Ltd',
+    location: { city: 'Gurugram', state: 'Haryana', isRural: false },
+    workMode: 'hybrid',
+    stipendOrSalary: '₹22,000 / month',
+    opportunityType: 'full-time',
+    requiredSkills: ['Canva', 'Social Media', 'Content Formatting']
+  },
+  {
+    _id: '2',
+    title: 'Hindi & Regional Content Creator',
+    organisationName: 'Bharat Vani Media',
+    location: { city: 'Remote', state: 'Pan India', isRural: true },
+    workMode: 'remote',
+    stipendOrSalary: '₹18,000 / month',
+    opportunityType: 'part-time',
+    requiredSkills: ['Hindi Typing', 'Creative Writing', 'Canva']
+  },
+  {
+    _id: '3',
+    title: 'Operations & Community Facilitator',
+    organisationName: 'Pratham Skilling Initiative',
+    location: { city: 'Nuh', state: 'Haryana', isRural: true },
+    workMode: 'onsite',
+    stipendOrSalary: '₹25,000 / month',
+    opportunityType: 'full-time',
+    requiredSkills: ['Community Outreach', 'Basic Excel', 'Hindi Communication']
+  }
+];
+
+const FALLBACK_SCHEMES = [
+  {
+    _id: 's1',
+    title: 'PM Vishwakarma Yojana',
+    ministry: 'Ministry of MSME',
+    targetAudience: 'Artisans & Craftsmen',
+    benefitsSummary: '₹15,000 tool kit incentive & collateral-free credit support up to ₹3 Lakhs.'
+  },
+  {
+    _id: 's2',
+    title: 'Pradhan Mantri Kaushal Vikas Yojana (PMKVY 4.0)',
+    ministry: 'Ministry of Skill Development & Entrepreneurship',
+    targetAudience: 'Youth & Job Seekers',
+    benefitsSummary: 'Free industry-aligned skill certification, assessment vouchers & stipend.'
+  },
+  {
+    _id: 's3',
+    title: 'Mahila Samriddhi Yojana',
+    ministry: 'Ministry of Social Justice & Empowerment',
+    targetAudience: 'Women Entrepreneurs & Returnees',
+    benefitsSummary: 'Microfinance up to ₹1,40,000 at highly subsidized 4% interest rate.'
+  }
+];
 
 export const HomePage: React.FC = () => {
   const { language } = useLanguage();
-  const { user, login } = useAuth();
-  const navigate = useNavigate();
   const [opportunities, setOpportunities] = useState<any[]>([]);
   const [schemes, setSchemes] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch('/api/public/opportunities?limit=3')
-      .then((res) => (res.ok ? res.json() : Promise.reject()))
-      .then((data) => setOpportunities(data.results || data.data || []))
-      .catch(() => {
-        // Fallback default featured opportunities for instant visual presentation
-        setOpportunities([
-          {
-            _id: '1',
-            title: 'Digital Graphic Associate',
-            company: 'Gramin Digital Services Pvt Ltd',
-            location: { city: 'Gurugram', state: 'Haryana', isRural: false },
-            workMode: 'hybrid',
-            stipendOrSalary: '₹22,000 / month',
-            employmentType: 'full-time',
-            requiredSkills: ['Canva', 'Social Media', 'Content Formatting']
-          },
-          {
-            _id: '2',
-            title: 'Hindi & Regional Content Creator',
-            company: 'Bharat Vani Media',
-            location: { city: 'Remote', state: 'Pan India', isRural: true },
-            workMode: 'remote',
-            stipendOrSalary: '₹18,000 / month',
-            employmentType: 'part-time',
-            requiredSkills: ['Hindi Typing', 'Creative Writing', 'Canva']
-          },
-          {
-            _id: '3',
-            title: 'Operations & Community Facilitator',
-            company: 'Pratham Skilling Initiative',
-            location: { city: 'Nuh', state: 'Haryana', isRural: true },
-            workMode: 'onsite',
-            stipendOrSalary: '₹25,000 / month',
-            employmentType: 'full-time',
-            requiredSkills: ['Community Outreach', 'Basic Excel', 'Hindi Communication']
-          }
-        ]);
-      });
+    let active = true;
 
-    fetch('/api/public/schemes')
-      .then((res) => (res.ok ? res.json() : Promise.reject()))
-      .then((data) => setSchemes((data.data || data || []).slice(0, 3)))
-      .catch(() => {
-        setSchemes([
-          {
-            _id: 's1',
-            title: 'PM Vishwakarma Yojana',
-            ministryOrDepartment: 'Ministry of MSME',
-            targetBeneficiary: 'Artisans & Craftsmen',
-            benefits: '₹15,000 tool kit incentive & collateral-free credit support up to ₹3 Lakhs.'
-          },
-          {
-            _id: 's2',
-            title: 'Pradhan Mantri Kaushal Vikas Yojana (PMKVY 4.0)',
-            ministryOrDepartment: 'Ministry of Skill Development & Entrepreneurship',
-            targetBeneficiary: 'Youth & Job Seekers',
-            benefits: 'Free industry-aligned skill certification, assessment vouchers & stipend.'
-          },
-          {
-            _id: 's3',
-            title: 'Mahila Samriddhi Yojana',
-            ministryOrDepartment: 'Ministry of Social Justice & Empowerment',
-            targetBeneficiary: 'Women Entrepreneurs & Returnees',
-            benefits: 'Microfinance up to ₹1,40,000 at highly subsidized 4% interest rate.'
-          }
-        ]);
-      });
+    apiFetch('/api/public/opportunities?limit=3').then((res) => {
+      if (!active) return;
+      const list = res.ok ? extractArray(res.data, ['results']) : [];
+      setOpportunities(list.length > 0 ? list.slice(0, 3) : FALLBACK_OPPORTUNITIES);
+    });
+
+    apiFetch('/api/public/schemes').then((res) => {
+      if (!active) return;
+      const list = res.ok ? extractArray(res.data, ['schemes', 'results']) : [];
+      setSchemes(list.length > 0 ? list.slice(0, 3) : FALLBACK_SCHEMES);
+    });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   return (
@@ -232,38 +237,40 @@ export const HomePage: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {opportunities.map((opp) => (
+          {(Array.isArray(opportunities) ? opportunities : []).map((opp, idx) => (
             <div
-              key={opp._id}
+              key={opp._id || idx}
               className="p-6 rounded-2xl bg-[#151515] border border-[#292929] card-hover-effect flex flex-col justify-between"
             >
               <div>
                 <div className="flex items-center justify-between gap-2 mb-3">
-                  <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-[#1C1C1C] text-[#FF5A1F] border border-[#292929]">
-                    {opp.employmentType || 'Opportunity'}
+                  <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-[#1C1C1C] text-[#FF5A1F] border border-[#292929] capitalize">
+                    {opp.opportunityType || opp.employmentType || 'Opportunity'}
                   </span>
                   <span className="text-xs font-bold text-emerald-400">
-                    {opp.stipendOrSalary || 'Competitive'}
+                    {opp.stipendOrSalary || opp.salaryOrStipend || 'Competitive'}
                   </span>
                 </div>
                 <h3 className="text-base font-bold text-[#F5F5F5] line-clamp-1">{opp.title}</h3>
-                <p className="text-xs text-[#A3A3A3] mt-1">{opp.company}</p>
+                <p className="text-xs text-[#A3A3A3] mt-1">
+                  {opp.organisationName || opp.company || 'Verified Employer'}
+                </p>
 
                 <div className="flex items-center gap-3 mt-4 text-xs text-[#737373]">
                   <span className="flex items-center gap-1">
                     <MapPin className="w-3.5 h-3.5" />
-                    {opp.location?.city || 'Flexible'}
+                    {formatLocation(opp.location, 'Flexible')}
                   </span>
-                  <span className="flex items-center gap-1">
+                  <span className="flex items-center gap-1 capitalize">
                     <Clock className="w-3.5 h-3.5" />
                     {opp.workMode || 'Hybrid'}
                   </span>
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-1.5">
-                  {(opp.requiredSkills || []).slice(0, 3).map((s: string, idx: number) => (
+                  {toStringArray(opp.requiredSkills).slice(0, 3).map((s: string, sIdx: number) => (
                     <span
-                      key={idx}
+                      key={sIdx}
                       className="text-[11px] px-2 py-0.5 rounded bg-[#101010] text-[#A3A3A3] border border-[#242424]"
                     >
                       {s}
@@ -347,18 +354,25 @@ export const HomePage: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {schemes.map((s) => (
+          {(Array.isArray(schemes) ? schemes : []).map((s, idx) => (
             <div
-              key={s._id}
+              key={s._id || idx}
               className="p-6 rounded-2xl bg-[#151515] border border-[#292929] card-hover-effect flex flex-col justify-between"
             >
               <div>
                 <span className="text-[10px] uppercase font-bold tracking-wider text-amber-400 block mb-2">
-                  {s.ministryOrDepartment}
+                  {s.ministry || s.ministryOrDepartment || 'Government of India'}
                 </span>
                 <h3 className="text-base font-bold text-[#F5F5F5] line-clamp-1">{s.title}</h3>
-                <p className="text-xs text-[#A3A3A3] mt-1 font-medium">Target: {s.targetBeneficiary}</p>
-                <p className="text-xs text-[#737373] mt-3 line-clamp-2 leading-relaxed">{s.benefits}</p>
+                <p className="text-xs text-[#A3A3A3] mt-1 font-medium">
+                  Target:{' '}
+                  {Array.isArray(s.targetAudience)
+                    ? s.targetAudience.join(', ')
+                    : s.targetAudience || s.targetBeneficiary || 'All Citizens'}
+                </p>
+                <p className="text-xs text-[#737373] mt-3 line-clamp-2 leading-relaxed">
+                  {s.benefitsSummary || s.benefits || ''}
+                </p>
               </div>
 
               <div className="pt-5 mt-5 border-t border-[#222222]">

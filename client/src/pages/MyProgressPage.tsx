@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { JourneyBridge } from '../components/JourneyBridge';
+import { apiFetch, unwrapData } from '../utils/api';
 
 ChartJS.register(
   CategoryScale,
@@ -46,9 +47,12 @@ export const MyProgressPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/analytics/seeker/progress', { credentials: 'include' })
-      .then((res) => res.json())
-      .then((data) => setProgress(data))
+    apiFetch('/api/analytics/seeker/progress')
+      .then((res) => {
+        if (res.ok && res.data) {
+          setProgress(unwrapData(res.data));
+        }
+      })
       .catch((err) => console.error('Failed to load progress analytics:', err))
       .finally(() => setLoading(false));
   }, []);
@@ -88,7 +92,9 @@ export const MyProgressPage: React.FC = () => {
   };
 
   // Chart 2: Assessment Scores History
-  const history = progress?.assessments?.history || [];
+  const history = Array.isArray(progress?.assessments?.history)
+    ? progress.assessments.history
+    : [];
   const barData = {
     labels: history.map((h: any, idx: number) => `Attempt ${idx + 1} (${h.domain})`),
     datasets: [

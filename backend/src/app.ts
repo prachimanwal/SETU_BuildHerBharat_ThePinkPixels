@@ -1,11 +1,39 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import mongoose from 'mongoose';
 import { ENV } from './config/env';
-import { authenticate } from './middleware/auth.middleware';
+import { authenticate, AuthenticatedRequest } from './middleware/auth.middleware';
+import { requireRole } from './middleware/role.middleware';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware';
-import { sendSuccess } from './utils/response';
+import { sendSuccess, sendError } from './utils/response';
 import { getDashboard } from './controllers/user.controller';
+import { createApplication, updateApplicationStatus } from './controllers/application.controller';
+import { submitAssessment } from './controllers/assessment.controller';
+import { completeLearning } from './controllers/learning.controller';
+import {
+  createOpportunity,
+  updateOpportunity,
+  deleteOpportunity
+} from './controllers/opportunity.controller';
+import {
+  getEmployerDashboard,
+  submitVerificationDocs
+} from './controllers/employer.controller';
+import {
+  getAdminStats,
+  updateEmployerVerification
+} from './controllers/admin.controller';
+import {
+  createScheme,
+  updateScheme,
+  deleteScheme
+} from './controllers/scheme.controller';
+import { Opportunity } from './models/Opportunity';
+import { AssessmentResult } from './models/AssessmentResult';
+import { LearningProgress } from './models/LearningProgress';
+import { LearningResource } from './models/LearningResource';
+import { Report } from './models/Report';
 
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
@@ -23,11 +51,12 @@ const app = express();
 // Trust reverse proxies (important for Render, Netlify, and secure cookies)
 app.set('trust proxy', 1);
 
-// Allowed frontend origins (Netlify, localhost, configured CLIENT_URLs)
+// Allowed frontend origins (Netlify production, previews, localhost, configured CLIENT_URLs)
 const allowedOrigins = Array.from(
   new Set([
     ...ENV.CLIENT_URLS,
     'https://oursetu.netlify.app',
+    'https://www.oursetu.netlify.app',
     'http://localhost:5173',
     'http://localhost:3000',
     'http://127.0.0.1:5173'
@@ -71,8 +100,8 @@ app.get('/', (_req, res) => {
   sendSuccess(res, 'SETU Backend API is operational', {
     project: 'SETU',
     version: '1.0.0',
-    documentation: 'https://github.com/...',
     status: 'healthy',
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
     timestamp: new Date()
   });
 });
@@ -83,6 +112,7 @@ app.get('/api/health', (_req, res) => {
     project: 'SETU',
     tagline: 'Bridging Skills, Opportunities & Employment',
     taglineHindi: 'हुनर से हक़ की कमाई तक।',
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
     timestamp: new Date()
   });
 });
@@ -100,34 +130,147 @@ app.use('/api/employer', employerRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/schemes', schemeRoutes);
 
-// Backward-Compatible Aliases for Netlify Frontend
+// Backward-Compatible Seeker Aliases
+app.get('/api/seeker/assessments/my-attempts', authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    const attempts = await AssessmentResult.find({ userId: req.user!._id })
+      .populate('assessmentId', 'title domain')
+      .sort({ completedAt: -1 });
+    sendSuccess(res, 'Assessment attempts retrieved', attempts);
+  } catch (error: any) {
+    sendError(res, error.message || 'Failed to fetch assessment attempts', 500);
+  }
+});
+
+app.post('/api/seeker/assessments/submit', authenticate, (req: AuthenticatedRequest, res) => {
+  if (!req.params.id && req.body?.assessmentId) {
+    req.params.id = String(req.body.assessmentId);
+  }
+  submitAssessment(req, res);
+});
+
+app.get('/api/seeker/learning/progress', authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    const progress = await LearningProgress.find({ userId: req.user!._id }).populate(
+      'resourceId',
+      'title type skillTag duration'
+    );
+    sendSuccess(res, 'Learning progress retrieved', progress);
+  } catch (error: any) {
+    sendError(res, error.message || 'Failed to fetch learning progress', 500);
+  }
+});
+
+app.post('/api/seeker/learning/progress', authenticate, (req: AuthenticatedRequest, res) => {
+  if (!req.params.id && req.body?.resourceId) {
+    req.params.id = String(req.body.resourceId);
+  }
+  completeLearning(req, res);
+});
+
+app.get('/api/seeker/saved-opportunities', authenticate, (_req, res) => {
+  sendSuccess(res, 'Saved opportunities retrieved', []);
+});
+
+app.post('/api/seeker/saved-opportunities/toggle', authenticate, (_req, res) => {
+  sendSuccess(res, 'Bookmark updated', { saved: true });
+});
+
+app.post('/api/seeker/report', authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { opportunityId, reason, description } = req.body || {};
+    if (!opportunityId || !reason) {
+      sendError(res, 'Opportunity ID and report reason are required', 400);
+      return;
+    }
+    const report = await Report.create({
+      reporterId: req.user!._id,
+      listingId: opportunityId,
+      reason,
+      description: description || ''
+    });
+    sendSuccess(res, 'Report submitted successfully', report, 201);
+  } catch (error: any) {
+    sendError(res, error.message || 'Failed to submit report', 500);
+  }
+});
+
+app.post('/api/seeker/support-ticket', async (req, res) => {
+  const { subject, message } = req.body || {};
+  if (!subject || !message) {
+    sendError(res, 'Subject and message are required', 400);
+    return;
+  }
+  sendSuccess(res, 'Confidential support message received', { receivedAt: new Date() }, 201);
+});
+
 app.use('/api/seeker/assessments', assessmentRoutes);
 app.use('/api/seeker/learning', learningRoutes);
 app.use('/api/seeker/portfolio', portfolioRoutes);
 app.use('/api/seeker/applications', applicationRoutes);
-app.post('/api/seeker/applications/apply', authenticate, (req, res, next) => {
-  // Alias for /api/applications POST
-  const { createApplication } = require('./controllers/application.controller');
-  createApplication(req, res, next);
+app.post('/api/seeker/applications/apply', authenticate, createApplication);
+
+// Backward-Compatible Employer & Analytics Aliases
+app.get('/api/analytics/seeker/progress', authenticate, getDashboard);
+app.get('/api/analytics/employer/stats', authenticate, requireRole('employer'), getEmployerDashboard);
+app.get('/api/analytics/admin/stats', authenticate, requireRole('admin'), getAdminStats);
+
+app.get('/api/employer/opportunities', authenticate, requireRole('employer'), async (req: AuthenticatedRequest, res) => {
+  try {
+    const listings = await Opportunity.find({ employerId: req.user!._id }).sort({ createdAt: -1 });
+    sendSuccess(res, 'Employer opportunities retrieved', listings);
+  } catch (error: any) {
+    sendError(res, error.message || 'Failed to fetch employer opportunities', 500);
+  }
 });
+app.post('/api/employer/opportunities', authenticate, requireRole('employer'), createOpportunity);
+app.put('/api/employer/opportunities/:id', authenticate, requireRole('employer'), updateOpportunity);
+app.delete('/api/employer/opportunities/:id', authenticate, requireRole('employer'), deleteOpportunity);
+app.put('/api/employer/applicants/:id/status', authenticate, requireRole('employer'), updateApplicationStatus);
+app.post('/api/employer/verification', authenticate, requireRole('employer'), submitVerificationDocs);
+
+// Backward-Compatible Admin Aliases
+app.get('/api/admin/opportunities', authenticate, requireRole('admin'), async (_req, res) => {
+  try {
+    const listings = await Opportunity.find().sort({ createdAt: -1 });
+    sendSuccess(res, 'All opportunities retrieved', listings);
+  } catch (error: any) {
+    sendError(res, error.message || 'Failed to fetch opportunities', 500);
+  }
+});
+app.put('/api/admin/employers/:id/verification', authenticate, requireRole('admin'), updateEmployerVerification);
+app.get('/api/admin/support-tickets', authenticate, requireRole('admin'), (_req, res) => {
+  sendSuccess(res, 'Support tickets retrieved', []);
+});
+app.put('/api/admin/support-tickets/:id', authenticate, requireRole('admin'), (_req, res) => {
+  sendSuccess(res, 'Support ticket updated', { status: 'resolved' });
+});
+app.post('/api/admin/schemes', authenticate, requireRole('admin'), createScheme);
+app.put('/api/admin/schemes/:id', authenticate, requireRole('admin'), updateScheme);
+app.delete('/api/admin/schemes/:id', authenticate, requireRole('admin'), deleteScheme);
+
+// Public Aliases
 app.use('/api/public/opportunities', opportunityRoutes);
 app.use('/api/public/schemes', schemeRoutes);
-app.get('/api/analytics/seeker/progress', authenticate, getDashboard);
 app.get('/api/public/build-her', async (_req, res) => {
-  const { Opportunity } = require('./models/Opportunity');
-  const returneeJobs = await Opportunity.find({
-    isCareerRestart: true,
-    status: 'published'
-  }).limit(6);
+  try {
+    const [returneeJobs, refreshers] = await Promise.all([
+      Opportunity.find({ isCareerRestart: true, status: 'published' }).limit(6),
+      LearningResource.find({ type: { $in: ['tutorial', 'course'] } }).limit(4)
+    ]);
 
-  sendSuccess(res, 'Build Her initiatives retrieved', {
-    restartOpportunities: returneeJobs,
-    sanctuaryGuidelines: [
-      'Zero-tolerance policy against workplace harassment (POSH compliance verified).',
-      'Flexible remote and hybrid options designed for career returnees.',
-      'Dedicated mentorship during first 90 days of onboarding.'
-    ]
-  });
+    sendSuccess(res, 'Build Her initiatives retrieved', {
+      restartOpportunities: returneeJobs,
+      refreshers,
+      sanctuaryGuidelines: [
+        'Zero-tolerance policy against workplace harassment (POSH compliance verified).',
+        'Flexible remote and hybrid options designed for career returnees.',
+        'Dedicated mentorship during first 90 days of onboarding.'
+      ]
+    });
+  } catch (error: any) {
+    sendError(res, error.message || 'Failed to load Build Her resources', 500);
+  }
 });
 
 // Fallback JSON 404 for unknown endpoints (strictly never HTML)

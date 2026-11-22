@@ -6,6 +6,7 @@ import { LanguageProvider } from './context/LanguageContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { DashboardLayout } from './components/DashboardLayout';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
@@ -137,9 +138,10 @@ const HomeRoute: React.FC = () => {
 
 export default function App() {
   return (
-    <LanguageProvider>
-      <AuthProvider>
-        <BrowserRouter>
+    <ErrorBoundary>
+      <LanguageProvider>
+        <AuthProvider>
+          <BrowserRouter>
           <Routes>
             {/* Landing & Public Discovery Routes */}
             <Route path="/" element={<HomeRoute />} />
@@ -271,8 +273,9 @@ export default function App() {
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </BrowserRouter>
-      </AuthProvider>
-    </LanguageProvider>
+          </BrowserRouter>
+        </AuthProvider>
+      </LanguageProvider>
+    </ErrorBoundary>
   );
 }

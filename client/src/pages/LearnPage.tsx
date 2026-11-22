@@ -13,9 +13,12 @@ import {
   X
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
+import { apiFetch, extractArray } from '../utils/api';
 
 export const LearnPage: React.FC = () => {
   const { language } = useLanguage();
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
 
   const [resources, setResources] = useState<any[]>([]);
@@ -25,6 +28,7 @@ export const LearnPage: React.FC = () => {
   );
   const [filterDomain, setFilterDomain] = useState<string>('all');
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   // Active assignment modal state
   const [selectedResource, setSelectedResource] = useState<any>(null);
@@ -36,23 +40,29 @@ export const LearnPage: React.FC = () => {
   const [successMsg, setSuccessMsg] = useState('');
 
   const loadData = async () => {
+    setLoadError('');
     try {
       const [resRes, progRes] = await Promise.all([
-        fetch('/api/seeker/learning', { credentials: 'include' }),
-        fetch('/api/seeker/learning/progress', { credentials: 'include' })
+        apiFetch('/api/seeker/learning'),
+        user ? apiFetch('/api/seeker/learning/progress') : Promise.resolve(null)
       ]);
 
       if (resRes.ok) {
-        const rData = await resRes.json();
-        setResources(rData || []);
+        setResources(extractArray(resRes.data, ['resources', 'results']));
+      } else {
+        setResources([]);
+        setLoadError(resRes.error || 'Unable to load learning resources right now.');
       }
 
-      if (progRes.ok) {
-        const pData = await progRes.json();
-        setUserProgress(pData || []);
+      if (progRes && progRes.ok) {
+        setUserProgress(extractArray(progRes.data, ['progress', 'items']));
+      } else if (!user) {
+        setUserProgress([]);
       }
     } catch (err) {
       console.error('Failed to load learning resources:', err);
+      setResources([]);
+      setLoadError('Unable to load learning resources right now.');
     } finally {
       setLoading(false);
     }
@@ -60,11 +70,13 @@ export const LearnPage: React.FC = () => {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [user?.id]);
 
   const openAssignmentModal = (r: any) => {
     setSelectedResource(r);
-    const existingProg = userProgress.find((p) => p.resourceId?._id === r._id || p.resourceId === r._id);
+    const existingProg = (Array.isArray(userProgress) ? userProgress : []).find(
+      (p) => p?.resourceId?._id === r._id || p?.resourceId === r._id
+    );
     if (existingProg?.submittedWork) {
       setDeliverableTitle(existingProg.submittedWork.title || '');
       setWorkLink(existingProg.submittedWork.link || '');
@@ -84,13 +96,13 @@ export const LearnPage: React.FC = () => {
     setSavingProgress(true);
 
     try {
-      const res = await fetch('/api/seeker/learning/progress', {
+      const res = await apiFetch('/api/seeker/learning/progress', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({
           resourceId: selectedResource._id,
           status: 'completed',
+          submissionUrl: workLink,
+          notes,
           submittedWork: {
             title: deliverableTitle,
             link: workLink,
@@ -197,15 +209,28 @@ export const LearnPage: React.FC = () => {
         </div>
       </div>
 
+      {loadError && (
+        <div className="p-4 rounded-xl bg-red-950/40 border border-red-800/60 text-red-300 text-xs">
+          {loadError}
+        </div>
+      )}
+
       {/* Resources Grid */}
+      {filteredResources.length === 0 && !loadError ? (
+        <div className="bg-[#151515] rounded-2xl border border-dashed border-[#333333] p-12 text-center text-[#737373] text-sm">
+          No learning resources found for the selected filters.
+        </div>
+      ) : (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredResources.map((r) => {
-          const prog = userProgress.find((p) => p.resourceId?._id === r._id || p.resourceId === r._id);
+        {filteredResources.map((r, idx) => {
+          const prog = (Array.isArray(userProgress) ? userProgress : []).find(
+            (p) => p?.resourceId?._id === r._id || p?.resourceId === r._id
+          );
           const isCompleted = prog?.status === 'completed';
 
           return (
             <div
-              key={r._id}
+              key={r._id || idx}
               className={`bg-[#151515] rounded-2xl border p-5 shadow-sm transition flex flex-col justify-between space-y-4 ${
                 isCompleted ? 'border-emerald-300 bg-emerald-50/10' : 'border-[#292929] hover:border-orange-300'
               }`}
@@ -275,6 +300,7 @@ export const LearnPage: React.FC = () => {
           );
         })}
       </div>
+      )}
 
       {/* Assignment Completion Modal */}
       {selectedResource && (

@@ -363,6 +363,21 @@ async function run() {
     assert.equal(expiredMe.status, 401);
     console.log('  ✓ 8. Logout clears session & unauthenticated/expired sessions rejected (401)');
 
+    // 9. Production CORS & Health Check verification
+    const healthRes = await request(port, 'GET', '/api/health', {
+      headers: { Origin: 'https://oursetu.netlify.app' }
+    });
+    assert.equal(healthRes.status, 200);
+    assert.equal(healthRes.body.success, true);
+    assert.equal(healthRes.headers['access-control-allow-origin'], 'https://oursetu.netlify.app');
+    assert.equal(healthRes.headers['access-control-allow-credentials'], 'true');
+
+    const blockedCorsRes = await request(port, 'GET', '/api/health', {
+      headers: { Origin: 'https://untrusted-site.example' }
+    });
+    assert.equal(blockedCorsRes.headers['access-control-allow-origin'], undefined);
+    console.log('  ✓ 9. Production CORS allows https://oursetu.netlify.app & blocks untrusted origins');
+
     console.log('\n✅ ALL EMAIL & PASSWORD AUTHENTICATION TESTS PASSED!');
   } finally {
     await new Promise<void>((resolve) => server.close(() => resolve()));

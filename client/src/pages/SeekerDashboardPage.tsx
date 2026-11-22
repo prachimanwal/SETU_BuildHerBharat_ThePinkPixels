@@ -14,7 +14,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { apiFetch } from '../utils/api';
+import { apiFetch, extractArray, unwrapData } from '../utils/api';
 import { UserAvatar } from '../components/UserAvatar';
 
 export const SeekerDashboardPage: React.FC = () => {
@@ -41,18 +41,15 @@ export const SeekerDashboardPage: React.FC = () => {
         if (!active) return;
 
         if (progressRes.ok && progressRes.data) {
-          setProgressData(progressRes.data.data || progressRes.data);
+          setProgressData(unwrapData(progressRes.data));
         }
 
         if (oppsRes.ok && oppsRes.data) {
-          const oData = oppsRes.data.data || oppsRes.data;
-          setOpportunities((oData.results || []).slice(0, 3));
+          setOpportunities(extractArray(oppsRes.data, ['results']).slice(0, 3));
         }
 
         if (learnRes.ok && learnRes.data) {
-          const lData = learnRes.data.data || learnRes.data;
-          const inProgressOrTop = (lData || []).slice(0, 2);
-          setLearningItems(inProgressOrTop);
+          setLearningItems(extractArray(learnRes.data, ['resources', 'results']).slice(0, 2));
         }
       } catch (err) {
         console.error('Failed to load dashboard:', err);
@@ -114,12 +111,19 @@ export const SeekerDashboardPage: React.FC = () => {
   const learningStarted = progressData?.learning?.startedCount ?? 0;
   const portfolioProjects = progressData?.portfolio?.totalCount ?? 0;
   const activeApplications = progressData?.applications?.total ?? 0;
-  const savedSkills: string[] =
-    progressData?.savedSkills ?? user?.seekerProfile?.skills ?? [];
-  const verifiedSkills: string[] = progressData?.verifiedSkills ?? [];
+  const savedSkills: string[] = Array.isArray(progressData?.savedSkills)
+    ? progressData.savedSkills
+    : Array.isArray(user?.seekerProfile?.skills)
+    ? user.seekerProfile.skills
+    : [];
+  const verifiedSkills: string[] = Array.isArray(progressData?.verifiedSkills)
+    ? progressData.verifiedSkills
+    : [];
 
   // Recent Activity Feed
-  const recentActivities = progressData?.recentActivity || [];
+  const recentActivities = Array.isArray(progressData?.recentActivity)
+    ? progressData.recentActivity
+    : [];
 
   const roleLabel =
     user?.role === 'employer'

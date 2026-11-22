@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
+import { apiFetch, extractArray, formatLocation, unwrapData } from '../utils/api';
 
 export const OpportunitiesPage: React.FC = () => {
   const { language } = useLanguage();
@@ -25,6 +26,7 @@ export const OpportunitiesPage: React.FC = () => {
   const [opportunities, setOpportunities] = useState<any[]>([]);
   const [savedIds, setSavedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -48,6 +50,7 @@ export const OpportunitiesPage: React.FC = () => {
   const [reportSuccess, setReportSuccess] = useState('');
 
   const loadOpportunities = async () => {
+    setLoadError('');
     try {
       const params = new URLSearchParams();
       if (searchQuery) params.append('query', searchQuery);
@@ -57,23 +60,30 @@ export const OpportunitiesPage: React.FC = () => {
       if (restartOnly) params.append('isCareerRestart', 'true');
 
       const [oppRes, savedRes] = await Promise.all([
-        fetch(`/api/public/opportunities?${params.toString()}`, { credentials: 'include' }),
+        apiFetch(`/api/public/opportunities?${params.toString()}`),
         user?.role === 'seeker'
-          ? fetch('/api/seeker/saved-opportunities', { credentials: 'include' })
+          ? apiFetch('/api/seeker/saved-opportunities')
           : Promise.resolve(null)
       ]);
 
       if (oppRes.ok) {
-        const data = await oppRes.json();
-        setOpportunities(data.results || []);
+        const list = extractArray(oppRes.data, ['results']);
+        setOpportunities(list);
+      } else {
+        setOpportunities([]);
+        setLoadError(oppRes.error || 'Unable to load opportunities right now. Please try again.');
       }
 
       if (savedRes && savedRes.ok) {
-        const sData = await savedRes.json();
-        setSavedIds((sData || []).map((s: any) => s._id || s));
+        const sList = extractArray(savedRes.data);
+        setSavedIds(
+          sList.map((s: any) => (typeof s === 'string' ? s : s?._id || s?.opportunityId || '')).filter(Boolean)
+        );
       }
     } catch (err) {
       console.error('Failed to load opportunities:', err);
+      setOpportunities([]);
+      setLoadError('Unable to load opportunities right now. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -96,17 +106,15 @@ export const OpportunitiesPage: React.FC = () => {
     }
 
     try {
-      const res = await fetch('/api/seeker/saved-opportunities/toggle', {
+      const res = await apiFetch('/api/seeker/saved-opportunities/toggle', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ opportunityId: oppId })
       });
 
       if (res.ok) {
-        const data = await res.json();
-        if (data.saved) {
-          setSavedIds((prev) => [...prev, oppId]);
+        const payload = unwrapData(res.data) || res.data;
+        if (payload?.saved) {
+          setSavedIds((prev) => (prev.includes(oppId) ? prev : [...prev, oppId]));
         } else {
           setSavedIds((prev) => prev.filter((id) => id !== oppId));
         }
@@ -135,19 +143,16 @@ export const OpportunitiesPage: React.FC = () => {
     setApplySuccess('');
 
     try {
-      const res = await fetch('/api/seeker/applications/apply', {
+      const res = await apiFetch('/api/seeker/applications/apply', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({
           opportunityId: applyOpp._id,
           coverNote
         })
       });
 
-      const data = await res.json();
       if (!res.ok) {
-        setApplyError(data.error || 'Failed to submit application');
+        setApplyError(res.error || 'Failed to submit application');
       } else {
         setApplySuccess('Application submitted successfully! Track progress in Applications.');
         setTimeout(() => {
@@ -168,10 +173,8 @@ export const OpportunitiesPage: React.FC = () => {
     setReporting(true);
 
     try {
-      const res = await fetch('/api/seeker/report', {
+      const res = await apiFetch('/api/seeker/report', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({
           opportunityId: reportOpp._id,
           reason: reportReason,
@@ -313,14 +316,30 @@ export const OpportunitiesPage: React.FC = () => {
             </span>
           </div>
 
+          {loadError && (
+            <div className="p-4 rounded-xl bg-red-950/40 border border-red-800/60 text-red-300 text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+              <span>{loadError}</span>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 gap-4">
-            {opportunities.map((item: any) => {
-              const opp = item.opportunity;
+            {(Array.isArray(opportunities) ? opportunities : []).map((item: any, idx: number) => {
+              const opp = item?.opportunity || item;
+              if (!opp || typeof opp !== 'object') return null;
               const isSaved = savedIds.includes(opp._id);
+              const matchScore = item?.matchScore ?? opp.matchScore ?? 50;
+              const matchReasons: string[] = Array.isArray(item?.matchReasons)
+                ? item.matchReasons
+                : Array.isArray(opp.matchingSkills) && opp.matchingSkills.length > 0
+                ? opp.matchingSkills.map((sk: string) => `Matches skill: ${sk}`)
+                : opp.matchExplanation
+                ? [opp.matchExplanation]
+                : [];
 
               return (
                 <div
-                  key={opp._id}
+                  key={opp._id || idx}
                   className="bg-[#151515] rounded-2xl border border-[#292929] p-5 sm:p-6 shadow-sm hover:border-orange-300 transition space-y-4"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
@@ -342,14 +361,14 @@ export const OpportunitiesPage: React.FC = () => {
                       </h3>
 
                       <p className="text-xs sm:text-sm text-[#A3A3A3] font-medium">
-                        {opp.organisationName} • {opp.location}
+                        {opp.organisationName || 'Verified Employer'} • {formatLocation(opp.location)}
                       </p>
                     </div>
 
                     {/* Match Score & Bookmark */}
                     <div className="flex items-center space-x-2 self-start sm:self-auto">
                       <span className="text-xs font-bold px-3 py-1 rounded-full bg-[#241A14] text-[#FF7847] border border-orange-200">
-                        {item.matchScore}% Match
+                        {matchScore}% Match
                       </span>
                       {user?.role === 'seeker' && (
                         <button
@@ -368,36 +387,40 @@ export const OpportunitiesPage: React.FC = () => {
                   </div>
 
                   {/* Explainability Badges */}
-                  <div className="flex flex-wrap gap-2 p-3 bg-[#101010] rounded-xl border border-[#292929]/60 text-xs">
-                    <span className="font-bold text-[#D4D4D4] flex items-center space-x-1">
-                      <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                      <span>Why this matches you:</span>
-                    </span>
-                    {item.matchReasons?.map((reason: string, rIdx: number) => (
-                      <span
-                        key={rIdx}
-                        className="bg-[#151515] text-[#E5E5E5] px-2.5 py-0.5 rounded-md border border-[#292929] font-medium flex items-center space-x-1"
-                      >
-                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                        <span>{reason}</span>
+                  {matchReasons.length > 0 && (
+                    <div className="flex flex-wrap gap-2 p-3 bg-[#101010] rounded-xl border border-[#292929]/60 text-xs">
+                      <span className="font-bold text-[#D4D4D4] flex items-center space-x-1">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Why this matches you:</span>
                       </span>
-                    ))}
-                  </div>
+                      {matchReasons.map((reason: string, rIdx: number) => (
+                        <span
+                          key={rIdx}
+                          className="bg-[#151515] text-[#E5E5E5] px-2.5 py-0.5 rounded-md border border-[#292929] font-medium flex items-center space-x-1"
+                        >
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                          <span>{reason}</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Metadata Chips */}
                   <div className="flex flex-wrap gap-2 text-xs text-[#A3A3A3]">
                     <span className="bg-[#1C1C1C] px-2.5 py-1 rounded font-medium">
-                      Mode: <strong className="text-[#E5E5E5]">{opp.workMode.toUpperCase()}</strong>
+                      Mode: <strong className="text-[#E5E5E5]">{(opp.workMode || 'hybrid').toUpperCase()}</strong>
                     </span>
                     <span className="bg-[#1C1C1C] px-2.5 py-1 rounded font-medium">
-                      Type: <strong className="text-[#E5E5E5]">{opp.opportunityType.replace('_', ' ')}</strong>
+                      Type: <strong className="text-[#E5E5E5]">{(opp.opportunityType || 'job').replace('_', ' ')}</strong>
                     </span>
                     <span className="bg-[#1C1C1C] px-2.5 py-1 rounded font-medium">
-                      Compensation: <strong className="text-emerald-800">{opp.salaryOrStipend}</strong>
+                      Compensation: <strong className="text-emerald-400">{opp.stipendOrSalary || opp.salaryOrStipend || 'Competitive'}</strong>
                     </span>
-                    <span className="bg-[#1C1C1C] px-2.5 py-1 rounded font-medium">
-                      Experience: <strong className="text-[#E5E5E5]">{opp.experienceRequired}</strong>
-                    </span>
+                    {opp.experienceRequired && (
+                      <span className="bg-[#1C1C1C] px-2.5 py-1 rounded font-medium">
+                        Experience: <strong className="text-[#E5E5E5]">{opp.experienceRequired}</strong>
+                      </span>
+                    )}
                   </div>
 
                   <p className="text-xs sm:text-sm text-[#D4D4D4] leading-relaxed">

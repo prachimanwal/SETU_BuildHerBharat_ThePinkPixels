@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
+import { apiFetch, unwrapData } from '../utils/api';
 
 export const BuildHerPage: React.FC = () => {
   const { language } = useLanguage();
@@ -36,9 +37,12 @@ export const BuildHerPage: React.FC = () => {
   const [formError, setFormError] = useState('');
 
   useEffect(() => {
-    fetch('/api/public/build-her')
-      .then((res) => res.json())
-      .then((data) => setResources(data))
+    apiFetch('/api/public/build-her')
+      .then((res) => {
+        if (res.ok && res.data) {
+          setResources(unwrapData(res.data));
+        }
+      })
       .catch((err) => console.error('Failed to load Build Her resources:', err))
       .finally(() => setLoading(false));
   }, []);
@@ -50,10 +54,8 @@ export const BuildHerPage: React.FC = () => {
     setFormSuccess('');
 
     try {
-      const res = await fetch('/api/seeker/support-ticket', {
+      const res = await apiFetch('/api/seeker/support-ticket', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({
           name,
           contactEmailOrPhone: contact,
@@ -64,9 +66,8 @@ export const BuildHerPage: React.FC = () => {
         })
       });
 
-      const data = await res.json();
       if (!res.ok) {
-        setFormError(data.error || 'Failed to submit message');
+        setFormError(res.error || 'Failed to submit message');
       } else {
         setFormSuccess(
           'Your confidential message has been received by SETU administrators. We treat safety reports with strict discretion.'
@@ -141,14 +142,14 @@ export const BuildHerPage: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {resources?.restartOpportunities?.map((opp: any) => (
+            {(Array.isArray(resources?.restartOpportunities) ? resources.restartOpportunities : []).map((opp: any, idx: number) => (
               <div
-                key={opp._id}
+                key={opp._id || idx}
                 className="bg-[#151515] rounded-2xl border border-pink-100 p-5 shadow-sm hover:border-pink-300 transition flex flex-col justify-between space-y-3"
               >
                 <div className="space-y-2">
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-pink-100 text-pink-800">
-                    {opp.workMode.toUpperCase()} • {opp.opportunityType.replace('_', ' ')}
+                    {(opp.workMode || 'hybrid').toUpperCase()} • {(opp.opportunityType || 'job').replace('_', ' ')}
                   </span>
                   <h4 className="font-bold text-[#F5F5F5] text-base">{opp.title}</h4>
                   <p className="text-xs text-[#A3A3A3] font-medium">{opp.organisationName}</p>
@@ -156,7 +157,9 @@ export const BuildHerPage: React.FC = () => {
                 </div>
 
                 <div className="pt-3 border-t border-[#222222] flex items-center justify-between text-xs">
-                  <span className="font-semibold text-emerald-800">{opp.salaryOrStipend}</span>
+                  <span className="font-semibold text-emerald-400">
+                    {opp.stipendOrSalary || opp.salaryOrStipend || 'Competitive'}
+                  </span>
                   <Link
                     to="/opportunities"
                     className="font-bold text-pink-700 hover:underline"
@@ -182,9 +185,9 @@ export const BuildHerPage: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {resources?.refreshers?.map((ref: any) => (
+            {(Array.isArray(resources?.refreshers) ? resources.refreshers : []).map((ref: any, idx: number) => (
               <div
-                key={ref._id}
+                key={ref._id || idx}
                 className="bg-[#151515] rounded-2xl border border-[#292929] p-5 shadow-sm space-y-3 hover:border-purple-300 transition"
               >
                 <div className="flex items-center justify-between text-xs">

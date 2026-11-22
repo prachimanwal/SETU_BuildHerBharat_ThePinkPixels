@@ -12,6 +12,7 @@ import {
   FileText
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { apiFetch, extractArray } from '../utils/api';
 
 export const PortfolioPage: React.FC = () => {
   const { language } = useLanguage();
@@ -32,13 +33,15 @@ export const PortfolioPage: React.FC = () => {
 
   const loadProjects = async () => {
     try {
-      const res = await fetch('/api/seeker/portfolio', { credentials: 'include' });
+      const res = await apiFetch('/api/seeker/portfolio');
       if (res.ok) {
-        const data = await res.json();
-        setProjects(data || []);
+        setProjects(extractArray(res.data, ['projects', 'results']));
+      } else {
+        setProjects([]);
       }
     } catch (err) {
       console.error('Failed to load portfolio:', err);
+      setProjects([]);
     } finally {
       setLoading(false);
     }
@@ -63,7 +66,7 @@ export const PortfolioPage: React.FC = () => {
     setEditingProject(p);
     setTitle(p.title);
     setDescription(p.description);
-    setSkills((p.skills || []).join(', '));
+    setSkills((Array.isArray(p.skills) ? p.skills : []).join(', '));
     setWorkSampleUrl(p.workSampleUrl || '');
     setFeatured(!!p.featured);
     setErrorMsg('');
@@ -84,26 +87,18 @@ export const PortfolioPage: React.FC = () => {
     };
 
     try {
-      let res;
-      if (editingProject) {
-        res = await fetch(`/api/seeker/portfolio/${editingProject._id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify(payload)
-        });
-      } else {
-        res = await fetch('/api/seeker/portfolio', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify(payload)
-        });
-      }
+      const res = editingProject
+        ? await apiFetch(`/api/seeker/portfolio/${editingProject._id}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload)
+          })
+        : await apiFetch('/api/seeker/portfolio', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+          });
 
       if (!res.ok) {
-        const data = await res.json();
-        setErrorMsg(data.error || 'Failed to save project');
+        setErrorMsg(res.error || 'Failed to save project');
       } else {
         setModalOpen(false);
         await loadProjects();
@@ -119,9 +114,8 @@ export const PortfolioPage: React.FC = () => {
     if (!window.confirm('Are you sure you want to remove this portfolio project?')) return;
 
     try {
-      const res = await fetch(`/api/seeker/portfolio/${id}`, {
-        method: 'DELETE',
-        credentials: 'include'
+      const res = await apiFetch(`/api/seeker/portfolio/${id}`, {
+        method: 'DELETE'
       });
       if (res.ok) {
         await loadProjects();

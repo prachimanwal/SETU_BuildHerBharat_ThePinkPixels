@@ -14,6 +14,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { apiFetch, extractArray } from '../utils/api';
 
 export const ApplicationsPage: React.FC = () => {
   const { language } = useLanguage();
@@ -23,13 +24,15 @@ export const ApplicationsPage: React.FC = () => {
 
   const loadApplications = async () => {
     try {
-      const res = await fetch('/api/seeker/applications', { credentials: 'include' });
+      const res = await apiFetch('/api/seeker/applications');
       if (res.ok) {
-        const data = await res.json();
-        setApplications(data || []);
+        setApplications(extractArray(res.data, ['applications', 'results']));
+      } else {
+        setApplications([]);
       }
     } catch (err) {
       console.error('Failed to load applications:', err);
+      setApplications([]);
     } finally {
       setLoading(false);
     }

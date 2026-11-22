@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { apiFetch, extractArray, formatLocation, unwrapData } from '../utils/api';
 
 export const AdminDashboardPage: React.FC = () => {
   const { user } = useAuth();
@@ -37,20 +38,24 @@ export const AdminDashboardPage: React.FC = () => {
   const loadData = async () => {
     try {
       const [statsRes, empRes, repRes, listRes, supRes] = await Promise.all([
-        fetch('/api/analytics/admin/stats', { credentials: 'include' }),
-        fetch('/api/admin/employers', { credentials: 'include' }),
-        fetch('/api/admin/reports', { credentials: 'include' }),
-        fetch('/api/admin/opportunities', { credentials: 'include' }),
-        fetch('/api/admin/support-tickets', { credentials: 'include' })
+        apiFetch('/api/analytics/admin/stats'),
+        apiFetch('/api/admin/employers'),
+        apiFetch('/api/admin/reports'),
+        apiFetch('/api/admin/opportunities'),
+        apiFetch('/api/admin/support-tickets')
       ]);
 
-      if (statsRes.ok) setStats(await statsRes.json());
-      if (empRes.ok) setEmployers(await empRes.json());
-      if (repRes.ok) setReports(await repRes.json());
-      if (listRes.ok) setListings(await listRes.json());
-      if (supRes.ok) setSupportTickets(await supRes.json());
+      if (statsRes.ok && statsRes.data) setStats(unwrapData(statsRes.data));
+      if (empRes.ok) setEmployers(extractArray(empRes.data, ['employers', 'results']));
+      if (repRes.ok) setReports(extractArray(repRes.data, ['reports', 'results']));
+      if (listRes.ok) setListings(extractArray(listRes.data, ['results', 'opportunities']));
+      if (supRes.ok) setSupportTickets(extractArray(supRes.data, ['tickets', 'results']));
     } catch (err) {
       console.error('Failed to load admin data:', err);
+      setEmployers([]);
+      setReports([]);
+      setListings([]);
+      setSupportTickets([]);
     } finally {
       setLoading(false);
     }
@@ -67,12 +72,11 @@ export const AdminDashboardPage: React.FC = () => {
   ) => {
     const note = prompt('Admin review note for audit:', defaultNote) || defaultNote;
     try {
-      const res = await fetch(`/api/admin/employers/${employerId}/verification`, {
+      const res = await apiFetch(`/api/admin/employers/${employerId}/verify`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({
           status: newStatus,
+          notes: note,
           adminReviewNotes: note
         })
       });
@@ -90,10 +94,8 @@ export const AdminDashboardPage: React.FC = () => {
   const handleToggleListingVisibility = async (oppId: string, currentStatus: string) => {
     const nextStatus = currentStatus === 'hidden_by_admin' ? 'published' : 'hidden_by_admin';
     try {
-      const res = await fetch(`/api/admin/opportunities/${oppId}/moderate`, {
+      const res = await apiFetch(`/api/admin/opportunities/${oppId}/moderate`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ status: nextStatus })
       });
 
@@ -107,10 +109,8 @@ export const AdminDashboardPage: React.FC = () => {
 
   const handleResolveReport = async (reportId: string, actionTaken: string) => {
     try {
-      const res = await fetch(`/api/admin/reports/${reportId}/resolve`, {
+      const res = await apiFetch(`/api/admin/reports/${reportId}/resolve`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({
           status: 'action_taken',
           actionTaken,
@@ -130,10 +130,8 @@ export const AdminDashboardPage: React.FC = () => {
 
   const handleResolveTicket = async (ticketId: string) => {
     try {
-      const res = await fetch(`/api/admin/support-tickets/${ticketId}`, {
+      const res = await apiFetch(`/api/admin/support-tickets/${ticketId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({
           status: 'resolved',
           adminNotes: 'Attended to by administrative officer.'
@@ -466,14 +464,16 @@ export const AdminDashboardPage: React.FC = () => {
                   >
                     {opp.status}
                   </span>
-                  <span className="text-xs text-[#737373]">{opp.workMode.toUpperCase()}</span>
+                  <span className="text-xs text-[#737373]">
+                    {(opp.workMode || 'hybrid').toUpperCase()}
+                  </span>
                 </div>
 
                 <h4 className="font-bold text-[#F5F5F5] text-base">{opp.title}</h4>
                 <p className="text-xs text-[#A3A3A3] font-medium">{opp.organisationName}</p>
 
                 <div className="pt-3 border-t border-[#222222] flex items-center justify-between text-xs">
-                  <span className="text-[#737373]">{opp.location}</span>
+                  <span className="text-[#737373]">{formatLocation(opp.location)}</span>
                   <button
                     onClick={() => handleToggleListingVisibility(opp._id, opp.status)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1 ${

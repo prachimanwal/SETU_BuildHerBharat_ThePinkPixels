@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
+import { apiFetch, extractArray, unwrapData } from '../utils/api';
 
 export const AssessPage: React.FC = () => {
   const { language } = useLanguage();
@@ -33,21 +34,26 @@ export const AssessPage: React.FC = () => {
   const loadData = async () => {
     try {
       const [assRes, attRes] = await Promise.all([
-        fetch('/api/seeker/assessments', { credentials: 'include' }),
-        fetch('/api/seeker/assessments/my-attempts', { credentials: 'include' })
+        apiFetch('/api/seeker/assessments'),
+        apiFetch('/api/seeker/assessments/my-attempts')
       ]);
 
       if (assRes.ok) {
-        const assData = await assRes.json();
-        setAssessments(assData || []);
+        setAssessments(extractArray(assRes.data, ['assessments', 'results']));
+      } else {
+        setAssessments([]);
+        setErrorMsg(assRes.error || 'Unable to load assessments right now.');
       }
 
       if (attRes.ok) {
-        const attData = await attRes.json();
-        setPastAttempts(attData || []);
+        setPastAttempts(extractArray(attRes.data, ['attempts', 'results']));
+      } else {
+        setPastAttempts([]);
       }
     } catch (err) {
       console.error('Failed to load assessments:', err);
+      setAssessments([]);
+      setPastAttempts([]);
     } finally {
       setLoading(false);
     }
@@ -77,21 +83,19 @@ export const AssessPage: React.FC = () => {
     setSubmitting(true);
 
     try {
-      const res = await fetch('/api/seeker/assessments/submit', {
+      const res = await apiFetch('/api/seeker/assessments/submit', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({
           assessmentId: activeQuiz._id,
           answers: selectedAnswers
         })
       });
 
-      const data = await res.json();
       if (!res.ok) {
-        setErrorMsg(data.error || 'Failed to evaluate assessment');
+        setErrorMsg(res.error || 'Failed to evaluate assessment');
       } else {
-        setQuizResult(data.attempt);
+        const payload = unwrapData(res.data) || res.data;
+        setQuizResult(payload?.attempt || payload?.result || payload);
         await refreshUser();
         await loadData();
       }

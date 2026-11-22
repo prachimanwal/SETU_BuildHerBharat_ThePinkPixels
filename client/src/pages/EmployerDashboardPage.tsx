@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { apiFetch, extractArray, formatLocation, unwrapData } from '../utils/api';
 
 export const EmployerDashboardPage: React.FC = () => {
   const { user, refreshUser } = useAuth();
@@ -75,16 +76,18 @@ export const EmployerDashboardPage: React.FC = () => {
   const loadData = async () => {
     try {
       const [statsRes, oppsRes, appsRes] = await Promise.all([
-        fetch('/api/analytics/employer/stats', { credentials: 'include' }),
-        fetch('/api/employer/opportunities', { credentials: 'include' }),
-        fetch('/api/employer/applicants', { credentials: 'include' })
+        apiFetch('/api/analytics/employer/stats'),
+        apiFetch('/api/employer/opportunities'),
+        apiFetch('/api/employer/applicants')
       ]);
 
-      if (statsRes.ok) setStats(await statsRes.json());
-      if (oppsRes.ok) setOpportunities(await oppsRes.json());
-      if (appsRes.ok) setApplicants(await appsRes.json());
+      if (statsRes.ok && statsRes.data) setStats(unwrapData(statsRes.data));
+      if (oppsRes.ok) setOpportunities(extractArray(oppsRes.data, ['results', 'recentOpportunities']));
+      if (appsRes.ok) setApplicants(extractArray(appsRes.data, ['results', 'recentApplications']));
     } catch (err) {
       console.error('Failed to load employer data:', err);
+      setOpportunities([]);
+      setApplicants([]);
     } finally {
       setLoading(false);
     }
@@ -150,26 +153,18 @@ export const EmployerDashboardPage: React.FC = () => {
     };
 
     try {
-      let res;
-      if (editingOpp) {
-        res = await fetch(`/api/employer/opportunities/${editingOpp._id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify(payload)
-        });
-      } else {
-        res = await fetch('/api/employer/opportunities', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify(payload)
-        });
-      }
+      const res = editingOpp
+        ? await apiFetch(`/api/employer/opportunities/${editingOpp._id}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload)
+          })
+        : await apiFetch('/api/employer/opportunities', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+          });
 
-      const data = await res.json();
       if (!res.ok) {
-        setOppError(data.error || 'Failed to save opportunity');
+        setOppError(res.error || 'Failed to save opportunity');
       } else {
         setOppModalOpen(false);
         await loadData();
@@ -184,9 +179,8 @@ export const EmployerDashboardPage: React.FC = () => {
   const handleDeleteOpp = async (id: string) => {
     if (!window.confirm('Delete this opportunity listing?')) return;
     try {
-      const res = await fetch(`/api/employer/opportunities/${id}`, {
-        method: 'DELETE',
-        credentials: 'include'
+      const res = await apiFetch(`/api/employer/opportunities/${id}`, {
+        method: 'DELETE'
       });
       if (res.ok) await loadData();
     } catch (err) {
@@ -202,7 +196,7 @@ export const EmployerDashboardPage: React.FC = () => {
       setInterviewDate(app.interviewDetails.date || '2026-11-25');
       setInterviewTime(app.interviewDetails.time || '03:00 PM IST');
       setInterviewInstructions(app.interviewDetails.instructions || '');
-      setMeetLink(app.interviewDetails.meetLinkOrLocation || '');
+      setMeetLink(app.interviewDetails.meetLinkOrLocation || app.interviewDetails.meetingLink || '');
     } else {
       setInterviewDate('2026-11-25');
       setInterviewTime('03:00 PM IST');
@@ -226,15 +220,14 @@ export const EmployerDashboardPage: React.FC = () => {
         date: interviewDate,
         time: interviewTime,
         instructions: interviewInstructions,
-        meetLinkOrLocation: meetLink
+        meetLinkOrLocation: meetLink,
+        meetingLink: meetLink
       };
     }
 
     try {
-      const res = await fetch(`/api/employer/applicants/${statusModalApp._id}/status`, {
+      const res = await apiFetch(`/api/employer/applicants/${statusModalApp._id}/status`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify(payload)
       });
 
@@ -255,10 +248,8 @@ export const EmployerDashboardPage: React.FC = () => {
     setVerSuccess('');
 
     try {
-      const res = await fetch('/api/employer/verification', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+      const res = await apiFetch('/api/employer/verification', {
+        method: 'PUT',
         body: JSON.stringify({
           docType,
           docNumber,
@@ -466,10 +457,10 @@ export const EmployerDashboardPage: React.FC = () => {
 
                   <div className="flex flex-wrap gap-1.5 text-xs text-[#A3A3A3]">
                     <span className="bg-[#1C1C1C] px-2 py-0.5 rounded text-[11px]">
-                      {opp.workMode.toUpperCase()}
+                      {(opp.workMode || 'hybrid').toUpperCase()}
                     </span>
                     <span className="bg-[#1C1C1C] px-2 py-0.5 rounded text-[11px]">
-                      {opp.salaryOrStipend}
+                      {opp.stipendOrSalary || opp.salaryOrStipend || 'Competitive'}
                     </span>
                     {opp.isCareerRestart && (
                       <span className="bg-pink-100 text-pink-800 px-2 py-0.5 rounded text-[11px] font-semibold">
@@ -481,7 +472,7 @@ export const EmployerDashboardPage: React.FC = () => {
                   <p className="text-xs text-[#A3A3A3] line-clamp-2">{opp.description}</p>
 
                   <div className="pt-3 border-t border-[#222222] flex items-center justify-between text-xs">
-                    <span className="text-[#737373]">{opp.location}</span>
+                    <span className="text-[#737373]">{formatLocation(opp.location)}</span>
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => openEditOppModal(opp)}

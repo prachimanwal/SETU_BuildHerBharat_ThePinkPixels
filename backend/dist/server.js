@@ -6,20 +6,25 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const app_1 = __importDefault(require("./app"));
 const database_1 = require("./config/database");
 const env_1 = require("./config/env");
-const startServer = async () => {
+const DB_RETRY_INTERVAL_MS = 10000;
+const connectWithRetry = async () => {
     try {
         await (0, database_1.connectDB)();
-        app_1.default.listen(env_1.ENV.PORT, () => {
-            console.log(`====================================================`);
-            console.log(`SETU Backend Server running in [${env_1.ENV.NODE_ENV}] mode`);
-            console.log(`Listening on: http://localhost:${env_1.ENV.PORT}`);
-            console.log(`Allowed Client URL: ${env_1.ENV.CLIENT_URL}`);
-            console.log(`====================================================`);
-        });
     }
     catch (error) {
-        console.error('Fatal error initializing SETU server:', error.message);
-        process.exit(1);
+        console.error(`[Server] Initial MongoDB connection failed (${error?.message || 'unknown error'}).`);
+        console.error(`[Server] API server remains online and will retry MongoDB connection in ${DB_RETRY_INTERVAL_MS / 1000}s. Check MONGODB_URI in backend/.env (use MongoDB Atlas URI if local mongod is not running).`);
+        setTimeout(connectWithRetry, DB_RETRY_INTERVAL_MS);
     }
+};
+const startServer = async () => {
+    app_1.default.listen(env_1.ENV.PORT, () => {
+        console.log(`====================================================`);
+        console.log(`SETU Backend Server running in [${env_1.ENV.NODE_ENV}] mode`);
+        console.log(`Listening on: http://127.0.0.1:${env_1.ENV.PORT}`);
+        console.log(`Allowed Client URL: ${env_1.ENV.CLIENT_URL}`);
+        console.log(`====================================================`);
+    });
+    await connectWithRetry();
 };
 startServer();

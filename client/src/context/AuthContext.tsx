@@ -98,10 +98,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return null;
   };
 
-  const fetchCurrentUser = async () => {
+  const fetchCurrentUser = async (forceCheck = false) => {
+    const storedToken = localStorage.getItem('setu_auth_token');
     const hadPriorSession =
-      Boolean(localStorage.getItem('setu_auth_token')) ||
-      sessionStorage.getItem(SESSION_MARKER_KEY) === '1';
+      Boolean(storedToken) || sessionStorage.getItem(SESSION_MARKER_KEY) === '1';
+
+    // Avoid firing an unauthenticated /api/auth/me request (which logs 401 in browser console)
+    // when a visitor has no active session token or session marker.
+    if (!forceCheck && !hadPriorSession) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
 
     try {
       const res = await apiFetch('/api/auth/me');
@@ -232,7 +240,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const refreshUser = async () => {
-    await fetchCurrentUser();
+    await fetchCurrentUser(true);
   };
 
   return (
