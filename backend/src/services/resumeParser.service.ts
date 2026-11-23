@@ -1,9 +1,17 @@
 import mammoth from 'mammoth';
 import { IExtractedResumeData } from '../models/UploadedResumeFile';
 
+export class ResumeFileCorruptedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ResumeFileCorruptedError';
+  }
+}
+
 const KNOWN_SKILLS_DICTIONARY = [
   'Python', 'JavaScript', 'TypeScript', 'React', 'Node.js', 'Express', 'MongoDB', 'SQL', 'MySQL',
   'PostgreSQL', 'HTML', 'CSS', 'Tailwind CSS', 'Java', 'C++', 'C', 'Git', 'GitHub', 'Docker',
+  'AWS', 'Azure', 'REST API', 'GraphQL', 'Next.js', 'Angular', 'Vue.js', 'Flutter', 'Android',
   'Machine Learning', 'Artificial Intelligence', 'Data Analysis', 'Data Science', 'Pandas',
   'NumPy', 'Power BI', 'Tableau', 'Excel', 'Microsoft Excel', 'Microsoft Office', 'Google Workspace',
   'Canva', 'Figma', 'Adobe Photoshop', 'Adobe Illustrator', 'Graphic Design', 'UI/UX Design',
@@ -22,23 +30,74 @@ const INTEREST_KEYWORDS: Array<{ interest: string; patterns: string[] }> = [
   { interest: 'Business & Management', patterns: ['project management', 'business analyst', 'operations', 'finance', 'accounting', 'customer service', 'entrepreneurship'] }
 ];
 
+const PDF_MAGIC = Buffer.from([0x25, 0x50, 0x44, 0x46, 0x2d]); // %PDF-
+const ZIP_MAGIC = Buffer.from([0x50, 0x4b, 0x03, 0x04]); // PK.. (DOCX is a ZIP container)
+
+/**
+ * Validates binary magic bytes against the claimed PDF or DOCX format
+ * to catch renamed/fake or corrupted documents early.
+ */
+export function validateResumeFileSignature(
+  buffer: Buffer,
+  mimeType: string,
+  filename: string
+): 'pdf' | 'docx' {
+  if (!buffer || buffer.length === 0) {
+    throw new ResumeFileCorruptedError(
+      'The uploaded resume file is empty. Please upload a valid PDF or DOCX document.'
+    );
+  }
+
+  const lowerName = (filename || '').toLowerCase();
+  const isPdf = lowerName.endsWith('.pdf') || mimeType === 'application/pdf';
+  const isDocx =
+    lowerName.endsWith('.docx') ||
+    mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+  if (isPdf) {
+    // Allow optional leading whitespace/BOM before %PDF-
+    const head = buffer.subarray(0, Math.min(buffer.length, 1024));
+    if (head.indexOf(PDF_MAGIC) === -1) {
+      throw new ResumeFileCorruptedError(
+        'The uploaded PDF file appears to be corrupted or invalid. Please re-export it as a valid PDF and try again.'
+      );
+    }
+    return 'pdf';
+  }
+
+  if (isDocx) {
+    if (buffer.length < 4 || !buffer.subarray(0, 4).equals(ZIP_MAGIC)) {
+      throw new ResumeFileCorruptedError(
+        'The uploaded DOCX file appears to be corrupted or not a valid Word (.docx) document.'
+      );
+    }
+    return 'docx';
+  }
+
+  throw new Error('Only PDF and DOCX files are supported.');
+}
+
 export async function extractRawTextFromResumeBuffer(
   buffer: Buffer,
   mimeType: string,
   filename: string
 ): Promise<string> {
-  const lowerName = filename.toLowerCase();
+  const kind = validateResumeFileSignature(buffer, mimeType, filename);
 
-  if (
-    mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-    lowerName.endsWith('.docx')
-  ) {
-    const result = await mammoth.extractRawText({ buffer });
-    return (result.value || '').trim();
+  if (kind === 'docx') {
+    try {
+      const result = await mammoth.extractRawText({ buffer });
+      return (result.value || '').trim();
+    } catch {
+      throw new ResumeFileCorruptedError(
+        'Unable to read this DOCX file because it appears corrupted or password-protected. Please save a fresh copy and try again.'
+      );
+    }
   }
 
-  if (mimeType === 'application/pdf' || lowerName.endsWith('.pdf')) {
-    // Support both pdf-parse v1 (default function) and v2 (PDFParse class)
+  // PDF parsing (supports pdf-parse v1 default function & v2 PDFParse class)
+  let parserInstance: any = null;
+  try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const pdfParseMod = require('pdf-parse');
     if (typeof pdfParseMod === 'function') {
@@ -50,14 +109,37 @@ export async function extractRawTextFromResumeBuffer(
       return (parsed?.text || '').trim();
     }
     if (typeof pdfParseMod?.PDFParse === 'function') {
-      const parser = new pdfParseMod.PDFParse({ data: buffer });
-      const parsed = await parser.getText();
+      parserInstance = new pdfParseMod.PDFParse({ data: buffer });
+      const parsed = await parserInstance.getText();
       return (parsed?.text || '').trim();
     }
     throw new Error('PDF text extractor could not initialize.');
+  } catch (err: any) {
+    if (err instanceof ResumeFileCorruptedError) throw err;
+    throw new ResumeFileCorruptedError(
+      'Unable to read this PDF file because it appears corrupted, encrypted, or damaged. Please upload a valid unencrypted PDF.'
+    );
+  } finally {
+    if (parserInstance && typeof parserInstance.destroy === 'function') {
+      await parserInstance.destroy().catch(() => {});
+    }
   }
+}
 
-  throw new Error('Unsupported file format. Please upload a PDF or DOCX resume.');
+export function createEmptyExtractedResumeData(): IExtractedResumeData {
+  return {
+    fullName: '',
+    email: '',
+    phone: '',
+    education: [],
+    skills: [],
+    projects: [],
+    workExperience: [],
+    internships: [],
+    certifications: [],
+    achievements: [],
+    careerInterests: []
+  };
 }
 
 export function parseStructuredResumeText(rawText: string): IExtractedResumeData {
@@ -67,9 +149,13 @@ export function parseStructuredResumeText(rawText: string): IExtractedResumeData
     .map((l) => l.trim())
     .filter(Boolean);
 
-  // 1. Email & Phone
+  if (lines.length === 0) {
+    return createEmptyExtractedResumeData();
+  }
+
+  // 1. Email & Phone (only when actually present in resume)
   const emailMatch = cleanText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-  const phoneMatch = cleanText.match(/(?:\+91[\s-]?)?[6-9]\d{9}\b/);
+  const phoneMatch = cleanText.match(/(?:\+91[\s-]?)?[6-9]\d{9}\b|\+\d{1,3}[\s-]?\d{7,12}\b/);
 
   // 2. Probable Full Name (first short non-email/non-heading line)
   let fullName = '';
@@ -78,7 +164,7 @@ export function parseStructuredResumeText(rawText: string): IExtractedResumeData
       line.length >= 3 &&
       line.length <= 50 &&
       !line.includes('@') &&
-      !/resume|curriculum vitae|cv|phone|email|http/i.test(line) &&
+      !/resume|curriculum vitae|cv|phone|email|http|linkedin|github/i.test(line) &&
       /^[A-Za-z][A-Za-z .'-]+$/.test(line)
     ) {
       fullName = line;
@@ -86,7 +172,7 @@ export function parseStructuredResumeText(rawText: string): IExtractedResumeData
     }
   }
 
-  // 3. Skills detection against curated dictionary
+  // 3. Skills detection against curated dictionary + explicit Skills section tokens
   const lowerFull = cleanText.toLowerCase();
   const detectedSkills = KNOWN_SKILLS_DICTIONARY.filter((skill) => {
     const escaped = skill.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -120,45 +206,88 @@ export function parseStructuredResumeText(rawText: string): IExtractedResumeData
     }
   }
 
-  // 5. Section-based extraction for Projects, Experience, Certifications
+  // 5. Section-based extraction (strictly from real resume lines; never invents missing entries)
+  const stopPattern =
+    /^(education|academic background|skills|technical skills|core skills|projects|academic projects|key projects|experience|work experience|employment|professional experience|internships|internship|certifications|certificates|courses|licenses|achievements|awards|honors|honours|languages|references|summary|objective|profile)\s*:?$/i;
+
   const extractSectionLines = (headerPattern: RegExp, maxItems: number): string[] => {
-    const startIdx = lines.findIndex((l) => headerPattern.test(l) && l.length < 40);
+    const startIdx = lines.findIndex((l) => headerPattern.test(l.replace(/:$/, '').trim()) && l.length < 45);
     if (startIdx < 0) return [];
-    const stopPattern =
-      /^(education|skills|technical skills|projects|experience|work experience|internships|certifications|certificates|achievements|awards|languages|references|summary|objective)\b/i;
     const collected: string[] = [];
     for (let i = startIdx + 1; i < lines.length && collected.length < maxItems; i++) {
-      if (stopPattern.test(lines[i]) && lines[i].length < 35) break;
-      if (lines[i].length >= 4) collected.push(lines[i]);
+      if (stopPattern.test(lines[i].trim()) && lines[i].length < 40) break;
+      if (lines[i].length >= 3) collected.push(lines[i]);
     }
     return collected;
   };
 
-  const projectLines = extractSectionLines(/^(projects|academic projects|key projects)\b/i, 6);
+  // Projects
+  const projectLines = extractSectionLines(/^(projects|academic projects|key projects)$/i, 8);
   const projects: Array<{ title: string; description: string }> = [];
   for (let i = 0; i < projectLines.length; i += 2) {
-    projects.push({
-      title: projectLines[i].replace(/^[•\-*]\s*/, '').slice(0, 80),
-      description: (projectLines[i + 1] || projectLines[i]).replace(/^[•\-*]\s*/, '').slice(0, 240)
-    });
+    const rawTitle = projectLines[i].replace(/^[•\-*]\s*/, '').trim();
+    const rawDesc = (projectLines[i + 1] || '').replace(/^[•\-*]\s*/, '').trim();
+    if (rawTitle) {
+      projects.push({
+        title: rawTitle.slice(0, 90),
+        description: (rawDesc || rawTitle).slice(0, 260)
+      });
+    }
   }
 
-  const expLines = extractSectionLines(/^(experience|work experience|internships|employment)\b/i, 6);
+  // Dedicated Internships section
+  const internshipLines = extractSectionLines(/^(internships|internship|internship experience)$/i, 6);
+  const internships: Array<{ role: string; organization: string; duration?: string }> = [];
+  for (const line of internshipLines) {
+    const cleaned = line.replace(/^[•\-*]\s*/, '').trim();
+    if (!cleaned) continue;
+    const parts = cleaned.split(/\s*(?:[-–|@]| at )\s*/i);
+    if (parts[0]) {
+      internships.push({
+        role: parts[0].trim().slice(0, 80),
+        organization: (parts[1] || '').trim().slice(0, 80),
+        duration: (parts[2] || '').trim().slice(0, 40)
+      });
+    }
+  }
+
+  // Work Experience (routes intern titles cleanly into internships if no separate section)
+  const expLines = extractSectionLines(
+    /^(experience|work experience|employment|professional experience)$/i,
+    8
+  );
   const workExperience: Array<{ jobTitle: string; organization: string; duration?: string }> = [];
-  for (let i = 0; i < expLines.length; i += 2) {
-    const parts = expLines[i].replace(/^[•\-*]\s*/, '').split(/[-–|@]| at /i);
-    workExperience.push({
-      jobTitle: (parts[0] || expLines[i]).trim().slice(0, 80),
-      organization: (parts[1] || expLines[i + 1] || 'Organization').trim().slice(0, 80)
-    });
+  for (const line of expLines) {
+    const cleaned = line.replace(/^[•\-*]\s*/, '').trim();
+    if (!cleaned) continue;
+    const parts = cleaned.split(/\s*(?:[-–|@]| at )\s*/i);
+    const titleStr = (parts[0] || cleaned).trim().slice(0, 80);
+    const orgStr = (parts[1] || '').trim().slice(0, 80);
+    const durStr = (parts[2] || '').trim().slice(0, 40);
+    if (/\bintern\b|\btrainee\b/i.test(titleStr)) {
+      internships.push({ role: titleStr, organization: orgStr, duration: durStr });
+    } else {
+      workExperience.push({ jobTitle: titleStr, organization: orgStr, duration: durStr });
+    }
   }
 
+  // Certifications
   const certifications = extractSectionLines(
-    /^(certifications|certificates|courses|licenses)\b/i,
-    5
-  ).map((c) => c.replace(/^[•\-*]\s*/, '').slice(0, 120));
+    /^(certifications|certificates|courses|licenses)$/i,
+    6
+  )
+    .map((c) => c.replace(/^[•\-*]\s*/, '').trim().slice(0, 120))
+    .filter(Boolean);
 
-  // 6. Infer career interests from detected skills/text
+  // Achievements / Awards
+  const achievements = extractSectionLines(
+    /^(achievements|awards|honors|honours|accomplishments)$/i,
+    6
+  )
+    .map((a) => a.replace(/^[•\-*]\s*/, '').trim().slice(0, 160))
+    .filter(Boolean);
+
+  // Career Interests (derived from detected skills/text only)
   const careerInterests = INTEREST_KEYWORDS.filter((entry) =>
     entry.patterns.some((pat) => lowerFull.includes(pat))
   ).map((entry) => entry.interest);
@@ -168,10 +297,12 @@ export function parseStructuredResumeText(rawText: string): IExtractedResumeData
     email: emailMatch ? emailMatch[0] : '',
     phone: phoneMatch ? phoneMatch[0] : '',
     education,
-    skills: Array.from(new Set(detectedSkills)).slice(0, 20),
+    skills: Array.from(new Set(detectedSkills)).slice(0, 24),
     projects: projects.slice(0, 4),
-    workExperience: workExperience.slice(0, 4),
+    workExperience: workExperience.slice(0, 5),
+    internships: internships.slice(0, 5),
     certifications,
+    achievements,
     careerInterests
   };
 }

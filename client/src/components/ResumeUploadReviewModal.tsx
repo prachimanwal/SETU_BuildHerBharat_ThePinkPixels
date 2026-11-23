@@ -52,6 +52,10 @@ export const ResumeUploadReviewModal: React.FC<ResumeUploadReviewModalProps> = (
       setError('Only PDF and DOCX files are supported.');
       return;
     }
+    if (file.size === 0) {
+      setError('The selected file is empty. Please choose a valid PDF or DOCX resume.');
+      return;
+    }
     if (file.size > 5 * 1024 * 1024) {
       setError('File size exceeds the 5 MB limit. Please upload a smaller PDF or DOCX.');
       return;
@@ -171,7 +175,11 @@ export const ResumeUploadReviewModal: React.FC<ResumeUploadReviewModalProps> = (
                   type="file"
                   accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                   className="hidden"
-                  onChange={(e) => handleFileSelected(e.target.files?.[0] || null)}
+                  onChange={(e) => {
+                    const picked = e.target.files?.[0] || null;
+                    e.target.value = '';
+                    handleFileSelected(picked);
+                  }}
                 />
                 <div className="w-12 h-12 rounded-2xl bg-white border border-[#BDE0FE] flex items-center justify-center mx-auto text-[#3B9EE8] shadow-baby-sm">
                   <Upload className="w-6 h-6" />
@@ -228,13 +236,24 @@ export const ResumeUploadReviewModal: React.FC<ResumeUploadReviewModalProps> = (
                 <span className="text-[10px] font-semibold text-[#2589D6]">Review before saving</span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-[#334155] mb-1">Full Name</label>
                   <input
                     type="text"
                     value={extracted.fullName || ''}
                     onChange={(e) => setExtracted({ ...extracted, fullName: e.target.value })}
+                    placeholder="Not found in resume"
+                    className="w-full px-3 py-2 rounded-xl border border-[#D8ECFA] text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-[#334155] mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={extracted.email || ''}
+                    onChange={(e) => setExtracted({ ...extracted, email: e.target.value })}
+                    placeholder="Not found in resume"
                     className="w-full px-3 py-2 rounded-xl border border-[#D8ECFA] text-xs"
                   />
                 </div>
@@ -244,6 +263,7 @@ export const ResumeUploadReviewModal: React.FC<ResumeUploadReviewModalProps> = (
                     type="text"
                     value={extracted.phone || ''}
                     onChange={(e) => setExtracted({ ...extracted, phone: e.target.value })}
+                    placeholder="Not found in resume"
                     className="w-full px-3 py-2 rounded-xl border border-[#D8ECFA] text-xs"
                   />
                 </div>
@@ -345,6 +365,182 @@ export const ResumeUploadReviewModal: React.FC<ResumeUploadReviewModalProps> = (
                           setExtracted({
                             ...extracted,
                             projects: extracted.projects.filter((_: any, i: number) => i !== idx)
+                          })
+                        }
+                        className="text-[#64748B] hover:text-rose-500"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Extracted Work Experience */}
+              {Array.isArray(extracted.workExperience) && extracted.workExperience.length > 0 && (
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-bold text-[#334155]">
+                    Extracted Work Experience ({extracted.workExperience.length})
+                  </label>
+                  {extracted.workExperience.map((exp: any, idx: number) => (
+                    <div
+                      key={idx}
+                      className="p-2.5 rounded-xl bg-[#F8FCFF] border border-[#D8ECFA] flex items-center justify-between gap-2 text-xs"
+                    >
+                      <input
+                        type="text"
+                        value={exp.jobTitle || ''}
+                        onChange={(e) => {
+                          const next = [...extracted.workExperience];
+                          next[idx] = { ...next[idx], jobTitle: e.target.value };
+                          setExtracted({ ...extracted, workExperience: next });
+                        }}
+                        className="flex-1 px-2 py-1 rounded-lg bg-white border border-[#EAF7FF] text-xs font-semibold"
+                        placeholder="Role"
+                      />
+                      <input
+                        type="text"
+                        value={exp.organization || ''}
+                        onChange={(e) => {
+                          const next = [...extracted.workExperience];
+                          next[idx] = { ...next[idx], organization: e.target.value };
+                          setExtracted({ ...extracted, workExperience: next });
+                        }}
+                        className="flex-1 px-2 py-1 rounded-lg bg-white border border-[#EAF7FF] text-xs"
+                        placeholder="Organization"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExtracted({
+                            ...extracted,
+                            workExperience: extracted.workExperience.filter((_: any, i: number) => i !== idx)
+                          })
+                        }
+                        className="text-[#64748B] hover:text-rose-500"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Extracted Internships */}
+              {Array.isArray(extracted.internships) && extracted.internships.length > 0 && (
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-bold text-[#334155]">
+                    Extracted Internships ({extracted.internships.length})
+                  </label>
+                  {extracted.internships.map((intern: any, idx: number) => (
+                    <div
+                      key={idx}
+                      className="p-2.5 rounded-xl bg-[#F8FCFF] border border-[#D8ECFA] flex items-center justify-between gap-2 text-xs"
+                    >
+                      <input
+                        type="text"
+                        value={intern.role || ''}
+                        onChange={(e) => {
+                          const next = [...extracted.internships];
+                          next[idx] = { ...next[idx], role: e.target.value };
+                          setExtracted({ ...extracted, internships: next });
+                        }}
+                        className="flex-1 px-2 py-1 rounded-lg bg-white border border-[#EAF7FF] text-xs font-semibold"
+                        placeholder="Internship Role"
+                      />
+                      <input
+                        type="text"
+                        value={intern.organization || ''}
+                        onChange={(e) => {
+                          const next = [...extracted.internships];
+                          next[idx] = { ...next[idx], organization: e.target.value };
+                          setExtracted({ ...extracted, internships: next });
+                        }}
+                        className="flex-1 px-2 py-1 rounded-lg bg-white border border-[#EAF7FF] text-xs"
+                        placeholder="Organization"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExtracted({
+                            ...extracted,
+                            internships: extracted.internships.filter((_: any, i: number) => i !== idx)
+                          })
+                        }
+                        className="text-[#64748B] hover:text-rose-500"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Extracted Certifications */}
+              {Array.isArray(extracted.certifications) && extracted.certifications.length > 0 && (
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-bold text-[#334155]">
+                    Extracted Certifications ({extracted.certifications.length})
+                  </label>
+                  {extracted.certifications.map((cert: string, idx: number) => (
+                    <div
+                      key={idx}
+                      className="p-2 rounded-xl bg-[#F8FCFF] border border-[#D8ECFA] flex items-center justify-between gap-2 text-xs"
+                    >
+                      <input
+                        type="text"
+                        value={cert}
+                        onChange={(e) => {
+                          const next = [...extracted.certifications];
+                          next[idx] = e.target.value;
+                          setExtracted({ ...extracted, certifications: next });
+                        }}
+                        className="flex-1 px-2 py-1 rounded-lg bg-white border border-[#EAF7FF] text-xs"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExtracted({
+                            ...extracted,
+                            certifications: extracted.certifications.filter((_: any, i: number) => i !== idx)
+                          })
+                        }
+                        className="text-[#64748B] hover:text-rose-500"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Extracted Achievements */}
+              {Array.isArray(extracted.achievements) && extracted.achievements.length > 0 && (
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-bold text-[#334155]">
+                    Extracted Achievements ({extracted.achievements.length})
+                  </label>
+                  {extracted.achievements.map((ach: string, idx: number) => (
+                    <div
+                      key={idx}
+                      className="p-2 rounded-xl bg-[#F8FCFF] border border-[#D8ECFA] flex items-center justify-between gap-2 text-xs"
+                    >
+                      <input
+                        type="text"
+                        value={ach}
+                        onChange={(e) => {
+                          const next = [...extracted.achievements];
+                          next[idx] = e.target.value;
+                          setExtracted({ ...extracted, achievements: next });
+                        }}
+                        className="flex-1 px-2 py-1 rounded-lg bg-white border border-[#EAF7FF] text-xs"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExtracted({
+                            ...extracted,
+                            achievements: extracted.achievements.filter((_: any, i: number) => i !== idx)
                           })
                         }
                         className="text-[#64748B] hover:text-rose-500"

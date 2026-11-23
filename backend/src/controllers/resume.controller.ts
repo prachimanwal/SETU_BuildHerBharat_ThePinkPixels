@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import mongoose from 'mongoose';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { Resume } from '../models/Resume';
 import { UploadedResumeFile } from '../models/UploadedResumeFile';
@@ -7,7 +8,9 @@ import { AssessmentResult } from '../models/AssessmentResult';
 import { sendSuccess, sendError } from '../utils/response';
 import {
   extractRawTextFromResumeBuffer,
-  parseStructuredResumeText
+  parseStructuredResumeText,
+  createEmptyExtractedResumeData,
+  ResumeFileCorruptedError
 } from '../services/resumeParser.service';
 import {
   generateResumePdfBuffer,
@@ -343,20 +346,31 @@ export const uploadAndParseResume = async (
       return;
     }
 
+    if (mongoose.connection.readyState !== 1) {
+      sendError(res, 'Database connection is temporarily unavailable. Please try again shortly.', 503);
+      return;
+    }
+
     const file = (req as any).file as Express.Multer.File | undefined;
     if (!file) {
       sendError(res, 'Please select a PDF or DOCX resume file (max 5 MB).', 400);
       return;
     }
 
+    if (!file.buffer || file.size === 0 || file.buffer.length === 0) {
+      sendError(res, 'The uploaded file is empty. Please select a valid PDF or DOCX resume.', 400);
+      return;
+    }
+
     const allowedMimes = [
       'application/pdf',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/octet-stream'
     ];
-    const lowerName = file.originalname.toLowerCase();
+    const lowerName = (file.originalname || '').toLowerCase();
     const isAllowedExt = lowerName.endsWith('.pdf') || lowerName.endsWith('.docx');
 
-    if (!isAllowedExt && !allowedMimes.includes(file.mimetype)) {
+    if (!isAllowedExt || !allowedMimes.includes(file.mimetype)) {
       sendError(res, 'Only PDF and DOCX files are supported.', 400);
       return;
     }
@@ -374,30 +388,41 @@ export const uploadAndParseResume = async (
         file.mimetype,
         file.originalname
       );
+      if (!extractedText) {
+        parseWarning =
+          'Your resume was uploaded securely, but no selectable text was found (it may be a scanned image). Please enter or verify your details below before saving.';
+      }
     } catch (parseErr: any) {
-      parseWarning =
-        'File uploaded securely, but automatic text extraction could not read scanned/image-only content. You can review or enter your profile details manually.';
+      if (parseErr instanceof ResumeFileCorruptedError) {
+        sendError(res, parseErr.message, 400);
+        return;
+      }
+      sendError(
+        res,
+        'We could not parse this resume file. Please ensure it is a valid, unencrypted PDF or DOCX document and try again.',
+        400
+      );
+      return;
     }
 
     const extractedData = extractedText
       ? parseStructuredResumeText(extractedText)
-      : {
-          fullName: '',
-          email: '',
-          phone: '',
-          education: [],
-          skills: [],
-          projects: [],
-          workExperience: [],
-          certifications: [],
-          careerInterests: []
-        };
+      : createEmptyExtractedResumeData();
 
-    // Keep uploaded binary in dedicated `resumeversions` collection (never inside User document)
+    const normalizedMime = lowerName.endsWith('.docx')
+      ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      : 'application/pdf';
+
+    // Preserve all existing uploaded resume versions and increment version number
+    const existingCount = await UploadedResumeFile.countDocuments({ userId: req.user._id });
+    const versionNumber = existingCount + 1;
+
+    // Store private binary persistently inside MongoDB Atlas `resumeversions` collection (never ephemeral disk)
     const uploadedDoc = new UploadedResumeFile({
       userId: req.user._id,
+      versionNumber,
       originalFilename: file.originalname,
-      mimeType: file.mimetype,
+      mimeType: normalizedMime,
       sizeBytes: file.size,
       fileData: file.buffer,
       extractedText: extractedText.slice(0, 25000),
@@ -413,6 +438,7 @@ export const uploadAndParseResume = async (
       'Resume uploaded and parsed for your review. No profile fields were overwritten yet.',
       {
         uploadId: uploadedDoc._id,
+        versionNumber: uploadedDoc.versionNumber,
         originalFilename: uploadedDoc.originalFilename,
         sizeBytes: uploadedDoc.sizeBytes,
         shareWithEmployers: uploadedDoc.shareWithEmployers,
@@ -423,7 +449,8 @@ export const uploadAndParseResume = async (
       201
     );
   } catch (error: any) {
-    sendError(res, error.message || 'Failed to upload resume', 500);
+    console.error('[Resume Upload] Unexpected error:', error?.name || 'Error', error?.message || '');
+    sendError(res, 'Could not upload and process your resume right now. Please try again shortly.', 500);
   }
 };
 
@@ -508,19 +535,59 @@ export const confirmUploadedResumeData = async (
       sp.interests = existingInterests;
     }
 
-    // Merge confirmed work experience
+    // Merge confirmed work experience & internships (deduplicated)
+    const existingExp = Array.isArray(sp.experience) ? [...sp.experience] : [];
     if (Array.isArray(confirmed.workExperience) && confirmed.workExperience.length > 0) {
-      const existingExp = Array.isArray(sp.experience) ? [...sp.experience] : [];
       for (const exp of confirmed.workExperience) {
         if (!exp?.jobTitle) continue;
-        existingExp.push({
-          jobTitle: exp.jobTitle,
-          organization: exp.organization || 'Organization',
-          employmentType: 'Full-time'
-        });
+        const dup = existingExp.some(
+          (e) =>
+            e.jobTitle.toLowerCase() === String(exp.jobTitle).toLowerCase() &&
+            e.organization.toLowerCase() === String(exp.organization || 'Organization').toLowerCase()
+        );
+        if (!dup) {
+          existingExp.push({
+            jobTitle: String(exp.jobTitle).trim(),
+            organization: String(exp.organization || 'Organization').trim(),
+            employmentType: 'Full-time'
+          });
+        }
       }
+    }
+
+    if (Array.isArray(confirmed.internships) && confirmed.internships.length > 0) {
+      for (const intern of confirmed.internships) {
+        if (!intern?.role) continue;
+        const dup = existingExp.some(
+          (e) =>
+            e.jobTitle.toLowerCase() === String(intern.role).toLowerCase() &&
+            e.organization.toLowerCase() === String(intern.organization || 'Organization').toLowerCase()
+        );
+        if (!dup) {
+          existingExp.push({
+            jobTitle: String(intern.role).trim(),
+            organization: String(intern.organization || 'Organization').trim(),
+            employmentType: 'Internship'
+          });
+        }
+      }
+    }
+
+    if (existingExp.length > 0) {
       sp.experience = existingExp;
-      sp.hasExperience = existingExp.length > 0;
+      sp.hasExperience = true;
+    }
+
+    // Merge confirmed certifications into profile qualifications without overwriting existing records
+    if (Array.isArray(confirmed.certifications) && confirmed.certifications.length > 0) {
+      const existingQuals = Array.isArray(sp.qualifications) ? [...sp.qualifications] : [];
+      for (const cert of confirmed.certifications) {
+        const clean = String(cert || '').trim();
+        if (clean && !existingQuals.some((q) => q.title.toLowerCase() === clean.toLowerCase())) {
+          existingQuals.push({ title: clean, institute: 'Certification', year: '' });
+        }
+      }
+      sp.qualifications = existingQuals;
     }
 
     if (confirmed.phone && !sp.phone) {
@@ -591,6 +658,7 @@ export const downloadUploadedResume = async (
     }
 
     res.setHeader('Content-Type', upload.mimeType || 'application/octet-stream');
+    res.setHeader('Cache-Control', 'private, no-store');
     res.setHeader(
       'Content-Disposition',
       `attachment; filename="${sanitizeFilename(upload.originalFilename.replace(/\.(pdf|docx)$/i, ''))}${
@@ -599,7 +667,8 @@ export const downloadUploadedResume = async (
     );
     res.send(upload.fileData);
   } catch (error: any) {
-    sendError(res, error.message || 'Failed to download uploaded resume', 500);
+    console.error('[Resume Download] Error:', error?.message || '');
+    sendError(res, 'Could not download your resume right now. Please try again.', 500);
   }
 };
 

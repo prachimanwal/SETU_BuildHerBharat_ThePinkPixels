@@ -418,14 +418,33 @@ export const PortfolioPage: React.FC = () => {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-pink-200/50">
-                    <a
-                      href={`${apiBase}/api/resumes/upload/${uf._id}/download`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white border border-[#BDE0FE] text-xs font-bold text-[#1E3A5F]"
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          const token = localStorage.getItem('setu_auth_token');
+                          const res = await fetch(`${apiBase}/api/resumes/upload/${uf._id}/download`, {
+                            credentials: 'include',
+                            headers: token ? { Authorization: `Bearer ${token}` } : {}
+                          });
+                          if (!res.ok) return;
+                          const blob = await res.blob();
+                          const blobUrl = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = blobUrl;
+                          a.download = uf.originalFilename || 'SETU_Resume';
+                          document.body.appendChild(a);
+                          a.click();
+                          a.remove();
+                          URL.revokeObjectURL(blobUrl);
+                        } catch {
+                          // ignore
+                        }
+                      }}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white border border-[#BDE0FE] text-xs font-bold text-[#1E3A5F] hover:bg-[#EAF7FF]"
                     >
                       <Download className="w-3.5 h-3.5" /> Download
-                    </a>
+                    </button>
                     <button
                       type="button"
                       onClick={() => handleToggleUploadShare(uf._id, !uf.shareWithEmployers)}

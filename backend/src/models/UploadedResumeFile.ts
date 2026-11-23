@@ -14,13 +14,16 @@ export interface IExtractedResumeData {
   skills: string[];
   projects: Array<{ title: string; description: string }>;
   workExperience: Array<{ jobTitle: string; organization: string; duration?: string }>;
+  internships: Array<{ role: string; organization: string; duration?: string }>;
   certifications: string[];
+  achievements: string[];
   careerInterests: string[];
 }
 
 export interface IUploadedResumeFile extends Document {
   _id: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
+  versionNumber: number;
   originalFilename: string;
   mimeType: string;
   sizeBytes: number;
@@ -41,6 +44,7 @@ const UploadedResumeFileSchema = new Schema<IUploadedResumeFile>(
       required: true,
       index: true
     },
+    versionNumber: { type: Number, default: 1, min: 1 },
     originalFilename: { type: String, required: true },
     mimeType: { type: String, required: true },
     sizeBytes: { type: Number, required: true },
@@ -54,7 +58,9 @@ const UploadedResumeFileSchema = new Schema<IUploadedResumeFile>(
       skills: { type: [String], default: [] },
       projects: { type: Schema.Types.Mixed, default: [] },
       workExperience: { type: Schema.Types.Mixed, default: [] },
+      internships: { type: Schema.Types.Mixed, default: [] },
       certifications: { type: [String], default: [] },
+      achievements: { type: [String], default: [] },
       careerInterests: { type: [String], default: [] }
     },
     confirmedByUser: { type: Boolean, default: false },

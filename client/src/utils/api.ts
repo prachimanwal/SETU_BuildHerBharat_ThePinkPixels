@@ -118,11 +118,18 @@ export const apiFetch = async (
 ): Promise<{ ok: boolean; status: number; data: any; error?: string }> => {
   const url = getApiUrl(endpoint);
   const method = (options.method || 'GET').toUpperCase();
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
 
   const headers: Record<string, string> = {
-    ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+    ...(options.body && !isFormData ? { 'Content-Type': 'application/json' } : {}),
     ...(options.headers as Record<string, string>)
   };
+
+  // Never manually set Content-Type on FormData so the browser supplies multipart/form-data with boundary
+  if (isFormData) {
+    delete headers['Content-Type'];
+    delete headers['content-type'];
+  }
 
   // Attach stored JWT Bearer token if present (essential for cross-origin Netlify <-> Render requests)
   const token = localStorage.getItem('setu_auth_token');
@@ -137,12 +144,14 @@ export const apiFetch = async (
     credentials: 'include' // Required for HttpOnly cookies
   };
 
+  const timeoutMs = isFormData ? 45000 : DEFAULT_TIMEOUT_MS;
+
   const execute = async (): Promise<Response> => {
-    const res = await fetchWithTimeout(url, requestInit);
+    const res = await fetchWithTimeout(url, requestInit, timeoutMs);
     // Gracefully retry once on Render cold-start gateway statuses for idempotent GET calls
     if (method === 'GET' && (res.status === 502 || res.status === 503 || res.status === 504)) {
       await new Promise((resolve) => window.setTimeout(resolve, 1500));
-      return fetchWithTimeout(url, requestInit);
+      return fetchWithTimeout(url, requestInit, timeoutMs);
     }
     return res;
   };
