@@ -152,7 +152,14 @@ export const profileUpdateSchema = z.object({
       resumeUrl: z.string().optional(),
       isCareerRestart: z.boolean().optional(),
       onboardingCompleted: z.boolean().optional(),
-      onboardingSkipped: z.boolean().optional()
+      onboardingSkipped: z.boolean().optional(),
+      profileVisibility: z
+        .object({
+          discoverableByEmployers: z.boolean().optional(),
+          showResumeToEmployers: z.boolean().optional(),
+          showContactAfterShortlist: z.boolean().optional()
+        })
+        .optional()
     })
     .optional(),
   employerProfile: z
@@ -173,16 +180,37 @@ export const profileUpdateSchema = z.object({
     .optional()
 });
 
+const locationPreprocessor = z.preprocess(
+  (val) => {
+    if (typeof val === 'string') {
+      const parts = val
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      return {
+        city: parts[0] || 'Pan-India',
+        state: parts[1] || 'India',
+        isRuralFocus: false
+      };
+    }
+    return val;
+  },
+  z.object({
+    city: z.string().trim().min(1).default('Pan-India'),
+    state: z.string().trim().default('India'),
+    isRuralFocus: z.boolean().default(false)
+  })
+);
+
 export const opportunitySchema = z.object({
   title: z.string().trim().min(3, 'Title is required and must be at least 3 characters'),
+  department: z.string().trim().optional().default('General'),
   organisationName: z.string().trim().optional(),
   description: z.string().trim().min(10, 'Description must be at least 10 characters'),
-  requiredSkills: z.array(z.string()).min(1, 'At least one required skill must be specified'),
-  location: z.object({
-    city: z.string().trim().default('Gurugram'),
-    state: z.string().trim().default('Haryana'),
-    isRuralFocus: z.boolean().default(false)
-  }),
+  responsibilities: z.array(z.string().trim()).optional().default([]),
+  qualifications: z.array(z.string().trim()).optional().default([]),
+  requiredSkills: z.array(z.string().trim().min(1)).min(1, 'At least one required skill must be specified'),
+  location: locationPreprocessor.default({ city: 'Pan-India', state: 'India', isRuralFocus: false }),
   workMode: z.enum(['remote', 'hybrid', 'onsite']).default('hybrid'),
   opportunityType: z
     .enum([
@@ -191,19 +219,84 @@ export const opportunitySchema = z.object({
       'part_time',
       'internship',
       'freelance',
+      'contract',
       'apprenticeship',
       'entry_level',
       'entrepreneurship'
     ])
     .default('job'),
-  stipendOrSalary: z.string().trim().default('Competitive / Market Standard'),
-  duration: z.string().trim().default('Full-Time'),
-  isCareerRestart: z.boolean().default(false)
+  stipendOrSalary: z.string().trim().optional().default('Competitive / Market Standard'),
+  salaryOrStipend: z.string().trim().optional(),
+  salaryMin: nullableNumber,
+  salaryMax: nullableNumber,
+  vacancies: z.coerce.number().int().min(1).max(5000).optional().default(1),
+  duration: z.string().trim().optional().default('Full-Time'),
+  experienceRequired: z.string().trim().optional().default('Fresher / Entry-Level Welcome'),
+  minEducationLevel: z.string().trim().optional().default(''),
+  educationRequired: z.string().trim().optional(),
+  applicationDeadline: z.string().trim().optional().default(''),
+  screeningQuestions: z.array(z.string().trim()).optional().default([]),
+  isCareerRestart: z.boolean().optional().default(false),
+  status: z.enum(['draft', 'published', 'closed', 'archived']).optional()
 });
 
 export const applicationSchema = z.object({
   opportunityId: z.string().min(1, 'Opportunity ID is required'),
-  coverNote: z.string().max(2000).optional().default('')
+  coverNote: z.string().max(2000).optional().default(''),
+  screeningAnswers: z
+    .array(
+      z.object({
+        question: z.string(),
+        answer: z.string()
+      })
+    )
+    .optional()
+    .default([])
+});
+
+export const hiringPreferenceSchema = z.object({
+  jobTitle: z.string().trim().min(2, 'Job title is required'),
+  department: z.string().trim().optional().default('General'),
+  vacancies: z.coerce.number().int().min(1).max(5000).default(1),
+  requiredEducation: z.string().trim().optional().default('Any Graduate / Relevant Skills'),
+  requiredSkills: z.array(z.string().trim()).optional().default([]),
+  experienceLevel: z.string().trim().optional().default('Entry-level / Fresher'),
+  minSalary: nullableNumber,
+  maxSalary: nullableNumber,
+  salaryCurrency: z.string().trim().optional().default('INR'),
+  jobLocation: z.string().trim().optional().default('Pan-India'),
+  employmentType: z
+    .enum(['Full-time', 'Part-time', 'Internship', 'Freelance', 'Contract', 'Remote'])
+    .default('Full-time'),
+  workArrangement: z.enum(['Remote', 'Hybrid', 'On-site']).default('Hybrid'),
+  preferredJoiningDate: z.string().trim().optional().default(''),
+  requiredCertifications: z.array(z.string().trim()).optional().default([]),
+  interviewProcess: z
+    .string()
+    .trim()
+    .optional()
+    .default('Screening -> Technical/Skill Round -> HR Discussion'),
+  isActive: z.boolean().optional().default(true)
+});
+
+export const interviewSchema = z.object({
+  applicationId: z.string().optional(),
+  opportunityId: z.string().min(1, 'Job position is required'),
+  candidateId: z.string().min(1, 'Candidate is required'),
+  scheduledDate: z.string().min(4, 'Interview date is required'),
+  scheduledTime: z.string().min(2, 'Interview time is required'),
+  durationMinutes: z.coerce.number().int().min(10).max(480).optional().default(45),
+  mode: z.enum(['Online', 'Offline', 'Telephone']).default('Online'),
+  meetingLinkOrLocation: z.string().trim().optional().default(''),
+  interviewerName: z.string().trim().min(2, 'Interviewer name is required'),
+  interviewerEmail: z.string().trim().optional().default(''),
+  notes: z.string().trim().optional().default(''),
+  feedback: z.string().trim().optional().default(''),
+  rating: nullableNumber,
+  status: z
+    .enum(['Scheduled', 'Rescheduled', 'Completed', 'Cancelled', 'No Show'])
+    .optional()
+    .default('Scheduled')
 });
 
 export const portfolioSchema = z.object({

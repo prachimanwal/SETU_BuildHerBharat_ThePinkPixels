@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import { apiFetch, extractArray, formatLocation, unwrapData } from '../utils/api';
+import { apiFetch, extractArray, formatLocation, getApiUrl, unwrapData } from '../utils/api';
 
 export const AdminDashboardPage: React.FC = () => {
   const { user } = useAuth();
@@ -88,6 +88,37 @@ export const AdminDashboardPage: React.FC = () => {
       }
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handlePreviewEmployerDoc = async (docId: string) => {
+    const token = localStorage.getItem('setu_auth_token');
+    const res = await fetch(getApiUrl(`/api/admin/verification/documents/${docId}/file`), {
+      credentials: 'include',
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
+    });
+    if (!res.ok) return;
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleReviewDoc = async (
+    docId: string,
+    status: 'Verified' | 'Rejected' | 'Additional Information Required'
+  ) => {
+    const reason =
+      status === 'Verified'
+        ? 'Document verified by SETU administrator.'
+        : prompt(`Enter feedback / reason for marking document "${status}":`, '') || status;
+    const res = await apiFetch(`/api/admin/verification/documents/${docId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ status, rejectionReason: reason, adminNotes: reason })
+    });
+    if (res.ok) {
+      setActionSuccess(`Document marked as ${status}`);
+      await loadData();
+      setTimeout(() => setActionSuccess(''), 3000);
     }
   };
 
@@ -276,8 +307,11 @@ export const AdminDashboardPage: React.FC = () => {
         <div className="space-y-4">
           {employers.map((emp) => {
             const prof = emp.employerProfile || {};
-            const isPending = prof.verificationStatus === 'pending';
-            const isApproved = prof.verificationStatus === 'approved';
+            const st = prof.verificationStatus || 'pending';
+            const isApproved = st === 'approved' || st === 'verified';
+            const uploadedDocs = Array.isArray(emp.verificationDocuments)
+              ? emp.verificationDocuments
+              : [];
 
             return (
               <div
@@ -286,20 +320,20 @@ export const AdminDashboardPage: React.FC = () => {
               >
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                   <div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-2 flex-wrap">
                       <h3 className="text-lg font-bold text-[#334155] font-serif">
-                        {prof.companyName || emp.name}
+                        {emp.companyRecord?.publicName || prof.companyName || emp.name}
                       </h3>
                       <span
                         className={`text-xs font-bold px-2.5 py-0.5 rounded-full uppercase ${
                           isApproved
                             ? 'bg-emerald-100 text-emerald-800'
-                            : isPending
-                            ? 'bg-amber-100 text-amber-800'
-                            : 'bg-rose-100 text-rose-800'
+                            : st === 'rejected' || st === 'suspended'
+                            ? 'bg-rose-100 text-rose-800'
+                            : 'bg-amber-100 text-amber-800'
                         }`}
                       >
-                        {prof.verificationStatus}
+                        {st.replace(/_/g, ' ')}
                       </span>
                     </div>
                     <p className="text-xs text-[#64748B] mt-0.5">
@@ -308,20 +342,46 @@ export const AdminDashboardPage: React.FC = () => {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex items-center space-x-2">
-                    {isPending && (
-                      <button
-                        onClick={() =>
-                          handleUpdateEmployer(
-                            emp._id,
-                            'approved',
-                            'Verified registry against official MCA / GSTIN registry'
-                          )
-                        }
-                        className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition"
-                      >
-                        Approve & Grant Badge
-                      </button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {!isApproved && (
+                      <>
+                        <button
+                          onClick={() =>
+                            handleUpdateEmployer(
+                              emp._id,
+                              'approved',
+                              'Verified business documents against official records'
+                            )
+                          }
+                          className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition"
+                        >
+                          Approve & Verify
+                        </button>
+                        <button
+                          onClick={() =>
+                            handleUpdateEmployer(
+                              emp._id,
+                              'additional_info_required',
+                              'Please upload clearer business registration or authorization letter'
+                            )
+                          }
+                          className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs transition"
+                        >
+                          Request Info
+                        </button>
+                        <button
+                          onClick={() =>
+                            handleUpdateEmployer(
+                              emp._id,
+                              'rejected',
+                              'Submitted verification documents could not be validated'
+                            )
+                          }
+                          className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition"
+                        >
+                          Reject
+                        </button>
+                      </>
                     )}
                     {isApproved && (
                       <button
@@ -337,22 +397,54 @@ export const AdminDashboardPage: React.FC = () => {
                         Suspend Employer
                       </button>
                     )}
-                    {!isPending && !isApproved && (
-                      <button
-                        onClick={() =>
-                          handleUpdateEmployer(
-                            emp._id,
-                            'approved',
-                            'Reinstated after review'
-                          )
-                        }
-                        className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-bold text-xs transition"
-                      >
-                        Reinstate
-                      </button>
-                    )}
                   </div>
                 </div>
+
+                {/* Uploaded Verification Documents */}
+                {uploadedDocs.length > 0 && (
+                  <div className="p-3.5 bg-[#F8FCFF] rounded-xl border border-[#D8ECFA] text-xs space-y-2">
+                    <span className="font-bold text-[#334155] block">
+                      Uploaded Verification Files ({uploadedDocs.length}):
+                    </span>
+                    {uploadedDocs.map((doc: any) => (
+                      <div
+                        key={doc._id}
+                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-lg bg-white border border-[#EAF7FF]"
+                      >
+                        <div>
+                          <p className="font-bold text-[#1E3A5F]">{doc.documentType}</p>
+                          <p className="text-[11px] text-[#64748B]">
+                            {doc.originalFilename} • Status: <strong>{doc.status}</strong>
+                            {doc.documentNumber ? ` • Ref: ${doc.documentNumber}` : ''}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handlePreviewEmployerDoc(doc._id)}
+                            className="px-2.5 py-1 rounded-lg bg-[#EAF7FF] text-[#1E3A5F] text-[11px] font-semibold"
+                          >
+                            Preview File
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleReviewDoc(doc._id, 'Verified')}
+                            className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[11px] font-semibold"
+                          >
+                            Verify Doc
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleReviewDoc(doc._id, 'Rejected')}
+                            className="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 text-[11px] font-semibold"
+                          >
+                            Reject Doc
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 {/* Submitted Docs Preview */}
                 <div className="p-3.5 bg-[#F8FCFF] rounded-xl border border-[#D8ECFA] text-xs space-y-1">

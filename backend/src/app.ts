@@ -3,7 +3,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import mongoose from 'mongoose';
 import { ENV } from './config/env';
-import { authenticate, AuthenticatedRequest } from './middleware/auth.middleware';
+import { authenticate, optionalAuthenticate, AuthenticatedRequest } from './middleware/auth.middleware';
 import { requireRole } from './middleware/role.middleware';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware';
 import { sendSuccess, sendError } from './utils/response';
@@ -22,6 +22,12 @@ import {
   getEmployerDashboard,
   submitVerificationDocs
 } from './controllers/employer.controller';
+import {
+  getPublicCompanyProfile,
+  getEmployerNotifications,
+  markNotificationRead,
+  markAllNotificationsRead
+} from './controllers/employerPortal.controller';
 import {
   getAdminStats,
   updateEmployerVerification
@@ -255,6 +261,14 @@ app.put('/api/admin/support-tickets/:id', authenticate, requireRole('admin'), (_
 app.post('/api/admin/schemes', authenticate, requireRole('admin'), createScheme);
 app.put('/api/admin/schemes/:id', authenticate, requireRole('admin'), updateScheme);
 app.delete('/api/admin/schemes/:id', authenticate, requireRole('admin'), deleteScheme);
+
+// Public Company Profile (strictly approved public fields only; never exposes verification documents)
+app.get('/api/companies/:id/public', optionalAuthenticate, getPublicCompanyProfile);
+
+// Shared Authenticated Notifications (Seekers & Employers)
+app.get('/api/notifications', authenticate, getEmployerNotifications);
+app.patch('/api/notifications/read-all', authenticate, markAllNotificationsRead);
+app.patch('/api/notifications/:id/read', authenticate, markNotificationRead);
 
 // Public Aliases
 app.use('/api/public/opportunities', opportunityRoutes);

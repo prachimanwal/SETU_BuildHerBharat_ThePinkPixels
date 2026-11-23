@@ -61,25 +61,59 @@ const ApplicationSchema = new mongoose_1.Schema({
             'Under Review',
             'Shortlisted',
             'Interview Scheduled',
+            'Interview Completed',
+            'Offer Sent',
+            'Hired',
             'Selected',
-            'Rejected'
+            'Rejected',
+            'Withdrawn'
         ],
         default: 'Applied',
         required: true,
         index: true
     },
     coverNote: { type: String, default: '' },
+    screeningAnswers: [
+        {
+            question: { type: String, default: '' },
+            answer: { type: String, default: '' }
+        }
+    ],
     interviewDetails: {
         date: { type: String, default: '' },
         time: { type: String, default: '' },
         mode: {
             type: String,
-            enum: ['online_call', 'in_person'],
+            enum: ['online_call', 'in_person', 'Online', 'Offline', 'Telephone'],
             default: 'online_call'
         },
         meetingLink: { type: String, default: '' },
         notes: { type: String, default: '' }
-    }
+    },
+    // Private to employer/admin; explicitly stripped before returning to seekers
+    recruiterNotes: [
+        {
+            note: { type: String, required: true, trim: true },
+            authorName: { type: String, default: 'Recruiter' },
+            createdAt: { type: Date, default: Date.now }
+        }
+    ],
+    candidateUpdateMessage: { type: String, default: '' },
+    statusHistory: [
+        {
+            status: { type: String, required: true },
+            updatedByRole: {
+                type: String,
+                enum: ['seeker', 'employer', 'admin', 'system'],
+                default: 'system'
+            },
+            note: { type: String, default: '' },
+            timestamp: { type: Date, default: Date.now }
+        }
+    ],
+    invitedByEmployer: { type: Boolean, default: false },
+    offerSentAt: { type: Date },
+    hiredAt: { type: Date }
 }, { timestamps: true });
 // Prevent duplicate direct applications from same seeker to same opportunity
 ApplicationSchema.index({ opportunityId: 1, seekerId: 1 }, { unique: true });

@@ -14,6 +14,7 @@
     "verify": "tsx scripts/verify-all.ts",
     "test:auth": "tsx scripts/test-auth.ts",
     "test:platform": "tsx scripts/test-platform.ts",
+    "test:employer": "tsx scripts/test-employer-portal.ts",
     "test:gemini": "tsx scripts/test-cane-gemini.ts",
     "check:gemini": "tsx scripts/check-gemini.ts"
   },

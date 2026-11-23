@@ -2,13 +2,17 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const admin_controller_1 = require("../controllers/admin.controller");
+const employerPortal_controller_1 = require("../controllers/employerPortal.controller");
 const auth_middleware_1 = require("../middleware/auth.middleware");
 const role_middleware_1 = require("../middleware/role.middleware");
 const router = (0, express_1.Router)();
 router.use(auth_middleware_1.authenticate, (0, role_middleware_1.requireRole)('admin'));
 router.get('/stats', admin_controller_1.getAdminStats);
 router.get('/employers', admin_controller_1.getEmployers);
+router.get('/employers/:id/documents', admin_controller_1.getEmployerDocumentsForAdmin);
 router.put('/employers/:id/verify', admin_controller_1.updateEmployerVerification);
+router.get('/verification/documents/:docId/file', employerPortal_controller_1.streamVerificationDocumentFile);
+router.put('/verification/documents/:docId', admin_controller_1.reviewVerificationDocument);
 router.get('/reports', admin_controller_1.getReports);
 router.put('/reports/:id/resolve', admin_controller_1.resolveReport);
 router.put('/opportunities/:id/moderate', admin_controller_1.moderateListing);

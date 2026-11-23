@@ -75,7 +75,7 @@ export const RegisterPage: React.FC = () => {
     if (res.success) {
       setSuccessMsg('Account created successfully! Taking you to your career profile...');
       if (res.user?.role === 'employer' || role === 'employer') {
-        navigate('/employer');
+        navigate('/employer/onboarding');
       } else {
         navigate('/onboarding');
       }

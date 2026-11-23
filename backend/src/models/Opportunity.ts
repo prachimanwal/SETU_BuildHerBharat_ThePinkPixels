@@ -7,6 +7,7 @@ export type OpportunityType =
   | 'part_time'
   | 'internship'
   | 'freelance'
+  | 'contract'
   | 'apprenticeship'
   | 'entry_level'
   | 'entrepreneurship';
@@ -15,9 +16,13 @@ export type OpportunityStatus = 'draft' | 'published' | 'closed' | 'archived';
 export interface IOpportunity extends Document {
   _id: mongoose.Types.ObjectId;
   employerId: mongoose.Types.ObjectId;
+  companyId?: mongoose.Types.ObjectId;
   title: string;
+  department?: string;
   organisationName: string;
   description: string;
+  responsibilities?: string[];
+  qualifications?: string[];
   requiredSkills: string[];
   location: {
     city: string;
@@ -27,6 +32,9 @@ export interface IOpportunity extends Document {
   workMode: WorkMode;
   opportunityType: OpportunityType;
   stipendOrSalary: string;
+  salaryMin?: number | null;
+  salaryMax?: number | null;
+  vacancies?: number;
   duration?: string;
   experienceRequired?: string;
   minEducationLevel?: string;
@@ -34,11 +42,14 @@ export interface IOpportunity extends Document {
   minCgpa?: number | null;
   minCgpaScale?: number | null;
   applicationDeadline?: string;
+  screeningQuestions?: string[];
   externalApplyUrl?: string;
   isCareerRestart: boolean;
   isSampleExample?: boolean;
   status: OpportunityStatus;
   moderationStatus: 'clean' | 'flagged' | 'hidden';
+  publishedAt?: Date;
+  closedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -51,9 +62,17 @@ const OpportunitySchema = new Schema<IOpportunity>(
       required: true,
       index: true
     },
+    companyId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Employer',
+      index: true
+    },
     title: { type: String, required: true, trim: true },
+    department: { type: String, default: 'General', trim: true },
     organisationName: { type: String, required: true, trim: true },
     description: { type: String, required: true },
+    responsibilities: { type: [String], default: [] },
+    qualifications: { type: [String], default: [] },
     requiredSkills: { type: [String], required: true, index: true },
     location: {
       city: { type: String, required: true, trim: true },
@@ -74,6 +93,7 @@ const OpportunitySchema = new Schema<IOpportunity>(
         'part_time',
         'internship',
         'freelance',
+        'contract',
         'apprenticeship',
         'entry_level',
         'entrepreneurship'
@@ -82,6 +102,9 @@ const OpportunitySchema = new Schema<IOpportunity>(
       required: true
     },
     stipendOrSalary: { type: String, default: 'Competitive' },
+    salaryMin: { type: Number, default: null },
+    salaryMax: { type: Number, default: null },
+    vacancies: { type: Number, default: 1, min: 1 },
     duration: { type: String, default: 'Full-Time' },
     experienceRequired: { type: String, default: 'Fresher / Entry-Level Welcome' },
     minEducationLevel: { type: String, default: '' },
@@ -89,6 +112,7 @@ const OpportunitySchema = new Schema<IOpportunity>(
     minCgpa: { type: Number, default: null },
     minCgpaScale: { type: Number, default: 10 },
     applicationDeadline: { type: String, default: '' },
+    screeningQuestions: { type: [String], default: [] },
     externalApplyUrl: { type: String, default: '' },
     isCareerRestart: { type: Boolean, default: false, index: true },
     isSampleExample: { type: Boolean, default: false, index: true },
@@ -104,7 +128,9 @@ const OpportunitySchema = new Schema<IOpportunity>(
       enum: ['clean', 'flagged', 'hidden'],
       default: 'clean',
       index: true
-    }
+    },
+    publishedAt: { type: Date },
+    closedAt: { type: Date }
   },
   { timestamps: true }
 );

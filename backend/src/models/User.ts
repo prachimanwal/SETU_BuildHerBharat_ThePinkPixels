@@ -94,6 +94,11 @@ export interface ISeekerProfile {
   isCareerRestart?: boolean;
   onboardingCompleted?: boolean;
   onboardingSkipped?: boolean;
+  profileVisibility?: {
+    discoverableByEmployers?: boolean;
+    showResumeToEmployers?: boolean;
+    showContactAfterShortlist?: boolean;
+  };
 }
 
 export interface IEmployerProfile {
@@ -102,7 +107,15 @@ export interface IEmployerProfile {
   website?: string;
   companySize?: string;
   description?: string;
-  verificationStatus: 'pending' | 'approved' | 'rejected' | 'suspended';
+  verificationStatus:
+    | 'pending'
+    | 'under_review'
+    | 'approved'
+    | 'verified'
+    | 'rejected'
+    | 'additional_info_required'
+    | 'suspended';
+  onboardingCompleted?: boolean;
   verificationDocs?: {
     docType: string;
     docNumber: string;
@@ -267,7 +280,12 @@ const UserSchema = new Schema<IUser>(
       resumeUrl: { type: String, default: '' },
       isCareerRestart: { type: Boolean, default: false },
       onboardingCompleted: { type: Boolean, default: false },
-      onboardingSkipped: { type: Boolean, default: false }
+      onboardingSkipped: { type: Boolean, default: false },
+      profileVisibility: {
+        discoverableByEmployers: { type: Boolean, default: true },
+        showResumeToEmployers: { type: Boolean, default: false },
+        showContactAfterShortlist: { type: Boolean, default: false }
+      }
     },
     employerProfile: {
       companyName: { type: String, default: '' },
@@ -277,9 +295,18 @@ const UserSchema = new Schema<IUser>(
       description: { type: String, default: '' },
       verificationStatus: {
         type: String,
-        enum: ['pending', 'approved', 'rejected', 'suspended'],
+        enum: [
+          'pending',
+          'under_review',
+          'approved',
+          'verified',
+          'rejected',
+          'additional_info_required',
+          'suspended'
+        ],
         default: 'pending'
       },
+      onboardingCompleted: { type: Boolean, default: false },
       verificationDocs: {
         docType: { type: String, default: '' },
         docNumber: { type: String, default: '' },

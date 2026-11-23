@@ -18,6 +18,7 @@ const assessment_controller_1 = require("./controllers/assessment.controller");
 const learning_controller_1 = require("./controllers/learning.controller");
 const opportunity_controller_1 = require("./controllers/opportunity.controller");
 const employer_controller_1 = require("./controllers/employer.controller");
+const employerPortal_controller_1 = require("./controllers/employerPortal.controller");
 const admin_controller_1 = require("./controllers/admin.controller");
 const scheme_controller_1 = require("./controllers/scheme.controller");
 const Opportunity_1 = require("./models/Opportunity");
@@ -218,6 +219,12 @@ app.put('/api/admin/support-tickets/:id', auth_middleware_1.authenticate, (0, ro
 app.post('/api/admin/schemes', auth_middleware_1.authenticate, (0, role_middleware_1.requireRole)('admin'), scheme_controller_1.createScheme);
 app.put('/api/admin/schemes/:id', auth_middleware_1.authenticate, (0, role_middleware_1.requireRole)('admin'), scheme_controller_1.updateScheme);
 app.delete('/api/admin/schemes/:id', auth_middleware_1.authenticate, (0, role_middleware_1.requireRole)('admin'), scheme_controller_1.deleteScheme);
+// Public Company Profile (strictly approved public fields only; never exposes verification documents)
+app.get('/api/companies/:id/public', auth_middleware_1.optionalAuthenticate, employerPortal_controller_1.getPublicCompanyProfile);
+// Shared Authenticated Notifications (Seekers & Employers)
+app.get('/api/notifications', auth_middleware_1.authenticate, employerPortal_controller_1.getEmployerNotifications);
+app.patch('/api/notifications/read-all', auth_middleware_1.authenticate, employerPortal_controller_1.markAllNotificationsRead);
+app.patch('/api/notifications/:id/read', auth_middleware_1.authenticate, employerPortal_controller_1.markNotificationRead);
 // Public Aliases
 app.use('/api/public/opportunities', opportunity_routes_1.default);
 app.use('/api/public/schemes', scheme_routes_1.default);

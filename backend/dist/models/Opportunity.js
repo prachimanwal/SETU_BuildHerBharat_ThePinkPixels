@@ -42,9 +42,17 @@ const OpportunitySchema = new mongoose_1.Schema({
         required: true,
         index: true
     },
+    companyId: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: 'Employer',
+        index: true
+    },
     title: { type: String, required: true, trim: true },
+    department: { type: String, default: 'General', trim: true },
     organisationName: { type: String, required: true, trim: true },
     description: { type: String, required: true },
+    responsibilities: { type: [String], default: [] },
+    qualifications: { type: [String], default: [] },
     requiredSkills: { type: [String], required: true, index: true },
     location: {
         city: { type: String, required: true, trim: true },
@@ -65,6 +73,7 @@ const OpportunitySchema = new mongoose_1.Schema({
             'part_time',
             'internship',
             'freelance',
+            'contract',
             'apprenticeship',
             'entry_level',
             'entrepreneurship'
@@ -73,6 +82,9 @@ const OpportunitySchema = new mongoose_1.Schema({
         required: true
     },
     stipendOrSalary: { type: String, default: 'Competitive' },
+    salaryMin: { type: Number, default: null },
+    salaryMax: { type: Number, default: null },
+    vacancies: { type: Number, default: 1, min: 1 },
     duration: { type: String, default: 'Full-Time' },
     experienceRequired: { type: String, default: 'Fresher / Entry-Level Welcome' },
     minEducationLevel: { type: String, default: '' },
@@ -80,6 +92,7 @@ const OpportunitySchema = new mongoose_1.Schema({
     minCgpa: { type: Number, default: null },
     minCgpaScale: { type: Number, default: 10 },
     applicationDeadline: { type: String, default: '' },
+    screeningQuestions: { type: [String], default: [] },
     externalApplyUrl: { type: String, default: '' },
     isCareerRestart: { type: Boolean, default: false, index: true },
     isSampleExample: { type: Boolean, default: false, index: true },
@@ -95,7 +108,9 @@ const OpportunitySchema = new mongoose_1.Schema({
         enum: ['clean', 'flagged', 'hidden'],
         default: 'clean',
         index: true
-    }
+    },
+    publishedAt: { type: Date },
+    closedAt: { type: Date }
 }, { timestamps: true });
 OpportunitySchema.index({ title: 'text', description: 'text', requiredSkills: 'text' });
 exports.Opportunity = mongoose_1.default.model('Opportunity', OpportunitySchema);

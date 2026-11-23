@@ -5,15 +5,32 @@ export type ApplicationStatus =
   | 'Under Review'
   | 'Shortlisted'
   | 'Interview Scheduled'
+  | 'Interview Completed'
+  | 'Offer Sent'
+  | 'Hired'
   | 'Selected'
-  | 'Rejected';
+  | 'Rejected'
+  | 'Withdrawn';
 
 export interface IInterviewDetails {
   date?: string;
   time?: string;
-  mode?: 'online_call' | 'in_person';
+  mode?: 'online_call' | 'in_person' | 'Online' | 'Offline' | 'Telephone';
   meetingLink?: string;
   notes?: string;
+}
+
+export interface IRecruiterNote {
+  note: string;
+  authorName: string;
+  createdAt: Date;
+}
+
+export interface IApplicationStatusHistory {
+  status: ApplicationStatus;
+  updatedByRole: 'seeker' | 'employer' | 'admin' | 'system';
+  note?: string;
+  timestamp: Date;
 }
 
 export interface IApplication extends Document {
@@ -23,7 +40,14 @@ export interface IApplication extends Document {
   employerId: mongoose.Types.ObjectId;
   status: ApplicationStatus;
   coverNote?: string;
+  screeningAnswers?: Array<{ question: string; answer: string }>;
   interviewDetails?: IInterviewDetails;
+  recruiterNotes?: IRecruiterNote[];
+  candidateUpdateMessage?: string;
+  statusHistory?: IApplicationStatusHistory[];
+  invitedByEmployer?: boolean;
+  offerSentAt?: Date;
+  hiredAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -55,25 +79,59 @@ const ApplicationSchema = new Schema<IApplication>(
         'Under Review',
         'Shortlisted',
         'Interview Scheduled',
+        'Interview Completed',
+        'Offer Sent',
+        'Hired',
         'Selected',
-        'Rejected'
+        'Rejected',
+        'Withdrawn'
       ],
       default: 'Applied',
       required: true,
       index: true
     },
     coverNote: { type: String, default: '' },
+    screeningAnswers: [
+      {
+        question: { type: String, default: '' },
+        answer: { type: String, default: '' }
+      }
+    ],
     interviewDetails: {
       date: { type: String, default: '' },
       time: { type: String, default: '' },
       mode: {
         type: String,
-        enum: ['online_call', 'in_person'],
+        enum: ['online_call', 'in_person', 'Online', 'Offline', 'Telephone'],
         default: 'online_call'
       },
       meetingLink: { type: String, default: '' },
       notes: { type: String, default: '' }
-    }
+    },
+    // Private to employer/admin; explicitly stripped before returning to seekers
+    recruiterNotes: [
+      {
+        note: { type: String, required: true, trim: true },
+        authorName: { type: String, default: 'Recruiter' },
+        createdAt: { type: Date, default: Date.now }
+      }
+    ],
+    candidateUpdateMessage: { type: String, default: '' },
+    statusHistory: [
+      {
+        status: { type: String, required: true },
+        updatedByRole: {
+          type: String,
+          enum: ['seeker', 'employer', 'admin', 'system'],
+          default: 'system'
+        },
+        note: { type: String, default: '' },
+        timestamp: { type: Date, default: Date.now }
+      }
+    ],
+    invitedByEmployer: { type: Boolean, default: false },
+    offerSentAt: { type: Date },
+    hiredAt: { type: Date }
   },
   { timestamps: true }
 );

@@ -3,6 +3,7 @@ import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { ENV } from '../config/env';
 import { Opportunity } from '../models/Opportunity';
 import { Application } from '../models/Application';
+import { Employer, isEmployerVerified } from '../models/Employer';
 import { sendSuccess, sendError } from '../utils/response';
 import { opportunitySchema } from '../utils/validators';
 
@@ -374,14 +375,77 @@ export const createOpportunity = async (
     }
 
     const payload = parseResult.data;
+
+    if (
+      typeof payload.salaryMin === 'number' &&
+      typeof payload.salaryMax === 'number' &&
+      payload.salaryMin > payload.salaryMax
+    ) {
+      sendError(res, 'Minimum salary cannot be greater than maximum salary.', 400);
+      return;
+    }
+
+    const employerDoc =
+      req.user.role === 'employer'
+        ? await Employer.findOne({ userId: req.user._id })
+        : null;
+
+    const verified =
+      req.user.role === 'admin' ||
+      isEmployerVerified(employerDoc?.verificationStatus) ||
+      isEmployerVerified(req.user.employerProfile?.verificationStatus);
+
+    const requestedStatus = payload.status;
+    if (requestedStatus === 'published' && !verified) {
+      sendError(
+        res,
+        'Only verified employers can publish live job opportunities. Save this vacancy as a draft until your company verification is approved.',
+        403
+      );
+      return;
+    }
+
+    const finalStatus = requestedStatus || (verified ? 'published' : 'draft');
+
+    // Prevent duplicate active job postings for the same employer (same title + city)
+    const escapedTitle = payload.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const escapedCity = (payload.location?.city || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const duplicate = await Opportunity.findOne({
+      employerId: req.user._id,
+      status: { $in: ['draft', 'published'] },
+      title: { $regex: `^${escapedTitle}$`, $options: 'i' },
+      'location.city': { $regex: `^${escapedCity}$`, $options: 'i' }
+    });
+
+    if (duplicate) {
+      sendError(
+        res,
+        `A similar active posting ("${duplicate.title}" in ${duplicate.location.city}) already exists. Edit the existing vacancy or close/archive it first.`,
+        409
+      );
+      return;
+    }
+
     const organisationName =
       payload.organisationName ||
+      employerDoc?.publicName ||
+      employerDoc?.companyName ||
       req.user.employerProfile?.companyName ||
       req.user.name;
 
+    const computedSalaryLabel =
+      payload.salaryOrStipend ||
+      payload.stipendOrSalary ||
+      (payload.salaryMin && payload.salaryMax
+        ? `₹${payload.salaryMin.toLocaleString('en-IN')} - ₹${payload.salaryMax.toLocaleString(
+            'en-IN'
+          )}`
+        : 'Competitive / Market Standard');
+
     const newOpp = new Opportunity({
       ...payload,
-      minEducationLevel: req.body?.minEducationLevel || '',
+      stipendOrSalary: computedSalaryLabel,
+      minEducationLevel: payload.minEducationLevel || payload.educationRequired || '',
       minAcademicPercentage:
         typeof req.body?.minAcademicPercentage === 'number'
           ? req.body.minAcademicPercentage
@@ -389,18 +453,27 @@ export const createOpportunity = async (
       minCgpa: typeof req.body?.minCgpa === 'number' ? req.body.minCgpa : null,
       minCgpaScale:
         typeof req.body?.minCgpaScale === 'number' ? req.body.minCgpaScale : 10,
-      experienceRequired: req.body?.experienceRequired || 'Fresher / Entry-Level Welcome',
-      applicationDeadline: req.body?.applicationDeadline || '',
+      experienceRequired: payload.experienceRequired || 'Fresher / Entry-Level Welcome',
+      applicationDeadline: payload.applicationDeadline || '',
       externalApplyUrl: req.body?.externalApplyUrl || '',
       employerId: req.user._id,
+      companyId: employerDoc?._id,
       organisationName,
-      status: 'published',
+      status: finalStatus,
+      publishedAt: finalStatus === 'published' ? new Date() : undefined,
       moderationStatus: 'clean'
     });
 
     await newOpp.save();
 
-    sendSuccess(res, 'Opportunity listing published successfully', newOpp, 201);
+    sendSuccess(
+      res,
+      finalStatus === 'published'
+        ? 'Opportunity listing published successfully'
+        : 'Job vacancy saved as draft successfully',
+      newOpp,
+      201
+    );
   } catch (error: any) {
     sendError(res, error.message || 'Failed to create opportunity', 500);
   }
@@ -438,7 +511,45 @@ export const updateOpportunity = async (
       return;
     }
 
-    Object.assign(opp, parseResult.data);
+    const updates = parseResult.data;
+    const nextMin = updates.salaryMin !== undefined ? updates.salaryMin : opp.salaryMin;
+    const nextMax = updates.salaryMax !== undefined ? updates.salaryMax : opp.salaryMax;
+    if (typeof nextMin === 'number' && typeof nextMax === 'number' && nextMin > nextMax) {
+      sendError(res, 'Minimum salary cannot be greater than maximum salary.', 400);
+      return;
+    }
+
+    if (updates.status === 'published' && req.user.role === 'employer') {
+      const employerDoc = await Employer.findOne({ userId: req.user._id });
+      const verified =
+        isEmployerVerified(employerDoc?.verificationStatus) ||
+        isEmployerVerified(req.user.employerProfile?.verificationStatus);
+
+      if (!verified) {
+        sendError(
+          res,
+          'Only verified employers can publish or reopen job opportunities. Complete company verification first.',
+          403
+        );
+        return;
+      }
+    }
+
+    if (updates.salaryOrStipend && !updates.stipendOrSalary) {
+      updates.stipendOrSalary = updates.salaryOrStipend;
+    }
+    if (updates.educationRequired && !updates.minEducationLevel) {
+      updates.minEducationLevel = updates.educationRequired;
+    }
+
+    Object.assign(opp, updates);
+    if (updates.status === 'published' && !opp.publishedAt) {
+      opp.publishedAt = new Date();
+    }
+    if (updates.status === 'closed') {
+      opp.closedAt = new Date();
+    }
+
     await opp.save();
 
     sendSuccess(res, 'Opportunity updated successfully', opp);

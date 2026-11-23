@@ -171,7 +171,12 @@ const UserSchema = new mongoose_1.Schema({
         resumeUrl: { type: String, default: '' },
         isCareerRestart: { type: Boolean, default: false },
         onboardingCompleted: { type: Boolean, default: false },
-        onboardingSkipped: { type: Boolean, default: false }
+        onboardingSkipped: { type: Boolean, default: false },
+        profileVisibility: {
+            discoverableByEmployers: { type: Boolean, default: true },
+            showResumeToEmployers: { type: Boolean, default: false },
+            showContactAfterShortlist: { type: Boolean, default: false }
+        }
     },
     employerProfile: {
         companyName: { type: String, default: '' },
@@ -181,9 +186,18 @@ const UserSchema = new mongoose_1.Schema({
         description: { type: String, default: '' },
         verificationStatus: {
             type: String,
-            enum: ['pending', 'approved', 'rejected', 'suspended'],
+            enum: [
+                'pending',
+                'under_review',
+                'approved',
+                'verified',
+                'rejected',
+                'additional_info_required',
+                'suspended'
+            ],
             default: 'pending'
         },
+        onboardingCompleted: { type: Boolean, default: false },
         verificationDocs: {
             docType: { type: String, default: '' },
             docNumber: { type: String, default: '' },

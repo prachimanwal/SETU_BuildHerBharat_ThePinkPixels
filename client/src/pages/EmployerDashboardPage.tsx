@@ -1,994 +1,555 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
-  Building,
   Briefcase,
+  FileEdit,
   Users,
-  Calendar,
-  Clock,
-  Video,
+  UserCheck,
+  CalendarClock,
+  Award,
   CheckCircle2,
-  AlertCircle,
-  Plus,
-  Edit2,
-  Trash2,
   ShieldCheck,
   ShieldAlert,
   ArrowRight,
-  X,
-  FileText
+  Plus,
+  Bot,
+  BarChart3,
+  Sparkles
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { useLanguage } from '../context/LanguageContext';
-import { apiFetch, extractArray, formatLocation, unwrapData } from '../utils/api';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+} from 'chart.js';
+import { Line, Bar, Doughnut } from 'react-chartjs-2';
+import { apiFetch, unwrapData } from '../utils/api';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
+
+const EmptyChartState: React.FC<{ title: string; subtitle: string; ctaTo?: string; ctaLabel?: string }> = ({
+  title,
+  subtitle,
+  ctaTo,
+  ctaLabel
+}) => (
+  <div className="h-56 flex flex-col items-center justify-center text-center px-4 rounded-2xl bg-[#F8FCFF] border border-dashed border-[#BDE0FE]">
+    <BarChart3 className="w-8 h-8 text-[#94A3B8] mb-2" />
+    <p className="text-xs font-bold text-[#334155]">{title}</p>
+    <p className="text-[11px] text-[#64748B] max-w-xs mt-1">{subtitle}</p>
+    {ctaTo && ctaLabel && (
+      <Link
+        to={ctaTo}
+        className="mt-3 inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#EAF7FF] text-[#1E3A5F] text-[11px] font-semibold border border-[#BDE0FE] hover:bg-[#D6EEFF]"
+      >
+        <span>{ctaLabel}</span>
+        <ArrowRight className="w-3 h-3" />
+      </Link>
+    )}
+  </div>
+);
 
 export const EmployerDashboardPage: React.FC = () => {
-  const { user, refreshUser } = useAuth();
-  const { language } = useLanguage();
-
-  const [activeTab, setActiveTab] = useState<'opportunities' | 'applicants' | 'verification'>(
-    'opportunities'
-  );
-  const [stats, setStats] = useState<any>(null);
-  const [opportunities, setOpportunities] = useState<any[]>([]);
-  const [applicants, setApplicants] = useState<any[]>([]);
+  const [analytics, setAnalytics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-
-  // Opportunity Modal
-  const [oppModalOpen, setOppModalOpen] = useState(false);
-  const [editingOpp, setEditingOpp] = useState<any>(null);
-  const [title, setTitle] = useState('');
-  const [oppType, setOppType] = useState<any>('job');
-  const [workMode, setWorkMode] = useState<any>('remote');
-  const [location, setLocation] = useState('Pan-India (Remote)');
-  const [salary, setSalary] = useState('Competitive');
-  const [skills, setSkills] = useState('');
-  const [expRequired, setExpRequired] = useState('None / Fresher friendly');
-  const [eduRequired, setEduRequired] = useState('No minimum requirement');
-  const [isRestart, setIsRestart] = useState(true);
-  const [description, setDescription] = useState('');
-  const [status, setStatus] = useState<'draft' | 'published'>('draft');
-  const [submittingOpp, setSubmittingOpp] = useState(false);
-  const [oppError, setOppError] = useState('');
-
-  // Status & Interview Modal
-  const [statusModalApp, setStatusModalApp] = useState<any>(null);
-  const [newStatus, setNewStatus] = useState<any>('Shortlisted');
-  const [statusNote, setStatusNote] = useState('');
-  const [interviewDate, setInterviewDate] = useState('2026-11-25');
-  const [interviewTime, setInterviewTime] = useState('02:00 PM IST');
-  const [interviewInstructions, setInterviewInstructions] = useState('');
-  const [meetLink, setMeetLink] = useState('');
-  const [updatingStatus, setUpdatingStatus] = useState(false);
-
-  // Verification Submission Form State
-  const [docType, setDocType] = useState(
-    user?.employerProfile?.verificationDocs?.docType || 'GSTIN Registration Certificate'
-  );
-  const [docNumber, setDocNumber] = useState(
-    user?.employerProfile?.verificationDocs?.docNumber || ''
-  );
-  const [verNotes, setVerNotes] = useState(
-    user?.employerProfile?.verificationDocs?.notes || ''
-  );
-  const [submittingVer, setSubmittingVer] = useState(false);
-  const [verSuccess, setVerSuccess] = useState('');
-
-  const loadData = async () => {
-    try {
-      const [statsRes, oppsRes, appsRes] = await Promise.all([
-        apiFetch('/api/analytics/employer/stats'),
-        apiFetch('/api/employer/opportunities'),
-        apiFetch('/api/employer/applicants')
-      ]);
-
-      if (statsRes.ok && statsRes.data) setStats(unwrapData(statsRes.data));
-      if (oppsRes.ok) setOpportunities(extractArray(oppsRes.data, ['results', 'recentOpportunities']));
-      if (appsRes.ok) setApplicants(extractArray(appsRes.data, ['results', 'recentApplications']));
-    } catch (err) {
-      console.error('Failed to load employer data:', err);
-      setOpportunities([]);
-      setApplicants([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    loadData();
+    let active = true;
+    (async () => {
+      try {
+        const res = await apiFetch('/api/employer/analytics?range=90d');
+        if (!active) return;
+        if (res.ok && res.data) {
+          setAnalytics(unwrapData(res.data));
+        } else {
+          setError(res.error || 'Unable to load employer dashboard analytics.');
+        }
+      } catch (err: any) {
+        if (active) setError(err?.message || 'Network error');
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
   }, []);
-
-  const isApproved = user?.employerProfile?.verificationStatus === 'approved';
-
-  const openCreateOppModal = () => {
-    setEditingOpp(null);
-    setTitle('');
-    setOppType('job');
-    setWorkMode('remote');
-    setLocation('Pan-India (Remote)');
-    setSalary('₹18,000 - ₹25,000 / month');
-    setSkills('Canva, Hindi Typing, Social Media');
-    setExpRequired('Fresher friendly');
-    setEduRequired('No minimum requirement');
-    setIsRestart(true);
-    setDescription('');
-    setStatus(isApproved ? 'published' : 'draft');
-    setOppError('');
-    setOppModalOpen(true);
-  };
-
-  const openEditOppModal = (o: any) => {
-    setEditingOpp(o);
-    setTitle(o.title);
-    setOppType(o.opportunityType);
-    setWorkMode(o.workMode);
-    setLocation(o.location);
-    setSalary(o.salaryOrStipend);
-    setSkills((o.requiredSkills || []).join(', '));
-    setExpRequired(o.experienceRequired);
-    setEduRequired(o.educationRequired);
-    setIsRestart(!!o.isCareerRestart);
-    setDescription(o.description);
-    setStatus(o.status);
-    setOppError('');
-    setOppModalOpen(true);
-  };
-
-  const handleSaveOpp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmittingOpp(true);
-    setOppError('');
-
-    const payload = {
-      title,
-      opportunityType: oppType,
-      workMode,
-      location,
-      salaryOrStipend: salary,
-      requiredSkills: skills.split(',').map((s) => s.trim()).filter(Boolean),
-      experienceRequired: expRequired,
-      educationRequired: eduRequired,
-      isCareerRestart: isRestart,
-      description,
-      status: !isApproved && status === 'published' ? 'draft' : status
-    };
-
-    try {
-      const res = editingOpp
-        ? await apiFetch(`/api/employer/opportunities/${editingOpp._id}`, {
-            method: 'PUT',
-            body: JSON.stringify(payload)
-          })
-        : await apiFetch('/api/employer/opportunities', {
-            method: 'POST',
-            body: JSON.stringify(payload)
-          });
-
-      if (!res.ok) {
-        setOppError(res.error || 'Failed to save opportunity');
-      } else {
-        setOppModalOpen(false);
-        await loadData();
-      }
-    } catch (err: any) {
-      setOppError(err.message || 'Network error');
-    } finally {
-      setSubmittingOpp(false);
-    }
-  };
-
-  const handleDeleteOpp = async (id: string) => {
-    if (!window.confirm('Delete this opportunity listing?')) return;
-    try {
-      const res = await apiFetch(`/api/employer/opportunities/${id}`, {
-        method: 'DELETE'
-      });
-      if (res.ok) await loadData();
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleOpenStatusModal = (app: any) => {
-    setStatusModalApp(app);
-    setNewStatus(app.status || 'Under Review');
-    setStatusNote('');
-    if (app.interviewDetails) {
-      setInterviewDate(app.interviewDetails.date || '2026-11-25');
-      setInterviewTime(app.interviewDetails.time || '03:00 PM IST');
-      setInterviewInstructions(app.interviewDetails.instructions || '');
-      setMeetLink(app.interviewDetails.meetLinkOrLocation || app.interviewDetails.meetingLink || '');
-    } else {
-      setInterviewDate('2026-11-25');
-      setInterviewTime('03:00 PM IST');
-      setInterviewInstructions('Prepare to discuss practical deliverable and availability.');
-      setMeetLink('');
-    }
-  };
-
-  const handleUpdateStatus = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!statusModalApp) return;
-    setUpdatingStatus(true);
-
-    const payload: any = {
-      status: newStatus,
-      note: statusNote || `Status updated to ${newStatus}`
-    };
-
-    if (newStatus === 'Interview Scheduled') {
-      payload.interviewDetails = {
-        date: interviewDate,
-        time: interviewTime,
-        instructions: interviewInstructions,
-        meetLinkOrLocation: meetLink,
-        meetingLink: meetLink
-      };
-    }
-
-    try {
-      const res = await apiFetch(`/api/employer/applicants/${statusModalApp._id}/status`, {
-        method: 'PUT',
-        body: JSON.stringify(payload)
-      });
-
-      if (res.ok) {
-        setStatusModalApp(null);
-        await loadData();
-      }
-    } catch (err) {
-      console.error('Failed to update applicant status:', err);
-    } finally {
-      setUpdatingStatus(false);
-    }
-  };
-
-  const handleSubmitVerification = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmittingVer(true);
-    setVerSuccess('');
-
-    try {
-      const res = await apiFetch('/api/employer/verification', {
-        method: 'PUT',
-        body: JSON.stringify({
-          docType,
-          docNumber,
-          notes: verNotes
-        })
-      });
-
-      if (res.ok) {
-        setVerSuccess('Verification details submitted. SETU administration will review shortly.');
-        await refreshUser();
-        await loadData();
-      }
-    } catch (err) {
-      console.error('Failed to submit verification:', err);
-    } finally {
-      setSubmittingVer(false);
-    }
-  };
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-16 text-center text-[#64748B]">
-        <div className="inline-block animate-spin w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full mb-3"></div>
-        <p className="text-sm font-medium">Loading employer portal...</p>
+      <div className="py-20 text-center text-[#64748B]">
+        <div className="inline-block animate-spin w-8 h-8 border-4 border-[#60B6F8] border-t-transparent rounded-full mb-3" />
+        <p className="text-sm font-medium">Loading live recruitment dashboard...</p>
       </div>
     );
   }
 
+  if (error || !analytics) {
+    return (
+      <div className="p-8 rounded-3xl bg-white border border-rose-200 text-center space-y-2">
+        <p className="text-sm font-bold text-rose-700">{error || 'Could not load dashboard.'}</p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="px-4 py-2 rounded-xl bg-[#3B9EE8] text-white text-xs font-semibold"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  const kpis = analytics.kpis || {};
+  const graphs = analytics.graphs || {};
+  const isVerified = Boolean(analytics.isVerified);
+  const verificationLabel = analytics.verificationLabel || 'Pending';
+  const completionPct = Number(analytics.completionPercentage || 0);
+
+  const appsOverTime = Array.isArray(graphs.applicationsOverTime) ? graphs.applicationsOverTime : [];
+  const funnel = Array.isArray(graphs.recruitmentFunnel) ? graphs.recruitmentFunnel : [];
+  const appsByJob = Array.isArray(graphs.applicationsByJob) ? graphs.applicationsByJob : [];
+  const monthlyProgress = Array.isArray(graphs.hiringProgressByMonth)
+    ? graphs.hiringProgressByMonth
+    : [];
+  const skillDist = Array.isArray(graphs.candidateSkillDistribution)
+    ? graphs.candidateSkillDistribution
+    : [];
+
+  const hasFunnelData = funnel.some((f: any) => f.count > 0);
+
+  const kpiCards = [
+    {
+      label: 'Total Published Jobs',
+      value: kpis.publishedJobs ?? 0,
+      icon: Briefcase,
+      color: 'bg-[#EAF7FF] text-[#2589D6]',
+      to: '/employer/jobs'
+    },
+    {
+      label: 'Draft Job Postings',
+      value: kpis.draftJobs ?? 0,
+      icon: FileEdit,
+      color: 'bg-slate-100 text-slate-600',
+      to: '/employer/jobs'
+    },
+    {
+      label: 'Total Applications',
+      value: kpis.totalApplications ?? 0,
+      icon: Users,
+      color: 'bg-sky-50 text-sky-600',
+      to: '/employer/applications'
+    },
+    {
+      label: 'Candidates Shortlisted',
+      value: kpis.shortlisted ?? 0,
+      icon: UserCheck,
+      color: 'bg-indigo-50 text-indigo-600',
+      to: '/employer/applications'
+    },
+    {
+      label: 'Interviews Scheduled',
+      value: kpis.interviewsScheduled ?? 0,
+      icon: CalendarClock,
+      color: 'bg-amber-50 text-amber-600',
+      to: '/employer/interviews'
+    },
+    {
+      label: 'Offers Sent',
+      value: kpis.offersSent ?? 0,
+      icon: Award,
+      color: 'bg-purple-50 text-purple-600',
+      to: '/employer/applications'
+    },
+    {
+      label: 'Employees Hired',
+      value: kpis.hired ?? 0,
+      icon: CheckCircle2,
+      color: 'bg-emerald-50 text-emerald-600',
+      to: '/employer/analytics'
+    },
+    {
+      label: 'Company Verification',
+      value: verificationLabel,
+      icon: isVerified ? ShieldCheck : ShieldAlert,
+      color: isVerified ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700',
+      to: '/employer/verification'
+    }
+  ];
+
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#D8ECFA] gap-4">
+    <div className="space-y-6">
+      {/* Top Action Header */}
+      <div className="bg-white rounded-3xl border border-[#D8ECFA] p-6 shadow-baby-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-indigo-700">
-            <Building className="w-4 h-4" />
-            <span>Employer Management Portal</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-bold font-serif text-[#334155]">
-            {user?.employerProfile?.companyName || user?.name}
+          <span className="text-[11px] font-bold uppercase tracking-wider text-[#2589D6]">
+            Live Recruitment Command Center
+          </span>
+          <h1 className="text-2xl font-bold text-[#1E3A5F] font-display mt-0.5">
+            Employer Dashboard
           </h1>
-          <p className="text-xs sm:text-sm text-[#64748B] mt-0.5">
-            Industry: {user?.employerProfile?.industry || 'General'} • Company Size: {user?.employerProfile?.companySize}
+          <p className="text-xs text-[#64748B] mt-1">
+            All metrics and charts reflect live records from your SETU MongoDB database (last 90 days).
           </p>
         </div>
 
-        <button
-          onClick={openCreateOppModal}
-          className="px-4 py-2.5 rounded-xl bg-[#E65100] hover:bg-[#8CC6FA] text-white font-bold text-xs sm:text-sm transition flex items-center space-x-1.5 shadow-sm self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Post New Opportunity</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Link
+            to="/employer/jobs"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-[#3B9EE8] hover:bg-[#2589D6] text-white text-xs font-semibold shadow-xs transition"
+          >
+            <Plus className="w-4 h-4" />
+            <span>{isVerified ? 'Post New Job' : 'Create Job Draft'}</span>
+          </Link>
+          <Link
+            to="/employer/candidates"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-[#EAF7FF] hover:bg-[#D6EEFF] text-[#1E3A5F] text-xs font-semibold border border-[#BDE0FE] transition"
+          >
+            <Users className="w-4 h-4" />
+            <span>Search Candidates</span>
+          </Link>
+          <Link
+            to="/employer/cane"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-white hover:bg-[#F8FCFF] text-[#1E3A5F] text-xs font-semibold border border-[#D8ECFA] transition"
+          >
+            <Bot className="w-4 h-4 text-[#3B9EE8]" />
+            <span>CANE AI Recruiter</span>
+          </Link>
+        </div>
       </div>
 
-      {/* Verification Status Banner */}
-      {isApproved ? (
-        <div className="p-4 bg-emerald-50 border border-emerald-300 rounded-2xl flex items-center justify-between">
-          <div className="flex items-center space-x-2.5">
-            <ShieldCheck className="w-6 h-6 text-emerald-600 shrink-0" />
+      {/* Onboarding & Verification Banners */}
+      {(!analytics.onboardingCompleted || completionPct < 100) && (
+        <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-[#EAF7FF] to-white border border-[#BDE0FE] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="p-2.5 rounded-2xl bg-white border border-[#D8ECFA] text-[#3B9EE8]">
+              <Sparkles className="w-5 h-5" />
+            </div>
             <div>
-              <span className="text-xs font-bold text-emerald-950 uppercase tracking-wider block">
-                Verified Employer Account
-              </span>
-              <p className="text-xs text-emerald-800">
-                Administrative review completed. Your published opportunities are visible in public seeker discovery.
+              <h2 className="text-sm font-bold text-[#1E3A5F]">
+                Complete Your Company Onboarding ({completionPct}%)
+              </h2>
+              <p className="text-xs text-[#64748B] mt-0.5">
+                Finish setting up your company profile, representative details, verification documents, and hiring preferences.
               </p>
             </div>
           </div>
-          <span className="text-xs font-bold px-3 py-1 bg-emerald-600 text-white rounded-full">
-            APPROVED
-          </span>
-        </div>
-      ) : (
-        <div className="p-4 sm:p-5 bg-amber-50 border border-amber-300 rounded-2xl space-y-2">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center space-x-2.5">
-              <ShieldAlert className="w-6 h-6 text-amber-600 shrink-0" />
-              <div>
-                <span className="text-xs font-bold text-amber-950 uppercase tracking-wider block">
-                  Verification Pending Administrative Review
-                </span>
-                <p className="text-xs text-amber-800 leading-relaxed max-w-2xl">
-                  Your organisation is currently in pending status. You can create and save draft opportunities. To protect seekers, listings cannot be published until an administrator verifies your business credentials.
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => setActiveTab('verification')}
-              className="px-3 py-1.5 rounded-lg bg-amber-600 text-white text-xs font-bold hover:bg-amber-700 transition"
-            >
-              Review Documents
-            </button>
-          </div>
+          <Link
+            to="/employer/onboarding"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-[#1E3A5F] text-white text-xs font-semibold hover:bg-[#152B47] shrink-0 self-start sm:self-auto"
+          >
+            <span>Continue Onboarding</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
       )}
 
-      {/* Metric Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl border border-[#D8ECFA] p-4 shadow-sm space-y-1">
-          <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider block">
-            Published Listings
-          </span>
-          <div className="text-2xl font-black text-indigo-900 font-serif">
-            {stats?.publishedCount || 0}
-          </div>
-          <p className="text-[11px] text-[#64748B]">Live in search</p>
-        </div>
-
-        <div className="bg-white rounded-xl border border-[#D8ECFA] p-4 shadow-sm space-y-1">
-          <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider block">
-            Draft Postings
-          </span>
-          <div className="text-2xl font-black text-[#334155] font-serif">
-            {stats?.draftCount || 0}
-          </div>
-          <p className="text-[11px] text-[#64748B]">Pending publish</p>
-        </div>
-
-        <div className="bg-white rounded-xl border border-[#D8ECFA] p-4 shadow-sm space-y-1">
-          <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider block">
-            Total Candidates
-          </span>
-          <div className="text-2xl font-black text-[#334155] font-serif">
-            {stats?.totalApplicants || 0}
-          </div>
-          <p className="text-[11px] text-[#64748B]">Applicants to your roles</p>
-        </div>
-
-        <div className="bg-white rounded-xl border border-[#D8ECFA] p-4 shadow-sm space-y-1">
-          <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider block">
-            Interviews Scheduled
-          </span>
-          <div className="text-2xl font-black text-emerald-700 font-serif">
-            {stats?.interviewsScheduled || 0}
-          </div>
-          <p className="text-[11px] text-[#64748B]">Stage 7 progress</p>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex items-center space-x-2 border-b border-[#D8ECFA]">
-        <button
-          onClick={() => setActiveTab('opportunities')}
-          className={`py-3 px-4 font-bold text-xs sm:text-sm border-b-2 transition ${
-            activeTab === 'opportunities'
-              ? 'border-indigo-600 text-indigo-900'
-              : 'border-transparent text-[#64748B] hover:text-[#334155]'
-          }`}
-        >
-          My Opportunities ({opportunities.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('applicants')}
-          className={`py-3 px-4 font-bold text-xs sm:text-sm border-b-2 transition ${
-            activeTab === 'applicants'
-              ? 'border-indigo-600 text-indigo-900'
-              : 'border-transparent text-[#64748B] hover:text-[#334155]'
-          }`}
-        >
-          Applicants Review ({applicants.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('verification')}
-          className={`py-3 px-4 font-bold text-xs sm:text-sm border-b-2 transition ${
-            activeTab === 'verification'
-              ? 'border-indigo-600 text-indigo-900'
-              : 'border-transparent text-[#64748B] hover:text-[#334155]'
-          }`}
-        >
-          Verification Credentials
-        </button>
-      </div>
-
-      {/* Tab 1: Opportunities */}
-      {activeTab === 'opportunities' && (
-        <div className="space-y-4">
-          {opportunities.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-dashed border-[#BDE0FE] p-12 text-center text-[#64748B]">
-              No opportunities created yet. Click "Post New Opportunity" above.
+      {!isVerified && (
+        <div className="p-4 rounded-3xl bg-amber-50/80 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-start gap-2.5">
+            <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <div className="text-xs text-amber-900">
+              <p className="font-bold">Company Verification: {verificationLabel}</p>
+              <p className="mt-0.5">
+                You can create and save job drafts right now. Publishing live jobs unlocks automatically once a SETU administrator verifies your business documents.
+              </p>
             </div>
+          </div>
+          <Link
+            to="/employer/verification"
+            className="px-4 py-2 rounded-2xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shrink-0 self-start sm:self-auto"
+          >
+            Manage Verification
+          </Link>
+        </div>
+      )}
+
+      {/* 8 Analytics KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {kpiCards.map((card) => {
+          const Icon = card.icon;
+          return (
+            <Link
+              key={card.label}
+              to={card.to}
+              className="bg-white rounded-3xl border border-[#D8ECFA] p-5 shadow-baby-sm hover:border-[#60B6F8] hover:shadow-md transition group"
+            >
+              <div className="flex items-center justify-between">
+                <div className={`p-2.5 rounded-2xl ${card.color}`}>
+                  <Icon className="w-5 h-5" />
+                </div>
+                <ArrowRight className="w-4 h-4 text-[#94A3B8] group-hover:text-[#3B9EE8] transition" />
+              </div>
+              <p className="mt-4 text-xl sm:text-2xl font-extrabold text-[#1E3A5F] truncate">
+                {card.value}
+              </p>
+              <p className="text-xs font-medium text-[#64748B] mt-0.5">{card.label}</p>
+            </Link>
+          );
+        })}
+      </div>
+
+      {/* 5 INTERACTIVE REAL-DATA CHARTS */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* GRAPH 1: Applications Received Over Time */}
+        <div className="bg-white rounded-3xl border border-[#D8ECFA] p-6 shadow-baby-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-sm font-bold text-[#1E3A5F]">Applications Received Over Time</h3>
+              <p className="text-[11px] text-[#64748B]">Daily applicant submissions from MongoDB</p>
+            </div>
+            <Link to="/employer/analytics" className="text-xs font-semibold text-[#2589D6] hover:underline">
+              Full Analytics
+            </Link>
+          </div>
+          {appsOverTime.length === 0 ? (
+            <EmptyChartState
+              title="No application trend data yet"
+              subtitle="Once candidates apply to your published jobs, daily application volumes will appear here."
+              ctaTo="/employer/jobs"
+              ctaLabel="Manage Jobs"
+            />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {opportunities.map((opp) => (
+            <div className="h-60">
+              <Line
+                data={{
+                  labels: appsOverTime.map((d: any) => d.date),
+                  datasets: [
+                    {
+                      label: 'Applications',
+                      data: appsOverTime.map((d: any) => d.count),
+                      borderColor: '#3B9EE8',
+                      backgroundColor: 'rgba(59, 158, 232, 0.14)',
+                      fill: true,
+                      tension: 0.35
+                    }
+                  ]
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: { legend: { display: false } },
+                  scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+                }}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* GRAPH 2: Recruitment Funnel */}
+        <div className="bg-white rounded-3xl border border-[#D8ECFA] p-6 shadow-baby-sm">
+          <div className="mb-4">
+            <h3 className="text-sm font-bold text-[#1E3A5F]">Recruitment Funnel</h3>
+            <p className="text-[11px] text-[#64748B]">
+              Applied → Screening → Shortlisted → Interview → Offered → Hired
+            </p>
+          </div>
+          {!hasFunnelData ? (
+            <EmptyChartState
+              title="Recruitment funnel awaiting applicants"
+              subtitle="Track candidate progression through every hiring stage as applications arrive."
+              ctaTo="/employer/applications"
+              ctaLabel="Open Applications"
+            />
+          ) : (
+            <div className="h-60">
+              <Bar
+                data={{
+                  labels: funnel.map((f: any) => f.stage),
+                  datasets: [
+                    {
+                      label: 'Candidates',
+                      data: funnel.map((f: any) => f.count),
+                      backgroundColor: [
+                        '#93C5FD',
+                        '#60A5FA',
+                        '#3B82F6',
+                        '#6366F1',
+                        '#8B5CF6',
+                        '#10B981'
+                      ],
+                      borderRadius: 10
+                    }
+                  ]
+                }}
+                options={{
+                  indexAxis: 'y',
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: { legend: { display: false } },
+                  scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }
+                }}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* GRAPH 3: Applications by Job Position */}
+        <div className="bg-white rounded-3xl border border-[#D8ECFA] p-6 shadow-baby-sm">
+          <div className="mb-4">
+            <h3 className="text-sm font-bold text-[#1E3A5F]">Applications by Job Position</h3>
+            <p className="text-[11px] text-[#64748B]">Applicant distribution across your vacancies</p>
+          </div>
+          {appsByJob.length === 0 ? (
+            <EmptyChartState
+              title="No position-level applications yet"
+              subtitle="Publish a verified job posting to compare applicant interest across open roles."
+              ctaTo="/employer/jobs"
+              ctaLabel="Open Job Management"
+            />
+          ) : (
+            <div className="h-60">
+              <Bar
+                data={{
+                  labels: appsByJob.map((j: any) =>
+                    j.title.length > 22 ? `${j.title.slice(0, 22)}…` : j.title
+                  ),
+                  datasets: [
+                    {
+                      label: 'Applications',
+                      data: appsByJob.map((j: any) => j.count),
+                      backgroundColor: '#3B9EE8',
+                      borderRadius: 10
+                    }
+                  ]
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: { legend: { display: false } },
+                  scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+                }}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* GRAPH 4: Hiring Progress by Month */}
+        <div className="bg-white rounded-3xl border border-[#D8ECFA] p-6 shadow-baby-sm">
+          <div className="mb-4">
+            <h3 className="text-sm font-bold text-[#1E3A5F]">Hiring Progress by Month</h3>
+            <p className="text-[11px] text-[#64748B]">Monthly applications, interviews, and confirmed hires</p>
+          </div>
+          {monthlyProgress.length === 0 ? (
+            <EmptyChartState
+              title="No monthly hiring history yet"
+              subtitle="Monthly trends populate automatically from real applications, interviews, and hires."
+            />
+          ) : (
+            <div className="h-60">
+              <Bar
+                data={{
+                  labels: monthlyProgress.map((m: any) => m.month),
+                  datasets: [
+                    {
+                      label: 'Applications',
+                      data: monthlyProgress.map((m: any) => m.applications),
+                      backgroundColor: '#93C5FD',
+                      borderRadius: 6
+                    },
+                    {
+                      label: 'Interviews',
+                      data: monthlyProgress.map((m: any) => m.interviews),
+                      backgroundColor: '#6366F1',
+                      borderRadius: 6
+                    },
+                    {
+                      label: 'Hired',
+                      data: monthlyProgress.map((m: any) => m.hires),
+                      backgroundColor: '#10B981',
+                      borderRadius: 6
+                    }
+                  ]
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+                }}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* GRAPH 5: Candidate Skill Distribution */}
+      <div className="bg-white rounded-3xl border border-[#D8ECFA] p-6 shadow-baby-sm">
+        <div className="mb-4">
+          <h3 className="text-sm font-bold text-[#1E3A5F]">Candidate Skill Distribution</h3>
+          <p className="text-[11px] text-[#64748B]">
+            Aggregated strictly from candidate-provided skills across your real applicant pool
+          </p>
+        </div>
+        {skillDist.length === 0 ? (
+          <EmptyChartState
+            title="No applicant skills recorded yet"
+            subtitle="As candidates apply to your roles, their declared and verified SETU skills will be visualized here."
+            ctaTo="/employer/candidates"
+            ctaLabel="Discover Consenting Candidates"
+          />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+            <div className="h-64 flex items-center justify-center">
+              <Doughnut
+                data={{
+                  labels: skillDist.map((s: any) => s.skill),
+                  datasets: [
+                    {
+                      data: skillDist.map((s: any) => s.count),
+                      backgroundColor: [
+                        '#3B9EE8',
+                        '#6366F1',
+                        '#10B981',
+                        '#F59E0B',
+                        '#EC4899',
+                        '#06B6D4',
+                        '#8B5CF6',
+                        '#14B8A6',
+                        '#F97316',
+                        '#64748B'
+                      ]
+                    }
+                  ]
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: { legend: { position: 'right' } }
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              {skillDist.map((item: any) => (
                 <div
-                  key={opp._id}
-                  className="bg-white rounded-2xl border border-[#D8ECFA] p-5 shadow-sm space-y-3"
+                  key={item.skill}
+                  className="flex items-center justify-between px-3.5 py-2 rounded-2xl bg-[#F8FCFF] border border-[#D8ECFA] text-xs"
                 >
-                  <div className="flex items-center justify-between">
-                    <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
-                        opp.status === 'published'
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : 'bg-[#EAF7FF] text-[#475569]'
-                      }`}
-                    >
-                      {opp.status}
-                    </span>
-                    <span className="text-xs text-[#64748B] flex items-center space-x-1 font-semibold">
-                      <Users className="w-3.5 h-3.5 text-indigo-600" />
-                      <span>{opp.applicantCount} Applicant(s)</span>
-                    </span>
-                  </div>
-
-                  <h3 className="font-bold text-[#334155] text-base leading-snug">{opp.title}</h3>
-
-                  <div className="flex flex-wrap gap-1.5 text-xs text-[#64748B]">
-                    <span className="bg-[#EAF7FF] px-2 py-0.5 rounded text-[11px]">
-                      {(opp.workMode || 'hybrid').toUpperCase()}
-                    </span>
-                    <span className="bg-[#EAF7FF] px-2 py-0.5 rounded text-[11px]">
-                      {opp.stipendOrSalary || opp.salaryOrStipend || 'Competitive'}
-                    </span>
-                    {opp.isCareerRestart && (
-                      <span className="bg-pink-100 text-pink-800 px-2 py-0.5 rounded text-[11px] font-semibold">
-                        Career Restart
-                      </span>
-                    )}
-                  </div>
-
-                  <p className="text-xs text-[#64748B] line-clamp-2">{opp.description}</p>
-
-                  <div className="pt-3 border-t border-[#EAF7FF] flex items-center justify-between text-xs">
-                    <span className="text-[#64748B]">{formatLocation(opp.location)}</span>
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => openEditOppModal(opp)}
-                        className="p-1.5 text-[#64748B] hover:text-[#334155] hover:bg-[#EAF7FF] rounded-lg"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteOpp(opp._id)}
-                        className="p-1.5 text-[#64748B] hover:text-rose-600 hover:bg-rose-50 rounded-lg"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
+                  <span className="font-semibold text-[#1E3A5F]">{item.skill}</span>
+                  <span className="font-bold text-[#2589D6]">{item.count} candidate(s)</span>
                 </div>
               ))}
             </div>
-          )}
-        </div>
-      )}
-
-      {/* Tab 2: Applicants Review */}
-      {activeTab === 'applicants' && (
-        <div className="space-y-4">
-          {applicants.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-dashed border-[#BDE0FE] p-12 text-center text-[#64748B]">
-              No applicants have applied to your postings yet.
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {applicants.map((app) => {
-                const seeker = app.seekerId || {};
-                const profile = seeker.seekerProfile || {};
-
-                return (
-                  <div
-                    key={app._id}
-                    className="bg-white rounded-2xl border border-[#D8ECFA] p-6 shadow-sm space-y-4"
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                      <div>
-                        <div className="flex items-center space-x-2">
-                          <h3 className="text-lg font-bold text-[#334155]">{seeker.name}</h3>
-                          <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-indigo-50 text-indigo-900">
-                            {app.opportunityId?.title}
-                          </span>
-                        </div>
-                        <p className="text-xs text-[#64748B] mt-0.5">
-                          {profile.headline || 'Job Seeker'} • {profile.location?.city || 'India'}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center space-x-2">
-                        <span className="text-xs font-bold px-3 py-1 rounded-full bg-[#EAF7FF] text-[#334155]">
-                          {app.status}
-                        </span>
-                        <button
-                          onClick={() => handleOpenStatusModal(app)}
-                          className="px-3.5 py-1.5 rounded-lg bg-indigo-900 hover:bg-indigo-950 text-white font-bold text-xs transition"
-                        >
-                          Update Status & Interview
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Candidate Details & Portfolio Samples */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs pt-1">
-                      <div className="space-y-2">
-                        <div>
-                          <span className="font-semibold text-[#475569] block mb-0.5">Education:</span>
-                          <span className="text-[#334155] font-medium">{profile.educationLevel}</span>
-                        </div>
-                        <div>
-                          <span className="font-semibold text-[#475569] block mb-0.5">Skills:</span>
-                          <div className="flex flex-wrap gap-1">
-                            {profile.skills?.map((s: string, sIdx: number) => (
-                              <span
-                                key={sIdx}
-                                className="bg-[#EAF7FF] text-[#334155] px-2 py-0.5 rounded text-[11px]"
-                              >
-                                {s}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div>
-                          <span className="font-semibold text-[#475569] block mb-0.5">
-                            Attached Portfolio Deliverables:
-                          </span>
-                          {app.portfolioProjectsSnapshot?.length > 0 ? (
-                            <div className="space-y-1">
-                              {app.portfolioProjectsSnapshot.map((proj: any, pIdx: number) => (
-                                <div key={pIdx} className="flex items-center justify-between bg-[#F8FCFF] p-1.5 rounded border border-[#D8ECFA]">
-                                  <span className="font-medium text-[#334155]">{proj.title}</span>
-                                  {proj.workSampleUrl && (
-                                    <a
-                                      href={proj.workSampleUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-[#2589D6] hover:underline font-bold"
-                                    >
-                                      View Work Sample →
-                                    </a>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-[#64748B] italic">None attached</span>
-                          )}
-                        </div>
-
-                        {app.coverNote && (
-                          <div>
-                            <span className="font-semibold text-[#475569] block mb-0.5">Cover Note:</span>
-                            <p className="text-[#475569] italic">"{app.coverNote}"</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Interview scheduled notice if present */}
-                    {app.status === 'Interview Scheduled' && app.interviewDetails?.date && (
-                      <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-950 flex items-center justify-between">
-                        <div>
-                          <strong>Interview Scheduled: </strong>
-                          {app.interviewDetails.date} at {app.interviewDetails.time}
-                        </div>
-                        <span className="text-[11px] font-semibold text-emerald-800">
-                          Meet Link Sent to Candidate
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Tab 3: Verification */}
-      {activeTab === 'verification' && (
-        <div className="bg-white rounded-2xl border border-[#D8ECFA] p-6 sm:p-8 shadow-sm space-y-6 max-w-2xl">
-          <div className="space-y-1">
-            <h3 className="text-lg font-bold font-serif text-[#334155]">
-              Employer Verification Details
-            </h3>
-            <p className="text-xs text-[#64748B]">
-              Submit your corporate registration, GSTIN, PAN, or MSME Udyam details for SETU administration review.
-            </p>
           </div>
-
-          {verSuccess && (
-            <div className="p-3 bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs rounded-xl flex items-center space-x-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>{verSuccess}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmitVerification} className="space-y-4 text-xs">
-            <div>
-              <label className="block font-semibold text-[#475569] mb-1">Document Type *</label>
-              <input
-                type="text"
-                required
-                value={docType}
-                onChange={(e) => setDocType(e.target.value)}
-                placeholder="e.g. GSTIN Certificate, CIN, MSME Udyam"
-                className="w-full px-3.5 py-2 rounded-lg border border-[#BDE0FE] text-sm outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-
-            <div>
-              <label className="block font-semibold text-[#475569] mb-1">
-                Document / Registration Number *
-              </label>
-              <input
-                type="text"
-                required
-                value={docNumber}
-                onChange={(e) => setDocNumber(e.target.value)}
-                placeholder="e.g. 06AAACB1234F1Z8"
-                className="w-full px-3.5 py-2 rounded-lg border border-[#BDE0FE] text-sm outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-
-            <div>
-              <label className="block font-semibold text-[#475569] mb-1">
-                Verification Notes for Admin
-              </label>
-              <textarea
-                rows={3}
-                value={verNotes}
-                onChange={(e) => setVerNotes(e.target.value)}
-                placeholder="Provide registry verification details or official MCA corporate portal references..."
-                className="w-full px-3.5 py-2 rounded-lg border border-[#BDE0FE] text-sm outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={submittingVer}
-              className="px-5 py-2.5 rounded-xl bg-indigo-900 hover:bg-indigo-950 text-white font-bold text-xs transition disabled:opacity-50"
-            >
-              {submittingVer ? 'Submitting...' : 'Submit Verification Credentials'}
-            </button>
-          </form>
-        </div>
-      )}
-
-      {/* Opportunity Modal */}
-      {oppModalOpen && (
-        <div className="fixed inset-0 z-50 bg-[#EAF7FF]/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-[#D8ECFA] animate-in zoom-in-95">
-            <div className="p-5 border-b border-[#D8ECFA] flex items-center justify-between">
-              <h3 className="font-bold text-[#334155] text-base font-serif">
-                {editingOpp ? 'Edit Opportunity' : 'Post New Opportunity'}
-              </h3>
-              <button
-                onClick={() => setOppModalOpen(false)}
-                className="p-1.5 rounded-lg text-[#64748B] hover:bg-[#EAF7FF]"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveOpp} className="p-6 space-y-4 text-xs">
-              {oppError && (
-                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl">
-                  {oppError}
-                </div>
-              )}
-
-              <div>
-                <label className="block font-semibold text-[#475569] mb-1">Role Title *</label>
-                <input
-                  type="text"
-                  required
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. Remote Canva & Social Media Designer"
-                  className="w-full px-3 py-2 rounded-lg border border-[#BDE0FE] text-sm outline-none focus:ring-2 focus:ring-[#BDE0FE]"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-[#475569] mb-1">Opportunity Type</label>
-                  <select
-                    value={oppType}
-                    onChange={(e: any) => setOppType(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-[#BDE0FE] bg-white text-sm outline-none focus:ring-2 focus:ring-[#BDE0FE]"
-                  >
-                    <option value="job">Job</option>
-                    <option value="internship">Internship</option>
-                    <option value="apprenticeship">Apprenticeship</option>
-                    <option value="flexible_work">Flexible Work</option>
-                    <option value="freelance">Freelance Project</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-[#475569] mb-1">Work Mode</label>
-                  <select
-                    value={workMode}
-                    onChange={(e: any) => setWorkMode(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-[#BDE0FE] bg-white text-sm outline-none focus:ring-2 focus:ring-[#BDE0FE]"
-                  >
-                    <option value="remote">Remote (Work from Home)</option>
-                    <option value="hybrid">Hybrid</option>
-                    <option value="onsite">On-site</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-[#475569] mb-1">Location *</label>
-                  <input
-                    type="text"
-                    required
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    placeholder="e.g. Gurugram, Remote"
-                    className="w-full px-3 py-2 rounded-lg border border-[#BDE0FE] text-sm outline-none focus:ring-2 focus:ring-[#BDE0FE]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-[#475569] mb-1">Stipend / Salary</label>
-                  <input
-                    type="text"
-                    value={salary}
-                    onChange={(e) => setSalary(e.target.value)}
-                    placeholder="e.g. ₹20,000 / month"
-                    className="w-full px-3 py-2 rounded-lg border border-[#BDE0FE] text-sm outline-none focus:ring-2 focus:ring-[#BDE0FE]"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-semibold text-[#475569] mb-1">
-                  Required Skills (comma separated)
-                </label>
-                <input
-                  type="text"
-                  value={skills}
-                  onChange={(e) => setSkills(e.target.value)}
-                  placeholder="e.g. Canva, Graphic Design, Social Media"
-                  className="w-full px-3 py-2 rounded-lg border border-[#BDE0FE] text-sm outline-none focus:ring-2 focus:ring-[#BDE0FE]"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-[#475569] mb-1">Description *</label>
-                <textarea
-                  required
-                  rows={3}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Describe the practical responsibilities, flexible schedule, and deliverables..."
-                  className="w-full px-3 py-2 rounded-lg border border-[#BDE0FE] text-sm outline-none focus:ring-2 focus:ring-[#BDE0FE]"
-                />
-              </div>
-
-              <div className="flex items-center space-x-2 pt-1">
-                <input
-                  type="checkbox"
-                  id="restartOpp"
-                  checked={isRestart}
-                  onChange={(e) => setIsRestart(e.target.checked)}
-                  className="rounded text-pink-600 focus:ring-pink-500 w-4 h-4"
-                />
-                <label htmlFor="restartOpp" className="text-xs text-[#475569] font-semibold cursor-pointer">
-                  Build Her Initiative: Women returning to work / flexible transition friendly
-                </label>
-              </div>
-
-              <div>
-                <label className="block font-semibold text-[#475569] mb-1">Publication Status</label>
-                <select
-                  value={status}
-                  onChange={(e: any) => setStatus(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-[#BDE0FE] bg-white text-sm outline-none focus:ring-2 focus:ring-[#BDE0FE]"
-                >
-                  <option value="draft">Draft (Private, not published)</option>
-                  <option value="published" disabled={!isApproved}>
-                    {isApproved
-                      ? 'Published (Live in Seeker discovery)'
-                      : 'Published (Locked - Requires Admin Approval)'}
-                  </option>
-                </select>
-                {!isApproved && (
-                  <p className="text-[11px] text-amber-700 mt-1">
-                    * Publishing is blocked until administrator approves your verification.
-                  </p>
-                )}
-              </div>
-
-              <div className="flex justify-end space-x-2 pt-3 border-t border-[#D8ECFA]">
-                <button
-                  type="button"
-                  onClick={() => setOppModalOpen(false)}
-                  className="px-4 py-2 rounded-lg border border-[#BDE0FE] font-semibold hover:bg-[#EAF7FF]"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submittingOpp}
-                  className="px-5 py-2 rounded-lg bg-[#E65100] hover:bg-[#8CC6FA] text-white font-bold"
-                >
-                  {submittingOpp ? 'Saving...' : 'Save Opportunity'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Applicant Status & Interview Scheduling Modal */}
-      {statusModalApp && (
-        <div className="fixed inset-0 z-50 bg-[#EAF7FF]/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-[#D8ECFA] animate-in zoom-in-95">
-            <div className="p-5 border-b border-[#D8ECFA] flex items-center justify-between">
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700">
-                  Update Candidate Progress
-                </span>
-                <h3 className="font-bold text-[#334155] text-base font-serif">
-                  {statusModalApp.seekerId?.name} ({statusModalApp.opportunityId?.title})
-                </h3>
-              </div>
-              <button
-                onClick={() => setStatusModalApp(null)}
-                className="p-1.5 rounded-lg text-[#64748B] hover:bg-[#EAF7FF]"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleUpdateStatus} className="p-6 space-y-4 text-xs">
-              <div>
-                <label className="block font-semibold text-[#475569] mb-1">Application Status *</label>
-                <select
-                  value={newStatus}
-                  onChange={(e: any) => setNewStatus(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-[#BDE0FE] bg-white text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-semibold"
-                >
-                  <option value="Applied">Applied</option>
-                  <option value="Under Review">Under Review</option>
-                  <option value="Shortlisted">Shortlisted</option>
-                  <option value="Interview Scheduled">Interview Scheduled</option>
-                  <option value="Selected">Selected (Job Offer / Project Award)</option>
-                  <option value="Rejected">Rejected</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block font-semibold text-[#475569] mb-1">
-                  Recruiter Note for Audit History
-                </label>
-                <input
-                  type="text"
-                  value={statusNote}
-                  onChange={(e) => setStatusNote(e.target.value)}
-                  placeholder="e.g. Portfolio reviewed, qualified for creative conversation."
-                  className="w-full px-3 py-2 rounded-lg border border-[#BDE0FE] text-sm outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-
-              {/* Interview Details Sub-form */}
-              {newStatus === 'Interview Scheduled' && (
-                <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-300 space-y-3">
-                  <span className="font-bold text-emerald-950 block text-xs uppercase tracking-wider">
-                    Schedule Interview Details (Delivered to Candidate):
-                  </span>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block font-semibold text-emerald-900 mb-1">Date *</label>
-                      <input
-                        type="date"
-                        required
-                        value={interviewDate}
-                        onChange={(e) => setInterviewDate(e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg border border-emerald-300 bg-white text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-semibold text-emerald-900 mb-1">Time *</label>
-                      <input
-                        type="text"
-                        required
-                        value={interviewTime}
-                        onChange={(e) => setInterviewTime(e.target.value)}
-                        placeholder="03:00 PM IST"
-                        className="w-full px-3 py-2 rounded-lg border border-emerald-300 bg-white text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block font-semibold text-emerald-900 mb-1">
-                      Meeting Link or Location
-                    </label>
-                    <input
-                      type="url"
-                      value={meetLink}
-                      onChange={(e) => setMeetLink(e.target.value)}
-                      placeholder="https://meet.google.com/..."
-                      className="w-full px-3 py-2 rounded-lg border border-emerald-300 bg-white text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-semibold text-emerald-900 mb-1">
-                      Instructions for Candidate *
-                    </label>
-                    <textarea
-                      required
-                      rows={2}
-                      value={interviewInstructions}
-                      onChange={(e) => setInterviewInstructions(e.target.value)}
-                      placeholder="e.g. Please bring your practical Canva deliverable. Focus will be on design hierarchy."
-                      className="w-full px-3 py-2 rounded-lg border border-emerald-300 bg-white text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className="flex justify-end space-x-2 pt-3 border-t border-[#D8ECFA]">
-                <button
-                  type="button"
-                  onClick={() => setStatusModalApp(null)}
-                  className="px-4 py-2 rounded-lg border border-[#BDE0FE] font-semibold hover:bg-[#EAF7FF]"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={updatingStatus}
-                  className="px-5 py-2 rounded-lg bg-indigo-900 hover:bg-indigo-950 text-white font-bold"
-                >
-                  {updatingStatus ? 'Updating...' : 'Save Status Update'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

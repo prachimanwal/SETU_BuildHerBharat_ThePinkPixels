@@ -23,6 +23,18 @@ import { MyProgressPage } from './pages/MyProgressPage';
 import { GovernmentSchemesPage } from './pages/GovernmentSchemesPage';
 import { BuildHerPage } from './pages/BuildHerPage';
 import { EmployerDashboardPage } from './pages/EmployerDashboardPage';
+import { EmployerOnboardingPage } from './pages/employer/EmployerOnboardingPage';
+import { CompanyProfilePage } from './pages/employer/CompanyProfilePage';
+import { PublicCompanyProfilePage } from './pages/employer/PublicCompanyProfilePage';
+import { CompanyVerificationPage } from './pages/employer/CompanyVerificationPage';
+import { EmployerJobsPage } from './pages/employer/EmployerJobsPage';
+import { CandidateSearchPage } from './pages/employer/CandidateSearchPage';
+import { EmployerApplicationsPage } from './pages/employer/EmployerApplicationsPage';
+import { HiringPreferencesPage } from './pages/employer/HiringPreferencesPage';
+import { InterviewManagementPage } from './pages/employer/InterviewManagementPage';
+import { RecruitmentAnalyticsPage } from './pages/employer/RecruitmentAnalyticsPage';
+import { CaneRecruiterPage } from './pages/employer/CaneRecruiterPage';
+import { EmployerSettingsPage } from './pages/employer/EmployerSettingsPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { CanePage } from './pages/CanePage';
 
@@ -276,12 +288,110 @@ export default function App() {
               }
             />
 
-            {/* Employer 20:80 Dashboard Portal */}
+            {/* Public Approved Company Profile (visible to job seekers & visitors; zero private docs) */}
+            <Route
+              path="/companies/:id"
+              element={
+                <HybridRoute>
+                  <PublicCompanyProfilePage />
+                </HybridRoute>
+              }
+            />
+
+            {/* Employer 20:80 Recruitment Platform Routes (Employer Role Strictly Enforced) */}
             <Route
               path="/employer"
               element={
                 <ProtectedDashboardRoute allowedRoles={['employer']}>
                   <EmployerDashboardPage />
+                </ProtectedDashboardRoute>
+              }
+            />
+            <Route
+              path="/employer/onboarding"
+              element={
+                <ProtectedDashboardRoute allowedRoles={['employer']}>
+                  <EmployerOnboardingPage />
+                </ProtectedDashboardRoute>
+              }
+            />
+            <Route
+              path="/employer/company-profile"
+              element={
+                <ProtectedDashboardRoute allowedRoles={['employer']}>
+                  <CompanyProfilePage />
+                </ProtectedDashboardRoute>
+              }
+            />
+            <Route
+              path="/employer/verification"
+              element={
+                <ProtectedDashboardRoute allowedRoles={['employer']}>
+                  <CompanyVerificationPage />
+                </ProtectedDashboardRoute>
+              }
+            />
+            <Route
+              path="/employer/jobs"
+              element={
+                <ProtectedDashboardRoute allowedRoles={['employer']}>
+                  <EmployerJobsPage />
+                </ProtectedDashboardRoute>
+              }
+            />
+            <Route
+              path="/employer/candidates"
+              element={
+                <ProtectedDashboardRoute allowedRoles={['employer']}>
+                  <CandidateSearchPage />
+                </ProtectedDashboardRoute>
+              }
+            />
+            <Route
+              path="/employer/applications"
+              element={
+                <ProtectedDashboardRoute allowedRoles={['employer']}>
+                  <EmployerApplicationsPage />
+                </ProtectedDashboardRoute>
+              }
+            />
+            <Route
+              path="/employer/hiring-preferences"
+              element={
+                <ProtectedDashboardRoute allowedRoles={['employer']}>
+                  <HiringPreferencesPage />
+                </ProtectedDashboardRoute>
+              }
+            />
+            <Route
+              path="/employer/interviews"
+              element={
+                <ProtectedDashboardRoute allowedRoles={['employer']}>
+                  <InterviewManagementPage />
+                </ProtectedDashboardRoute>
+              }
+            />
+            <Route
+              path="/employer/analytics"
+              element={
+                <ProtectedDashboardRoute allowedRoles={['employer']}>
+                  <RecruitmentAnalyticsPage />
+                </ProtectedDashboardRoute>
+              }
+            />
+            <Route
+              path="/employer/cane"
+              element={
+                <ProtectedDashboardRoute allowedRoles={['employer']}>
+                  <CaneRecruiterPage />
+                </ProtectedDashboardRoute>
+              }
+            />
+            <Route
+              path="/employer/settings"
+              element={
+                <ProtectedDashboardRoute allowedRoles={['employer']}>
+                  <EmployerSettingsPage />
                 </ProtectedDashboardRoute>
               }
             />

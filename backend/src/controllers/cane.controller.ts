@@ -12,6 +12,9 @@ import { LearningResource } from '../models/LearningResource';
 import { LearningProgress } from '../models/LearningProgress';
 import { Portfolio } from '../models/Portfolio';
 import { Application } from '../models/Application';
+import { Employer, formatVerificationLabel } from '../models/Employer';
+import { HiringPreference } from '../models/HiringPreference';
+import { Interview } from '../models/Interview';
 import { generateCaneCompletion, getActiveAIProvider } from '../services/caneAI.service';
 import { sendSuccess, sendError } from '../utils/response';
 
@@ -36,6 +39,116 @@ function checkRateLimit(userId: string): { allowed: boolean; retryAfterSec: numb
 }
 
 /**
+ * Builds a privacy-respecting Employer Recruitment context strictly scoped to
+ * the authenticated employer's own company, jobs, hiring preferences, and applicants.
+ * Excludes all protected personal characteristics and private PII.
+ */
+async function buildEmployerCaneContext(
+  user: any,
+  useProfileContext: boolean
+): Promise<{
+  contextText: string;
+  suggestedLinks: Array<{ label: string; route: string; type: string }>;
+}> {
+  const sections: string[] = [];
+  const suggestedLinks: Array<{ label: string; route: string; type: string }> = [
+    { label: 'Job Management', route: '/employer/jobs', type: 'internal' },
+    { label: 'Applications Desk', route: '/employer/applications', type: 'internal' },
+    { label: 'Interview Schedule', route: '/employer/interviews', type: 'internal' }
+  ];
+
+  if (!useProfileContext || !user) {
+    sections.push('COMPANY CONTEXT: Employer chose to chat without attaching company context.');
+    return { contextText: sections.join('\n\n'), suggestedLinks };
+  }
+
+  const [company, prefs, jobs, apps, interviews] = await Promise.all([
+    Employer.findOne({ userId: user._id }),
+    HiringPreference.find({ employerId: user._id }).limit(8),
+    Opportunity.find({ employerId: user._id })
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .select('title department status workMode opportunityType requiredSkills vacancies stipendOrSalary location'),
+    Application.find({ employerId: user._id })
+      .sort({ createdAt: -1 })
+      .limit(12)
+      .populate('opportunityId', 'title requiredSkills')
+      .populate('seekerId', 'name seekerProfile.headline seekerProfile.skills seekerProfile.detailedSkills seekerProfile.educationLevel seekerProfile.experienceLevel'),
+    Interview.find({ employerId: user._id })
+      .sort({ scheduledAt: -1 })
+      .limit(6)
+      .select('scheduledDate scheduledTime mode status')
+  ]);
+
+  if (company) {
+    sections.push(
+      [
+        'EMPLOYER COMPANY PROFILE:',
+        `Company Name: ${company.publicName || company.companyName}`,
+        `Industry: ${company.industry}${company.businessCategory ? ` (${company.businessCategory})` : ''}`,
+        `Company Size: ${company.companySize || 'Not specified'}`,
+        `Verification Status: ${formatVerificationLabel(company.verificationStatus)}`,
+        `Headquarters: ${[company.headquartersLocation?.city, company.headquartersLocation?.state].filter(Boolean).join(', ') || 'Not specified'}`,
+        `Description: ${(company.description || '').slice(0, 400) || 'Not specified'}`,
+        `Culture & Benefits: ${(company.benefits || []).join(', ') || 'Not specified'}`
+      ].join('\n')
+    );
+  }
+
+  if (prefs.length > 0) {
+    sections.push(
+      `SAVED HIRING PREFERENCES:\n${prefs
+        .map(
+          (p) =>
+            `- ${p.jobTitle} (${p.department}) | ${p.vacancies} vacancy(s) | ${p.employmentType} / ${p.workArrangement} | Skills: ${(p.requiredSkills || []).join(', ')} | Exp: ${p.experienceLevel}`
+        )
+        .join('\n')}`
+    );
+  }
+
+  if (jobs.length > 0) {
+    sections.push(
+      `EMPLOYER JOB POSTINGS:\n${jobs
+        .map(
+          (j) =>
+            `- ${j.title} [${j.status}] (${j.department || 'General'} | ${j.workMode} | ${j.location?.city}) | Required Skills: ${(j.requiredSkills || []).join(', ')} | Vacancies: ${j.vacancies || 1}`
+        )
+        .join('\n')}`
+    );
+  }
+
+  if (apps.length > 0) {
+    sections.push(
+      `RECENT APPLICANTS (job-relevant qualifications only — strictly NO protected demographics):\n${apps
+        .map((a: any) => {
+          const sp = a.seekerId?.seekerProfile || {};
+          const skills = Array.from(
+            new Set([
+              ...(Array.isArray(sp.skills) ? sp.skills : []),
+              ...(Array.isArray(sp.detailedSkills) ? sp.detailedSkills.map((s: any) => s.name) : [])
+            ])
+          ).slice(0, 10);
+          return `- ${a.seekerId?.name || 'Candidate'} for "${a.opportunityId?.title || 'Role'}" [Stage: ${a.status}] | Headline: ${sp.headline || 'N/A'} | Skills: ${skills.join(', ') || 'None listed'} | Education: ${sp.educationLevel || 'N/A'} | Experience: ${sp.experienceLevel || 'N/A'}`;
+        })
+        .join('\n')}`
+    );
+  }
+
+  if (interviews.length > 0) {
+    sections.push(
+      `RECENT INTERVIEWS: ${interviews.length} scheduled/tracked (${interviews
+        .map((i) => `${i.scheduledDate} ${i.mode} [${i.status}]`)
+        .join('; ')})`
+    );
+  }
+
+  return {
+    contextText: sections.join('\n\n'),
+    suggestedLinks
+  };
+}
+
+/**
  * Builds a compact, privacy-respecting SETU career context snapshot for CANE.
  * Never includes phone numbers, raw resumes, passwords, or sensitive PII.
  */
@@ -47,6 +160,10 @@ async function buildGroundedSetuContext(
   contextText: string;
   suggestedLinks: Array<{ label: string; route: string; type: string }>;
 }> {
+  if (user?.role === 'employer') {
+    return buildEmployerCaneContext(user, useProfileContext);
+  }
+
   const sections: string[] = [];
   const suggestedLinks: Array<{ label: string; route: string; type: string }> = [];
   const lowerMsg = userMessage.toLowerCase();
@@ -200,15 +317,56 @@ async function buildGroundedSetuContext(
   };
 }
 
-function buildCaneSystemPrompt(language: CaneLanguage, mode: CaneMode, groundedContext: string): string {
+function buildCaneSystemPrompt(
+  language: CaneLanguage,
+  mode: CaneMode,
+  groundedContext: string,
+  userRole: string = 'seeker'
+): string {
   const languageDirective =
     language === 'Hindi'
       ? 'Respond naturally in warm, clear Hindi (Devanagari script), keeping technical terms understandable.'
       : language === 'Hinglish'
-      ? 'Respond in friendly, natural Hinglish (conversational Hindi + English in Latin script) that feels approachable to Indian students and job seekers.'
+      ? 'Respond in friendly, natural Hinglish (conversational Hindi + English in Latin script) that feels approachable to Indian users.'
       : 'Respond in clear, encouraging, practical English.';
 
-  const modeDirective: Record<CaneMode, string> = {
+  if (userRole === 'employer') {
+    const employerModeDirective: Record<string, string> = {
+      recruiter_general:
+        'Assist the employer with ethical, structured hiring guidance, talent sourcing strategy, job posting quality, and candidate communication.',
+      jd_writer:
+        'Draft clear, inclusive, skills-first job descriptions with responsibilities, qualifications, required skills, and transparent compensation/work-mode framing.',
+      hiring_criteria:
+        'Define objective, skills-based hiring rubrics and must-have vs nice-to-have criteria tied strictly to job performance.',
+      interview_questions:
+        'Suggest structured, role-relevant technical, situational, and behavioral interview questions with fair evaluation rubrics.',
+      candidate_summary:
+        'Summarize candidate qualifications objectively using only job-relevant skills, projects, education, and experience.',
+      candidate_compare:
+        'Compare candidates transparently against explicit job requirements using job-related competencies only. Never recommend auto-rejection.',
+      skill_gap_explain:
+        'Explain specific skill gaps between a candidate’s demonstrated skills and the job’s requirements, and suggest onboarding or mentoring ways to bridge them.',
+      outreach_message:
+        'Draft polite, professional, respectful candidate outreach, interview invite, offer, or constructive status update messages.',
+      recruitment_strategy:
+        'Recommend practical recruitment strategies for Bharat talent pools, inclusive hiring, career-restart candidates, and reducing time-to-hire.'
+    };
+
+    return [
+      'You are CANE AI Recruiter (Career Assistance & Navigation Engine for Employers) inside SETU (Bridging Skills, Opportunities & Employment for Bharat).',
+      'ETHICAL & ADVISORY AI GUARDRAILS (STRICTLY MANDATORY):',
+      '1. All insights and recommendations are strictly ADVISORY. Human employers must make every final hiring decision.',
+      '2. NEVER automatically reject, disqualify, or instruct automatic rejection of any candidate.',
+      '3. NEVER rank, score, prefer, or penalize candidates based on protected personal characteristics (gender, age, marital status, pregnancy/career gap, religion, caste, region, disability, ethnicity, or socioeconomic background).',
+      '4. Base all comparisons, summaries, and criteria exclusively on job-relevant skills, portfolio evidence, qualifications, and experience.',
+      '5. Never invent candidates, metrics, or company claims that are not present in the employer’s SETU data.',
+      `LANGUAGE: ${languageDirective}`,
+      `ACTIVE RECRUITER MODE (${mode}): ${employerModeDirective[mode] || employerModeDirective.recruiter_general}`,
+      groundedContext ? `\n--- GROUNDED EMPLOYER SETU DATA ---\n${groundedContext}` : ''
+    ].join('\n');
+  }
+
+  const modeDirective: Record<string, string> = {
     general: 'Provide warm, practical, actionable career guidance and ask 1 helpful follow-up question when useful.',
     career_discovery:
       'Help the user explore diverse, realistic career paths suited to their interests, education, and strengths. Never assume every engineering student wants coding; explore non-coding, business, creative, operations, and vocational options equally.',
@@ -409,7 +567,7 @@ export const sendCaneMessage = async (req: AuthenticatedRequest, res: Response):
       conv.useProfileContext
     );
 
-    const systemPrompt = buildCaneSystemPrompt(conv.language, conv.mode, contextText);
+    const systemPrompt = buildCaneSystemPrompt(conv.language, conv.mode, contextText, req.user.role);
     const completion = await generateCaneCompletion(systemPrompt, orderedHistory);
 
     if (!completion.configured) {
@@ -500,7 +658,7 @@ export const regenerateLastResponse = async (
       lastUserMsg.content,
       conv.useProfileContext
     );
-    const systemPrompt = buildCaneSystemPrompt(conv.language, conv.mode, contextText);
+    const systemPrompt = buildCaneSystemPrompt(conv.language, conv.mode, contextText, req.user.role);
     const completion = await generateCaneCompletion(
       systemPrompt,
       messages.slice(-12).map((m) => ({ role: m.role, content: m.content })),

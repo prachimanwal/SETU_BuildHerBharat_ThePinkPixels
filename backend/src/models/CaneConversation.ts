@@ -9,7 +9,16 @@ export type CaneMode =
   | 'roadmap'
   | 'resume'
   | 'interview'
-  | 'schemes';
+  | 'schemes'
+  | 'recruiter_general'
+  | 'jd_writer'
+  | 'hiring_criteria'
+  | 'interview_questions'
+  | 'candidate_summary'
+  | 'candidate_compare'
+  | 'skill_gap_explain'
+  | 'outreach_message'
+  | 'recruitment_strategy';
 
 export interface ICaneConversation extends Document {
   _id: mongoose.Types.ObjectId;
@@ -47,7 +56,16 @@ const CaneConversationSchema = new Schema<ICaneConversation>(
         'roadmap',
         'resume',
         'interview',
-        'schemes'
+        'schemes',
+        'recruiter_general',
+        'jd_writer',
+        'hiring_criteria',
+        'interview_questions',
+        'candidate_summary',
+        'candidate_compare',
+        'skill_gap_explain',
+        'outreach_message',
+        'recruitment_strategy'
       ],
       default: 'general'
     },

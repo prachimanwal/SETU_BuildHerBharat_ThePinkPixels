@@ -4,6 +4,7 @@ exports.toggleSaveOpportunity = exports.getSavedOpportunities = exports.getMatch
 const env_1 = require("../config/env");
 const Opportunity_1 = require("../models/Opportunity");
 const Application_1 = require("../models/Application");
+const Employer_1 = require("../models/Employer");
 const response_1 = require("../utils/response");
 const validators_1 = require("../utils/validators");
 const scoreOpportunityForUser = (opp, user, savedSet, appliedSet) => {
@@ -287,27 +288,70 @@ const createOpportunity = async (req, res) => {
             return;
         }
         const payload = parseResult.data;
+        if (typeof payload.salaryMin === 'number' &&
+            typeof payload.salaryMax === 'number' &&
+            payload.salaryMin > payload.salaryMax) {
+            (0, response_1.sendError)(res, 'Minimum salary cannot be greater than maximum salary.', 400);
+            return;
+        }
+        const employerDoc = req.user.role === 'employer'
+            ? await Employer_1.Employer.findOne({ userId: req.user._id })
+            : null;
+        const verified = req.user.role === 'admin' ||
+            (0, Employer_1.isEmployerVerified)(employerDoc?.verificationStatus) ||
+            (0, Employer_1.isEmployerVerified)(req.user.employerProfile?.verificationStatus);
+        const requestedStatus = payload.status;
+        if (requestedStatus === 'published' && !verified) {
+            (0, response_1.sendError)(res, 'Only verified employers can publish live job opportunities. Save this vacancy as a draft until your company verification is approved.', 403);
+            return;
+        }
+        const finalStatus = requestedStatus || (verified ? 'published' : 'draft');
+        // Prevent duplicate active job postings for the same employer (same title + city)
+        const escapedTitle = payload.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const escapedCity = (payload.location?.city || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const duplicate = await Opportunity_1.Opportunity.findOne({
+            employerId: req.user._id,
+            status: { $in: ['draft', 'published'] },
+            title: { $regex: `^${escapedTitle}$`, $options: 'i' },
+            'location.city': { $regex: `^${escapedCity}$`, $options: 'i' }
+        });
+        if (duplicate) {
+            (0, response_1.sendError)(res, `A similar active posting ("${duplicate.title}" in ${duplicate.location.city}) already exists. Edit the existing vacancy or close/archive it first.`, 409);
+            return;
+        }
         const organisationName = payload.organisationName ||
+            employerDoc?.publicName ||
+            employerDoc?.companyName ||
             req.user.employerProfile?.companyName ||
             req.user.name;
+        const computedSalaryLabel = payload.salaryOrStipend ||
+            payload.stipendOrSalary ||
+            (payload.salaryMin && payload.salaryMax
+                ? `₹${payload.salaryMin.toLocaleString('en-IN')} - ₹${payload.salaryMax.toLocaleString('en-IN')}`
+                : 'Competitive / Market Standard');
         const newOpp = new Opportunity_1.Opportunity({
             ...payload,
-            minEducationLevel: req.body?.minEducationLevel || '',
+            stipendOrSalary: computedSalaryLabel,
+            minEducationLevel: payload.minEducationLevel || payload.educationRequired || '',
             minAcademicPercentage: typeof req.body?.minAcademicPercentage === 'number'
                 ? req.body.minAcademicPercentage
                 : null,
             minCgpa: typeof req.body?.minCgpa === 'number' ? req.body.minCgpa : null,
             minCgpaScale: typeof req.body?.minCgpaScale === 'number' ? req.body.minCgpaScale : 10,
-            experienceRequired: req.body?.experienceRequired || 'Fresher / Entry-Level Welcome',
-            applicationDeadline: req.body?.applicationDeadline || '',
+            experienceRequired: payload.experienceRequired || 'Fresher / Entry-Level Welcome',
+            applicationDeadline: payload.applicationDeadline || '',
             externalApplyUrl: req.body?.externalApplyUrl || '',
             employerId: req.user._id,
+            companyId: employerDoc?._id,
             organisationName,
-            status: 'published',
+            status: finalStatus,
+            publishedAt: finalStatus === 'published' ? new Date() : undefined,
             moderationStatus: 'clean'
         });
         await newOpp.save();
-        (0, response_1.sendSuccess)(res, 'Opportunity listing published successfully', newOpp, 201);
+        (0, response_1.sendSuccess)(res, finalStatus === 'published'
+            ? 'Opportunity listing published successfully'
+            : 'Job vacancy saved as draft successfully', newOpp, 201);
     }
     catch (error) {
         (0, response_1.sendError)(res, error.message || 'Failed to create opportunity', 500);
@@ -337,7 +381,35 @@ const updateOpportunity = async (req, res) => {
             (0, response_1.sendError)(res, parseResult.error.errors[0]?.message || 'Invalid fields', 400);
             return;
         }
-        Object.assign(opp, parseResult.data);
+        const updates = parseResult.data;
+        const nextMin = updates.salaryMin !== undefined ? updates.salaryMin : opp.salaryMin;
+        const nextMax = updates.salaryMax !== undefined ? updates.salaryMax : opp.salaryMax;
+        if (typeof nextMin === 'number' && typeof nextMax === 'number' && nextMin > nextMax) {
+            (0, response_1.sendError)(res, 'Minimum salary cannot be greater than maximum salary.', 400);
+            return;
+        }
+        if (updates.status === 'published' && req.user.role === 'employer') {
+            const employerDoc = await Employer_1.Employer.findOne({ userId: req.user._id });
+            const verified = (0, Employer_1.isEmployerVerified)(employerDoc?.verificationStatus) ||
+                (0, Employer_1.isEmployerVerified)(req.user.employerProfile?.verificationStatus);
+            if (!verified) {
+                (0, response_1.sendError)(res, 'Only verified employers can publish or reopen job opportunities. Complete company verification first.', 403);
+                return;
+            }
+        }
+        if (updates.salaryOrStipend && !updates.stipendOrSalary) {
+            updates.stipendOrSalary = updates.salaryOrStipend;
+        }
+        if (updates.educationRequired && !updates.minEducationLevel) {
+            updates.minEducationLevel = updates.educationRequired;
+        }
+        Object.assign(opp, updates);
+        if (updates.status === 'published' && !opp.publishedAt) {
+            opp.publishedAt = new Date();
+        }
+        if (updates.status === 'closed') {
+            opp.closedAt = new Date();
+        }
         await opp.save();
         (0, response_1.sendSuccess)(res, 'Opportunity updated successfully', opp);
     }

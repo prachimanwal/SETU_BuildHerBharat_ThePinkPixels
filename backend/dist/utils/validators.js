@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.schemeSchema = exports.portfolioSchema = exports.applicationSchema = exports.opportunitySchema = exports.profileUpdateSchema = exports.loginSchema = exports.registerSchema = void 0;
+exports.schemeSchema = exports.portfolioSchema = exports.interviewSchema = exports.hiringPreferenceSchema = exports.applicationSchema = exports.opportunitySchema = exports.profileUpdateSchema = exports.loginSchema = exports.registerSchema = void 0;
 const zod_1 = require("zod");
 exports.registerSchema = zod_1.z.object({
     name: zod_1.z.string().trim().min(2, 'Name must be at least 2 characters long'),
@@ -143,7 +143,14 @@ exports.profileUpdateSchema = zod_1.z.object({
         resumeUrl: zod_1.z.string().optional(),
         isCareerRestart: zod_1.z.boolean().optional(),
         onboardingCompleted: zod_1.z.boolean().optional(),
-        onboardingSkipped: zod_1.z.boolean().optional()
+        onboardingSkipped: zod_1.z.boolean().optional(),
+        profileVisibility: zod_1.z
+            .object({
+            discoverableByEmployers: zod_1.z.boolean().optional(),
+            showResumeToEmployers: zod_1.z.boolean().optional(),
+            showContactAfterShortlist: zod_1.z.boolean().optional()
+        })
+            .optional()
     })
         .optional(),
     employerProfile: zod_1.z
@@ -163,16 +170,33 @@ exports.profileUpdateSchema = zod_1.z.object({
     })
         .optional()
 });
+const locationPreprocessor = zod_1.z.preprocess((val) => {
+    if (typeof val === 'string') {
+        const parts = val
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean);
+        return {
+            city: parts[0] || 'Pan-India',
+            state: parts[1] || 'India',
+            isRuralFocus: false
+        };
+    }
+    return val;
+}, zod_1.z.object({
+    city: zod_1.z.string().trim().min(1).default('Pan-India'),
+    state: zod_1.z.string().trim().default('India'),
+    isRuralFocus: zod_1.z.boolean().default(false)
+}));
 exports.opportunitySchema = zod_1.z.object({
     title: zod_1.z.string().trim().min(3, 'Title is required and must be at least 3 characters'),
+    department: zod_1.z.string().trim().optional().default('General'),
     organisationName: zod_1.z.string().trim().optional(),
     description: zod_1.z.string().trim().min(10, 'Description must be at least 10 characters'),
-    requiredSkills: zod_1.z.array(zod_1.z.string()).min(1, 'At least one required skill must be specified'),
-    location: zod_1.z.object({
-        city: zod_1.z.string().trim().default('Gurugram'),
-        state: zod_1.z.string().trim().default('Haryana'),
-        isRuralFocus: zod_1.z.boolean().default(false)
-    }),
+    responsibilities: zod_1.z.array(zod_1.z.string().trim()).optional().default([]),
+    qualifications: zod_1.z.array(zod_1.z.string().trim()).optional().default([]),
+    requiredSkills: zod_1.z.array(zod_1.z.string().trim().min(1)).min(1, 'At least one required skill must be specified'),
+    location: locationPreprocessor.default({ city: 'Pan-India', state: 'India', isRuralFocus: false }),
     workMode: zod_1.z.enum(['remote', 'hybrid', 'onsite']).default('hybrid'),
     opportunityType: zod_1.z
         .enum([
@@ -181,18 +205,79 @@ exports.opportunitySchema = zod_1.z.object({
         'part_time',
         'internship',
         'freelance',
+        'contract',
         'apprenticeship',
         'entry_level',
         'entrepreneurship'
     ])
         .default('job'),
-    stipendOrSalary: zod_1.z.string().trim().default('Competitive / Market Standard'),
-    duration: zod_1.z.string().trim().default('Full-Time'),
-    isCareerRestart: zod_1.z.boolean().default(false)
+    stipendOrSalary: zod_1.z.string().trim().optional().default('Competitive / Market Standard'),
+    salaryOrStipend: zod_1.z.string().trim().optional(),
+    salaryMin: nullableNumber,
+    salaryMax: nullableNumber,
+    vacancies: zod_1.z.coerce.number().int().min(1).max(5000).optional().default(1),
+    duration: zod_1.z.string().trim().optional().default('Full-Time'),
+    experienceRequired: zod_1.z.string().trim().optional().default('Fresher / Entry-Level Welcome'),
+    minEducationLevel: zod_1.z.string().trim().optional().default(''),
+    educationRequired: zod_1.z.string().trim().optional(),
+    applicationDeadline: zod_1.z.string().trim().optional().default(''),
+    screeningQuestions: zod_1.z.array(zod_1.z.string().trim()).optional().default([]),
+    isCareerRestart: zod_1.z.boolean().optional().default(false),
+    status: zod_1.z.enum(['draft', 'published', 'closed', 'archived']).optional()
 });
 exports.applicationSchema = zod_1.z.object({
     opportunityId: zod_1.z.string().min(1, 'Opportunity ID is required'),
-    coverNote: zod_1.z.string().max(2000).optional().default('')
+    coverNote: zod_1.z.string().max(2000).optional().default(''),
+    screeningAnswers: zod_1.z
+        .array(zod_1.z.object({
+        question: zod_1.z.string(),
+        answer: zod_1.z.string()
+    }))
+        .optional()
+        .default([])
+});
+exports.hiringPreferenceSchema = zod_1.z.object({
+    jobTitle: zod_1.z.string().trim().min(2, 'Job title is required'),
+    department: zod_1.z.string().trim().optional().default('General'),
+    vacancies: zod_1.z.coerce.number().int().min(1).max(5000).default(1),
+    requiredEducation: zod_1.z.string().trim().optional().default('Any Graduate / Relevant Skills'),
+    requiredSkills: zod_1.z.array(zod_1.z.string().trim()).optional().default([]),
+    experienceLevel: zod_1.z.string().trim().optional().default('Entry-level / Fresher'),
+    minSalary: nullableNumber,
+    maxSalary: nullableNumber,
+    salaryCurrency: zod_1.z.string().trim().optional().default('INR'),
+    jobLocation: zod_1.z.string().trim().optional().default('Pan-India'),
+    employmentType: zod_1.z
+        .enum(['Full-time', 'Part-time', 'Internship', 'Freelance', 'Contract', 'Remote'])
+        .default('Full-time'),
+    workArrangement: zod_1.z.enum(['Remote', 'Hybrid', 'On-site']).default('Hybrid'),
+    preferredJoiningDate: zod_1.z.string().trim().optional().default(''),
+    requiredCertifications: zod_1.z.array(zod_1.z.string().trim()).optional().default([]),
+    interviewProcess: zod_1.z
+        .string()
+        .trim()
+        .optional()
+        .default('Screening -> Technical/Skill Round -> HR Discussion'),
+    isActive: zod_1.z.boolean().optional().default(true)
+});
+exports.interviewSchema = zod_1.z.object({
+    applicationId: zod_1.z.string().optional(),
+    opportunityId: zod_1.z.string().min(1, 'Job position is required'),
+    candidateId: zod_1.z.string().min(1, 'Candidate is required'),
+    scheduledDate: zod_1.z.string().min(4, 'Interview date is required'),
+    scheduledTime: zod_1.z.string().min(2, 'Interview time is required'),
+    durationMinutes: zod_1.z.coerce.number().int().min(10).max(480).optional().default(45),
+    mode: zod_1.z.enum(['Online', 'Offline', 'Telephone']).default('Online'),
+    meetingLinkOrLocation: zod_1.z.string().trim().optional().default(''),
+    interviewerName: zod_1.z.string().trim().min(2, 'Interviewer name is required'),
+    interviewerEmail: zod_1.z.string().trim().optional().default(''),
+    notes: zod_1.z.string().trim().optional().default(''),
+    feedback: zod_1.z.string().trim().optional().default(''),
+    rating: nullableNumber,
+    status: zod_1.z
+        .enum(['Scheduled', 'Rescheduled', 'Completed', 'Cancelled', 'No Show'])
+        .optional()
+        .default('Scheduled')
 });
 exports.portfolioSchema = zod_1.z.object({
     title: zod_1.z.string().trim().min(3, 'Title must be at least 3 characters'),

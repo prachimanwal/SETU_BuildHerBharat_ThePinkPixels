@@ -14,7 +14,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
-import { apiFetch, extractArray } from '../utils/api';
+import { apiFetch, extractArray, formatLocation } from '../utils/api';
 
 export const ApplicationsPage: React.FC = () => {
   const { language } = useLanguage();
@@ -51,10 +51,15 @@ export const ApplicationsPage: React.FC = () => {
       case 'Shortlisted':
         return 'bg-purple-50 text-purple-800 border-purple-200';
       case 'Interview Scheduled':
+      case 'Interview Completed':
         return 'bg-emerald-100 text-emerald-900 border-emerald-300 font-bold';
+      case 'Offer Sent':
+        return 'bg-indigo-100 text-indigo-900 border-indigo-300 font-bold';
+      case 'Hired':
       case 'Selected':
         return 'bg-green-600 text-white font-bold';
       case 'Rejected':
+      case 'Withdrawn':
         return 'bg-[#EAF7FF] text-[#64748B] border-[#D8ECFA]';
       default:
         return 'bg-[#EAF7FF] text-[#475569]';
@@ -132,8 +137,13 @@ export const ApplicationsPage: React.FC = () => {
                     </h3>
                     <p className="text-xs sm:text-sm text-[#64748B] font-medium">
                       {opp.organisationName || app.employerId?.employerProfile?.companyName || 'Employer'} •{' '}
-                      {opp.location || 'Location'}
+                      {formatLocation(opp.location)}
                     </p>
+                    {app.candidateUpdateMessage && (
+                      <p className="mt-1.5 text-xs text-[#1E3A5F] bg-[#EAF7FF]/70 px-3 py-1.5 rounded-xl border border-[#BDE0FE]">
+                        <strong>Recruiter Update:</strong> {app.candidateUpdateMessage}
+                      </p>
+                    )}
                     <span className="text-[11px] text-[#64748B]">
                       Applied on {new Date(app.createdAt).toLocaleDateString()}
                     </span>
@@ -171,13 +181,13 @@ export const ApplicationsPage: React.FC = () => {
                         </p>
                       </div>
 
-                      {app.interviewDetails.meetLinkOrLocation && (
+                      {(app.interviewDetails.meetLinkOrLocation || app.interviewDetails.meetingLink) && (
                         <div className="sm:text-right">
                           <span className="font-semibold text-emerald-900 block mb-1">
                             Meeting Link / Location:
                           </span>
                           <a
-                            href={app.interviewDetails.meetLinkOrLocation}
+                            href={app.interviewDetails.meetLinkOrLocation || app.interviewDetails.meetingLink}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-emerald-700 text-white font-bold text-xs hover:bg-emerald-800 transition shadow-sm"
