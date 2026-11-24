@@ -4,6 +4,7 @@ import { Assessment, IAssessment } from '../models/Assessment';
 import { AssessmentResult } from '../models/AssessmentResult';
 import { LearningResource } from '../models/LearningResource';
 import { sendSuccess, sendError } from '../utils/response';
+import { recordUserProgressSnapshot } from '../services/progressSnapshot.service';
 
 const sanitizeAssessment = (doc: any) => {
   const obj = typeof doc.toObject === 'function' ? doc.toObject() : { ...doc };
@@ -419,6 +420,7 @@ export const submitAssessment = async (
     });
 
     await result.save();
+    void recordUserProgressSnapshot(req.user._id);
 
     // Fetch learning recommendations matching identified skill gaps or domain
     const gapTerms = Array.from(

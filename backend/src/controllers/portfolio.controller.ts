@@ -3,6 +3,7 @@ import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { Portfolio } from '../models/Portfolio';
 import { sendSuccess, sendError } from '../utils/response';
 import { portfolioSchema } from '../utils/validators';
+import { recordUserProgressSnapshot } from '../services/progressSnapshot.service';
 
 export const getPortfolio = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
@@ -40,6 +41,7 @@ export const createPortfolio = async (
     });
 
     await newProject.save();
+    void recordUserProgressSnapshot(req.user._id);
 
     sendSuccess(res, 'Portfolio project created successfully', newProject, 201);
   } catch (error: any) {

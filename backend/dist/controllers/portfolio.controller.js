@@ -4,6 +4,7 @@ exports.deletePortfolio = exports.updatePortfolio = exports.createPortfolio = ex
 const Portfolio_1 = require("../models/Portfolio");
 const response_1 = require("../utils/response");
 const validators_1 = require("../utils/validators");
+const progressSnapshot_service_1 = require("../services/progressSnapshot.service");
 const getPortfolio = async (req, res) => {
     try {
         if (!req.user) {
@@ -34,6 +35,7 @@ const createPortfolio = async (req, res) => {
             userId: req.user._id
         });
         await newProject.save();
+        void (0, progressSnapshot_service_1.recordUserProgressSnapshot)(req.user._id);
         (0, response_1.sendSuccess)(res, 'Portfolio project created successfully', newProject, 201);
     }
     catch (error) {

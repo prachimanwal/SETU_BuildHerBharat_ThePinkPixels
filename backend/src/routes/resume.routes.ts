@@ -9,6 +9,7 @@ import {
   downloadResumePdf,
   downloadResumeDocx,
   uploadAndParseResume,
+  getUploadedResumeStatus,
   confirmUploadedResumeData,
   downloadUploadedResume,
   toggleUploadedResumeSharing,
@@ -100,6 +101,7 @@ router.post('/improve-resume', improveResumeWithCane);
 
 // Uploaded PDF/DOCX management (private MongoDB Atlas storage — never relies on ephemeral disk)
 router.post('/upload', handleResumeUploadMiddleware, uploadAndParseResume);
+router.get('/upload/:id/status', getUploadedResumeStatus);
 router.post('/upload/:id/confirm', confirmUploadedResumeData);
 router.get('/upload/:id/download', downloadUploadedResume);
 router.patch('/upload/:id/sharing', toggleUploadedResumeSharing);

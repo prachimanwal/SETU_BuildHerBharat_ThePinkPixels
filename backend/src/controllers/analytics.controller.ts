@@ -5,39 +5,47 @@ import { AssessmentResult } from '../models/AssessmentResult';
 import { LearningProgress } from '../models/LearningProgress';
 import { LearningResource } from '../models/LearningResource';
 import { Portfolio } from '../models/Portfolio';
+import { Resume } from '../models/Resume';
+import { UploadedResumeFile } from '../models/UploadedResumeFile';
 import { ProgressSnapshot } from '../models/ProgressSnapshot';
+import {
+  CORE_SKILL_CATEGORIES,
+  classifyIntoCoreSkillCategory,
+  computeOverallCareerProgress,
+  parseDurationToHours
+} from '../services/progressSnapshot.service';
 import { calculateProfileCompletion } from '../utils/userSerializer';
 import { sendSuccess, sendError } from '../utils/response';
 
-type TimeRangeKey = '7d' | '30d' | '3m' | '6m' | '12m';
+type TimeRangeKey = 'weekly' | 'monthly' | 'yearly' | '7d' | '30d' | '3m' | '6m' | '12m';
 
-const getRangeStartDate = (range: TimeRangeKey): Date => {
-  const now = new Date();
-  const d = new Date(now);
-  switch (range) {
+const normalizeRange = (raw: string): { key: TimeRangeKey; viewMode: 'weekly' | 'monthly' | 'yearly'; days: number } => {
+  switch (raw) {
+    case 'weekly':
     case '7d':
-      d.setDate(d.getDate() - 7);
-      return d;
-    case '30d':
-      d.setDate(d.getDate() - 30);
-      return d;
-    case '3m':
-      d.setMonth(d.getMonth() - 3);
-      return d;
-    case '6m':
-      d.setMonth(d.getMonth() - 6);
-      return d;
+      return { key: raw === '7d' ? '7d' : 'weekly', viewMode: 'weekly', days: 7 };
+    case 'yearly':
     case '12m':
-      d.setFullYear(d.getFullYear() - 1);
-      return d;
+      return { key: raw === '12m' ? '12m' : 'yearly', viewMode: 'yearly', days: 365 };
+    case '3m':
+      return { key: '3m', viewMode: 'monthly', days: 90 };
+    case '6m':
+      return { key: '6m', viewMode: 'yearly', days: 180 };
+    case 'monthly':
+    case '30d':
     default:
-      d.setDate(d.getDate() - 30);
-      return d;
+      return { key: raw === '30d' ? '30d' : 'monthly', viewMode: 'monthly', days: 30 };
   }
 };
 
-const formatDateKey = (date: Date): string => {
-  return date.toISOString().slice(0, 10);
+const formatDateKey = (date: Date): string => date.toISOString().slice(0, 10);
+
+const getWeekStartKey = (date: Date): string => {
+  const d = new Date(date);
+  const day = d.getUTCDay();
+  const diff = day === 0 ? 6 : day - 1; // Monday start
+  d.setUTCDate(d.getUTCDate() - diff);
+  return formatDateKey(d);
 };
 
 export const getSeekerProgressAnalytics = async (
@@ -50,10 +58,10 @@ export const getSeekerProgressAnalytics = async (
       return;
     }
 
-    const rawRange = String(req.query.range || '30d') as TimeRangeKey;
-    const validRanges: TimeRangeKey[] = ['7d', '30d', '3m', '6m', '12m'];
-    const range: TimeRangeKey = validRanges.includes(rawRange) ? rawRange : '30d';
-    const rangeStart = getRangeStartDate(range);
+    const { key: range, viewMode, days } = normalizeRange(String(req.query.range || 'monthly'));
+    const now = new Date();
+    const rangeStart = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+    const prevRangeStart = new Date(rangeStart.getTime() - days * 24 * 60 * 60 * 1000);
 
     const userId = req.user._id;
 
@@ -62,7 +70,10 @@ export const getSeekerProgressAnalytics = async (
       learningProgressDocs,
       totalCatalogResources,
       portfolioProjects,
-      applications
+      builtResumes,
+      uploadedResumes,
+      applications,
+      persistedSnapshots
     ] = await Promise.all([
       AssessmentResult.find({ userId })
         .populate('assessmentId', 'title domain category passingScore')
@@ -72,9 +83,12 @@ export const getSeekerProgressAnalytics = async (
         .sort({ updatedAt: 1 }),
       LearningResource.countDocuments(),
       Portfolio.find({ userId }).sort({ createdAt: 1 }),
+      Resume.find({ userId }).select('versionName createdAt updatedAt'),
+      UploadedResumeFile.find({ userId }).select('originalFilename versionNumber confirmedByUser createdAt'),
       Application.find({ seekerId: userId })
         .populate('opportunityId', 'title organisationName workMode')
-        .sort({ createdAt: 1 })
+        .sort({ createdAt: 1 }),
+      Promise.resolve(ProgressSnapshot.find({ userId }).sort({ dateKey: 1 })).catch(() => [])
     ]);
 
     const profilePct = calculateProfileCompletion(req.user);
@@ -82,8 +96,11 @@ export const getSeekerProgressAnalytics = async (
     const savedOppsCount = Array.isArray(req.user.savedOpportunities)
       ? req.user.savedOpportunities.length
       : 0;
+    const resumesCount = builtResumes.length + uploadedResumes.length;
 
-    // 1. Learning Progress Donut Metrics (real records only)
+    // ------------------------------------------------------------
+    // 1. LEARNING ANALYTICS (Real MongoDB records + real hours + weekly activity)
+    // ------------------------------------------------------------
     const completedLearning = learningProgressDocs.filter((p) => p.status === 'completed');
     const inProgressLearning = learningProgressDocs.filter(
       (p) => p.status === 'started' || p.status === 'in_progress'
@@ -96,7 +113,34 @@ export const getSeekerProgressAnalytics = async (
     const learningCompletionPct =
       enrolledTotal > 0 ? Math.round((completedLearning.length / enrolledTotal) * 100) : 0;
 
-    // 2. Assessment Performance + Improvement per attempt
+    const completedHours = completedLearning.reduce(
+      (sum, p: any) => sum + parseDurationToHours(p.resourceId?.duration),
+      0
+    );
+    const inProgressHours = inProgressLearning.reduce(
+      (sum, p: any) => sum + parseDurationToHours(p.resourceId?.duration) * 0.35,
+      0
+    );
+    const totalLearningHours = Math.round((completedHours + inProgressHours) * 10) / 10;
+
+    // Weekly Learning Activity (grouped by week Monday date from real learning timestamps)
+    const weeklyLearningMap = new Map<string, { week: string; completedCount: number; hours: number }>();
+    completedLearning.forEach((l: any) => {
+      const dt = new Date(l.completedAt || l.updatedAt || l.createdAt);
+      if (Number.isNaN(dt.getTime())) return;
+      const wKey = getWeekStartKey(dt);
+      const entry = weeklyLearningMap.get(wKey) || { week: wKey, completedCount: 0, hours: 0 };
+      entry.completedCount += 1;
+      entry.hours = Math.round((entry.hours + parseDurationToHours(l.resourceId?.duration)) * 10) / 10;
+      weeklyLearningMap.set(wKey, entry);
+    });
+    const weeklyLearningActivity = Array.from(weeklyLearningMap.values())
+      .sort((a, b) => a.week.localeCompare(b.week))
+      .slice(-8);
+
+    // ------------------------------------------------------------
+    // 2. ASSESSMENT PERFORMANCE & 6-CATEGORY SKILL DEVELOPMENT
+    // ------------------------------------------------------------
     const prevScoreByAssessment = new Map<string, number>();
     const assessmentPerformance = attempts.map((att: any) => {
       const key = String(att.assessmentId?._id || att.assessmentId || att.domain);
@@ -118,12 +162,8 @@ export const getSeekerProgressAnalytics = async (
       };
     });
 
-    // 3. Skill Development Bar Graph (strictly from real assessments; self-reported kept separate)
-    const skillAttemptsMap = new Map<
-      string,
-      Array<{ percentage: number; date: Date; passed: boolean }>
-    >();
-
+    // Individual assessed skills (preserving existing chart compatibility)
+    const skillAttemptsMap = new Map<string, Array<{ percentage: number; date: Date; passed: boolean }>>();
     attempts.forEach((att: any) => {
       const label = att.domain || att.assessmentTitle || 'General';
       const arr = skillAttemptsMap.get(label) || [];
@@ -145,6 +185,82 @@ export const getSeekerProgressAnalytics = async (
         improvement: previous ? current.percentage - previous.percentage : null,
         attemptsCount: list.length,
         verified: list.some((x) => x.passed)
+      };
+    });
+
+    // Section B: 6 Core Skill Categories calculated strictly from real assessments + completed learning
+    const categoryBuckets = new Map<
+      string,
+      { assessmentScores: number[]; learningCount: number }
+    >();
+    CORE_SKILL_CATEGORIES.forEach((cat) =>
+      categoryBuckets.set(cat, { assessmentScores: [], learningCount: 0 })
+    );
+
+    attempts.forEach((att: any) => {
+      const cat = classifyIntoCoreSkillCategory(
+        att.assessmentId?.category || att.category,
+        att.domain,
+        att.assessmentId?.title || att.assessmentTitle
+      );
+      categoryBuckets.get(cat)!.assessmentScores.push(att.percentage);
+    });
+
+    completedLearning.forEach((lp: any) => {
+      const cat = classifyIntoCoreSkillCategory(
+        lp.resourceId?.category,
+        lp.resourceId?.skillTag,
+        lp.resourceId?.title
+      );
+      categoryBuckets.get(cat)!.learningCount += 1;
+    });
+
+    const coreSkillCategories = CORE_SKILL_CATEGORIES.map((category) => {
+      const bucket = categoryBuckets.get(category)!;
+      const assessCount = bucket.assessmentScores.length;
+      const learnCount = bucket.learningCount;
+      const hasActivity = assessCount > 0 || learnCount > 0;
+
+      // Never assign fake scores: 0 when no activity exists in this category!
+      let score = 0;
+      if (assessCount > 0 && learnCount > 0) {
+        const avgA =
+          bucket.assessmentScores.reduce((s, v) => s + v, 0) / assessCount;
+        const learnBonus = Math.min(15, learnCount * 5);
+        score = Math.min(100, Math.round(avgA * 0.85 + learnBonus));
+      } else if (assessCount > 0) {
+        score = Math.round(
+          bucket.assessmentScores.reduce((s, v) => s + v, 0) / assessCount
+        );
+      } else if (learnCount > 0) {
+        // Real completed learning activities without an assessment yet (capped at 60 until verified by assessment)
+        score = Math.min(60, learnCount * 20);
+      }
+
+      const delta =
+        assessCount >= 2
+          ? bucket.assessmentScores[assessCount - 1] - bucket.assessmentScores[assessCount - 2]
+          : null;
+
+      let status: 'improving' | 'strong' | 'needs_attention' | 'not_started' = 'not_started';
+      if (!hasActivity) {
+        status = 'not_started';
+      } else if (delta !== null && delta > 0) {
+        status = 'improving';
+      } else if (score >= 70) {
+        status = 'strong';
+      } else {
+        status = 'needs_attention';
+      }
+
+      return {
+        category,
+        score,
+        hasActivity,
+        assessmentsCount: assessCount,
+        completedLearningCount: learnCount,
+        delta,
+        status
       };
     });
 
@@ -170,14 +286,20 @@ export const getSeekerProgressAnalytics = async (
     const weakestSkill =
       sortedAssessed.length > 1 ? sortedAssessed[sortedAssessed.length - 1] : null;
 
-    // 4. Job Application Analytics & Funnel
+    // ------------------------------------------------------------
+    // 3. JOB APPLICATION ANALYTICS (6-Stage Funnel + Applications Over Time)
+    // ------------------------------------------------------------
     const statusCounts: Record<string, number> = {
       Applied: 0,
       'Under Review': 0,
       Shortlisted: 0,
       'Interview Scheduled': 0,
+      'Interview Completed': 0,
+      'Offer Sent': 0,
+      Hired: 0,
       Selected: 0,
-      Rejected: 0
+      Rejected: 0,
+      Withdrawn: 0
     };
     applications.forEach((app) => {
       if (statusCounts[app.status] !== undefined) {
@@ -186,42 +308,62 @@ export const getSeekerProgressAnalytics = async (
     });
 
     const totalApps = applications.length;
-    const underReviewOrFurther =
-      statusCounts['Under Review'] +
-      statusCounts.Shortlisted +
-      statusCounts['Interview Scheduled'] +
-      statusCounts.Selected;
-    const shortlistedOrFurther =
-      statusCounts.Shortlisted +
-      statusCounts['Interview Scheduled'] +
-      statusCounts.Selected;
-    const interviewsOrFurther = statusCounts['Interview Scheduled'] + statusCounts.Selected;
+    const hiredCount = statusCounts.Hired + statusCounts.Selected;
+    const offersCount = statusCounts['Offer Sent'] + hiredCount;
+    const interviewsCount =
+      statusCounts['Interview Scheduled'] + statusCounts['Interview Completed'] + offersCount;
+    const shortlistedCount = statusCounts.Shortlisted + interviewsCount;
+    const reviewedCount = statusCounts['Under Review'] + shortlistedCount;
 
     const applicationFunnel = [
-      { stage: 'Submitted', count: totalApps, rate: totalApps > 0 ? 100 : 0 },
+      { stage: 'Applications Submitted', count: totalApps, rate: totalApps > 0 ? 100 : 0 },
       {
-        stage: 'Under Review',
-        count: underReviewOrFurther,
-        rate: totalApps > 0 ? Math.round((underReviewOrFurther / totalApps) * 100) : 0
+        stage: 'Applications Reviewed',
+        count: reviewedCount,
+        rate: totalApps > 0 ? Math.round((reviewedCount / totalApps) * 100) : 0
       },
       {
         stage: 'Shortlisted',
-        count: shortlistedOrFurther,
-        rate: totalApps > 0 ? Math.round((shortlistedOrFurther / totalApps) * 100) : 0
+        count: shortlistedCount,
+        rate: totalApps > 0 ? Math.round((shortlistedCount / totalApps) * 100) : 0
       },
       {
-        stage: 'Interview',
-        count: interviewsOrFurther,
-        rate: totalApps > 0 ? Math.round((interviewsOrFurther / totalApps) * 100) : 0
+        stage: 'Interviews',
+        count: interviewsCount,
+        rate: totalApps > 0 ? Math.round((interviewsCount / totalApps) * 100) : 0
       },
       {
-        stage: 'Offers',
-        count: statusCounts.Selected,
-        rate: totalApps > 0 ? Math.round((statusCounts.Selected / totalApps) * 100) : 0
+        stage: 'Offers Received',
+        count: offersCount,
+        rate: totalApps > 0 ? Math.round((offersCount / totalApps) * 100) : 0
+      },
+      {
+        stage: 'Hired',
+        count: hiredCount,
+        rate: totalApps > 0 ? Math.round((hiredCount / totalApps) * 100) : 0
       }
     ];
 
-    // 5. Interactive 7-Stage SETU Journey (strictly real activity!)
+    // Applications Submitted Over Time
+    const appTimeMap = new Map<string, number>();
+    applications.forEach((a) => {
+      const dt = new Date(a.createdAt);
+      if (Number.isNaN(dt.getTime()) || dt < rangeStart) return;
+      const bucketKey =
+        viewMode === 'yearly'
+          ? dt.toISOString().slice(0, 7)
+          : viewMode === 'monthly'
+          ? formatDateKey(dt)
+          : formatDateKey(dt);
+      appTimeMap.set(bucketKey, (appTimeMap.get(bucketKey) || 0) + 1);
+    });
+    const applicationsOverTime = Array.from(appTimeMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, count]) => ({ date, count }));
+
+    // ------------------------------------------------------------
+    // 4. INTERACTIVE 7-STAGE SETU CAREER JOURNEY (with per-stage %)
+    // ------------------------------------------------------------
     const hasEducation = Array.isArray(sp.education) && sp.education.length > 0;
     const hasSkills =
       (Array.isArray(sp.detailedSkills) && sp.detailedSkills.length > 0) ||
@@ -232,17 +374,15 @@ export const getSeekerProgressAnalytics = async (
     const stage3Complete = completedLearning.length > 0;
     const stage4Complete = completedAssignments.length > 0;
     const stage5Complete = portfolioProjects.length > 0;
-    // Merely visiting Opportunities does NOT complete Stage 6 — requires real bookmark or application
     const stage6Complete = applications.length > 0 || savedOppsCount > 0;
-    const stage7Complete = applications.some(
-      (a) => a.status === 'Interview Scheduled' || a.status === 'Selected'
-    );
+    const stage7Complete = interviewsCount > 0 || offersCount > 0 || hiredCount > 0;
 
     const journeyStages = [
       {
         id: 'discover',
         label: 'Discover',
         completed: stage1Complete,
+        completionPct: Math.min(100, profilePct),
         description: 'Build your career profile, education, skills & goals',
         completedActivities: [
           ...(hasLocation ? [`Added location (${sp.location?.city}, ${sp.location?.state})`] : []),
@@ -253,7 +393,9 @@ export const getSeekerProgressAnalytics = async (
           ...(!hasLocation ? ['Add your city and state'] : []),
           ...(!hasEducation ? ['Add your educational qualifications & percentage/CGPA'] : []),
           ...(!hasSkills ? ['Add at least one skill to your profile'] : []),
-          ...(profilePct < 60 ? [`Reach at least 60% profile completion (currently ${profilePct}%)`] : [])
+          ...(profilePct < 60
+            ? [`Reach at least 60% profile completion (currently ${profilePct}%)`]
+            : [])
         ],
         requirements: 'Reach at least 60% profile completion with skills added.',
         nextAction: { label: 'Update My Profile', route: '/profile' }
@@ -262,6 +404,7 @@ export const getSeekerProgressAnalytics = async (
         id: 'assess',
         label: 'Assess',
         completed: stage2Complete,
+        completionPct: attempts.length === 0 ? 0 : attempts.some((a) => a.passed) ? 100 : 75,
         description: 'Complete server-scored skill assessments',
         completedActivities:
           attempts.length > 0
@@ -281,10 +424,16 @@ export const getSeekerProgressAnalytics = async (
         id: 'learn',
         label: 'Learn',
         completed: stage3Complete,
+        completionPct:
+          completedLearning.length > 0
+            ? Math.min(100, Math.max(learningCompletionPct, completedLearning.length * 34))
+            : inProgressLearning.length > 0
+            ? 35
+            : 0,
         description: 'Complete guided tutorials & learning paths',
         completedActivities:
           completedLearning.length > 0
-            ? [`Completed ${completedLearning.length} learning resource(s)`]
+            ? [`Completed ${completedLearning.length} course(s) (${totalLearningHours} hrs)`]
             : inProgressLearning.length > 0
             ? [`Started ${inProgressLearning.length} learning resource(s)`]
             : [],
@@ -299,6 +448,7 @@ export const getSeekerProgressAnalytics = async (
         id: 'practice',
         label: 'Practice',
         completed: stage4Complete,
+        completionPct: completedAssignments.length > 0 ? 100 : 0,
         description: 'Submit hands-on practical assignments',
         completedActivities:
           completedAssignments.length > 0
@@ -315,15 +465,23 @@ export const getSeekerProgressAnalytics = async (
         id: 'portfolio',
         label: 'Build Portfolio',
         completed: stage5Complete,
+        completionPct:
+          portfolioProjects.length > 0 && resumesCount > 0
+            ? 100
+            : portfolioProjects.length > 0 || resumesCount > 0
+            ? 60
+            : 0,
         description: 'Showcase projects & professional resume',
-        completedActivities:
-          portfolioProjects.length > 0
+        completedActivities: [
+          ...(portfolioProjects.length > 0
             ? [`Added ${portfolioProjects.length} project(s) to your portfolio`]
-            : [],
-        pendingActivities:
-          portfolioProjects.length === 0
-            ? ['Add a project or build your professional resume in Portfolio']
-            : [],
+            : []),
+          ...(resumesCount > 0 ? [`Saved ${resumesCount} resume version(s)`] : [])
+        ],
+        pendingActivities: [
+          ...(portfolioProjects.length === 0 ? ['Add at least 1 project to your Portfolio'] : []),
+          ...(resumesCount === 0 ? ['Build or upload your resume in Portfolio'] : [])
+        ],
         requirements: 'Publish at least 1 portfolio project on SETU.',
         nextAction: { label: 'Open Portfolio & Resume', route: '/portfolio' }
       },
@@ -331,6 +489,7 @@ export const getSeekerProgressAnalytics = async (
         id: 'opportunities',
         label: 'Find Opportunities',
         completed: stage6Complete,
+        completionPct: applications.length > 0 ? 100 : savedOppsCount > 0 ? 60 : 0,
         description: 'Bookmark or apply to matched opportunities',
         completedActivities: [
           ...(savedOppsCount > 0 ? [`Saved ${savedOppsCount} opportunity bookmark(s)`] : []),
@@ -339,33 +498,53 @@ export const getSeekerProgressAnalytics = async (
         pendingActivities: !stage6Complete
           ? ['Save a matched opportunity or submit your first job application']
           : [],
-        requirements: 'Save at least 1 opportunity or submit an application (simply visiting the page does not count).',
+        requirements: 'Save at least 1 opportunity or submit an application.',
         nextAction: { label: 'Explore Opportunities', route: '/opportunities' }
       },
       {
         id: 'earn',
         label: 'Earn',
         completed: stage7Complete,
-        description: 'Reach interview or job offer milestones',
+        completionPct: hiredCount > 0 ? 100 : offersCount > 0 ? 85 : interviewsCount > 0 ? 65 : 0,
+        description: 'Reach interview, offer, or hired milestones',
         completedActivities: [
-          ...(statusCounts['Interview Scheduled'] > 0
-            ? [`${statusCounts['Interview Scheduled']} interview(s) scheduled`]
-            : []),
-          ...(statusCounts.Selected > 0 ? [`${statusCounts.Selected} offer(s) received`] : [])
+          ...(interviewsCount > 0 ? [`${interviewsCount} interview milestone(s) reached`] : []),
+          ...(offersCount > 0 ? [`${offersCount} offer(s) received`] : []),
+          ...(hiredCount > 0 ? [`${hiredCount} confirmed hire(s)`] : [])
         ],
         pendingActivities: !stage7Complete
-          ? ['Continue applying and preparing with CANE mock interviews to earn interviews and offers']
+          ? ['Apply to matched jobs and practice interviews with CANE AI to unlock interviews and offers']
           : [],
-        requirements: 'Reach Interview Scheduled or Selected status on an application.',
+        requirements: 'Reach Interview, Offer Sent, or Hired stage on an application.',
         nextAction: { label: 'Track My Applications', route: '/applications' }
       }
     ];
 
     const completedStagesCount = journeyStages.filter((s) => s.completed).length;
     const journeyPercentage = Math.round((completedStagesCount / 7) * 100);
+    const avgAssessmentScore =
+      attempts.length > 0
+        ? Math.round(attempts.reduce((sum, a) => sum + a.percentage, 0) / attempts.length)
+        : 0;
 
-    // 6. Real Chronological Timeline ("My Career Growth Journey") within selected range
-    // Build cumulative progress points ONLY on dates where real user events occurred
+    // Transparent 0-100% Overall Career Progress score
+    const overallProgressBreakdown = computeOverallCareerProgress({
+      profilePct,
+      assessmentsCount: attempts.length,
+      avgAssessmentPct: avgAssessmentScore,
+      completedLearningCount: completedLearning.length,
+      completedAssignmentsCount: completedAssignments.length,
+      portfolioCount: portfolioProjects.length,
+      resumesCount,
+      applicationsCount: applications.length,
+      shortlistedCount,
+      interviewsCount,
+      offersOrHiredCount: offersCount
+    });
+
+    // ------------------------------------------------------------
+    // 5. CHRONOLOGICAL "MY CAREER GROWTH" TIMELINE (Weekly / Monthly / Yearly)
+    // ------------------------------------------------------------
     const eventDatesMap = new Map<
       string,
       {
@@ -373,7 +552,9 @@ export const getSeekerProgressAnalytics = async (
         learningCompleted: number;
         assignmentsCompleted: number;
         portfolioAdded: number;
+        resumesAdded: number;
         appsSubmitted: number;
+        milestones: string[];
       }
     >();
 
@@ -388,32 +569,74 @@ export const getSeekerProgressAnalytics = async (
           learningCompleted: 0,
           assignmentsCompleted: 0,
           portfolioAdded: 0,
-          appsSubmitted: 0
+          resumesAdded: 0,
+          appsSubmitted: 0,
+          milestones: []
         });
       }
       return key;
     };
 
-    attempts.forEach((a: any) => {
+    attempts.forEach((a: any, idx: number) => {
       const k = touchDate(a.completedAt || a.createdAt);
-      if (k) eventDatesMap.get(k)!.assessmentScores.push(a.percentage);
+      if (k) {
+        eventDatesMap.get(k)!.assessmentScores.push(a.percentage);
+        if (idx === 0) eventDatesMap.get(k)!.milestones.push('First Skill Assessment');
+        if (a.passed) eventDatesMap.get(k)!.milestones.push(`Passed ${a.domain}`);
+      }
     });
-    completedLearning.forEach((l: any) => {
+    completedLearning.forEach((l: any, idx: number) => {
       const k = touchDate(l.completedAt || l.updatedAt || l.createdAt);
       if (k) {
         eventDatesMap.get(k)!.learningCompleted += 1;
+        if (idx === 0) eventDatesMap.get(k)!.milestones.push('First Course Completed');
         if (l.resourceId?.type === 'practical_assignment') {
           eventDatesMap.get(k)!.assignmentsCompleted += 1;
+          eventDatesMap.get(k)!.milestones.push('Practical Assignment Submitted');
         }
       }
     });
-    portfolioProjects.forEach((p: any) => {
+    portfolioProjects.forEach((p: any, idx: number) => {
       const k = touchDate(p.createdAt);
-      if (k) eventDatesMap.get(k)!.portfolioAdded += 1;
+      if (k) {
+        eventDatesMap.get(k)!.portfolioAdded += 1;
+        if (idx === 0) eventDatesMap.get(k)!.milestones.push('First Portfolio Project');
+      }
     });
-    applications.forEach((app: any) => {
+    [...builtResumes, ...uploadedResumes].forEach((r: any, idx: number) => {
+      const k = touchDate(r.createdAt);
+      if (k) {
+        eventDatesMap.get(k)!.resumesAdded += 1;
+        if (idx === 0) eventDatesMap.get(k)!.milestones.push('Resume Saved');
+      }
+    });
+    applications.forEach((app: any, idx: number) => {
       const k = touchDate(app.createdAt);
-      if (k) eventDatesMap.get(k)!.appsSubmitted += 1;
+      if (k) {
+        eventDatesMap.get(k)!.appsSubmitted += 1;
+        if (idx === 0) eventDatesMap.get(k)!.milestones.push('First Job Application');
+        if (['Interview Scheduled', 'Interview Completed'].includes(app.status)) {
+          eventDatesMap.get(k)!.milestones.push('Interview Invitation');
+        }
+        if (['Offer Sent', 'Hired', 'Selected'].includes(app.status)) {
+          eventDatesMap.get(k)!.milestones.push('Offer / Hired Milestone');
+        }
+      }
+    });
+
+    // Include any persisted snapshot dates that may exist from earlier days
+    persistedSnapshots.forEach((snap) => {
+      if (snap.dateKey && !eventDatesMap.has(snap.dateKey)) {
+        eventDatesMap.set(snap.dateKey, {
+          assessmentScores: [],
+          learningCompleted: 0,
+          assignmentsCompleted: 0,
+          portfolioAdded: 0,
+          resumesAdded: 0,
+          appsSubmitted: 0,
+          milestones: Array.isArray(snap.milestones) ? snap.milestones : []
+        });
+      }
     });
 
     const sortedAllKeys = Array.from(eventDatesMap.keys()).sort();
@@ -421,16 +644,19 @@ export const getSeekerProgressAnalytics = async (
     let cumLearning = 0;
     let cumAssignments = 0;
     let cumPortfolio = 0;
+    let cumResumes = 0;
     let cumApps = 0;
 
-    const fullTimeline: Array<{
+    const fullDailyTimeline: Array<{
       date: string;
+      overallCareerProgressPct: number;
       overallJourneyPct: number;
       assessmentAvgPct: number;
       learningPct: number;
       assignmentsCount: number;
       portfolioCount: number;
       applicationsCount: number;
+      milestones: string[];
     }> = [];
 
     for (const dateKey of sortedAllKeys) {
@@ -439,71 +665,211 @@ export const getSeekerProgressAnalytics = async (
       cumLearning += ev.learningCompleted;
       cumAssignments += ev.assignmentsCompleted;
       cumPortfolio += ev.portfolioAdded;
+      cumResumes += ev.resumesAdded;
       cumApps += ev.appsSubmitted;
 
       const avgAss =
         cumAssessScores.length > 0
-          ? Math.round(
-              cumAssessScores.reduce((sum, v) => sum + v, 0) / cumAssessScores.length
-            )
+          ? Math.round(cumAssessScores.reduce((sum, v) => sum + v, 0) / cumAssessScores.length)
           : 0;
       const learnPct =
         enrolledTotal > 0 ? Math.min(100, Math.round((cumLearning / enrolledTotal) * 100)) : 0;
 
-      // Real stage count at that point in time
-      let stagesAtDate = stage1Complete ? 1 : 0;
-      if (cumAssessScores.length > 0) stagesAtDate++;
-      if (cumLearning > 0) stagesAtDate++;
-      if (cumAssignments > 0) stagesAtDate++;
-      if (cumPortfolio > 0) stagesAtDate++;
-      if (cumApps > 0 || savedOppsCount > 0) stagesAtDate++;
-      if (stage7Complete) stagesAtDate++;
+      const ptProgress = computeOverallCareerProgress({
+        profilePct,
+        assessmentsCount: cumAssessScores.length,
+        avgAssessmentPct: avgAss,
+        completedLearningCount: cumLearning,
+        completedAssignmentsCount: cumAssignments,
+        portfolioCount: cumPortfolio,
+        resumesCount: cumResumes,
+        applicationsCount: cumApps,
+        shortlistedCount: cumApps > 0 ? shortlistedCount : 0,
+        interviewsCount: cumApps > 0 ? interviewsCount : 0,
+        offersOrHiredCount: cumApps > 0 ? offersCount : 0
+      });
 
-      fullTimeline.push({
+      fullDailyTimeline.push({
         date: dateKey,
-        overallJourneyPct: Math.round((stagesAtDate / 7) * 100),
+        overallCareerProgressPct: ptProgress.overallCareerProgressPct,
+        overallJourneyPct: ptProgress.overallCareerProgressPct,
         assessmentAvgPct: avgAss,
         learningPct: learnPct,
         assignmentsCount: cumAssignments,
         portfolioCount: cumPortfolio,
-        applicationsCount: cumApps
+        applicationsCount: cumApps,
+        milestones: Array.from(new Set(ev.milestones)).slice(0, 3)
       });
     }
 
     const rangeStartKey = formatDateKey(rangeStart);
-    const growthTimeline = fullTimeline.filter((pt) => pt.date >= rangeStartKey);
+    const prevRangeStartKey = formatDateKey(prevRangeStart);
 
-    // Record today's real snapshot silently if user has real activity (non-blocking)
-    const todayKey = formatDateKey(new Date());
-    const avgAssessmentScore =
-      attempts.length > 0
-        ? Math.round(attempts.reduce((sum, a) => sum + a.percentage, 0) / attempts.length)
-        : 0;
+    const pointsInRange = fullDailyTimeline.filter((pt) => pt.date >= rangeStartKey);
+    const pointsInPrevRange = fullDailyTimeline.filter(
+      (pt) => pt.date >= prevRangeStartKey && pt.date < rangeStartKey
+    );
 
-    if (
+    // Aggregate into yearly months if yearly view has many days, otherwise keep chronological points
+    let growthTimeline = pointsInRange;
+    if (viewMode === 'yearly' && pointsInRange.length > 0) {
+      const monthBuckets = new Map<string, typeof pointsInRange[number]>();
+      pointsInRange.forEach((pt) => {
+        const mKey = pt.date.slice(0, 7);
+        const existing = monthBuckets.get(mKey);
+        monthBuckets.set(mKey, {
+          ...pt,
+          date: mKey,
+          milestones: Array.from(new Set([...(existing?.milestones || []), ...pt.milestones])).slice(0, 3)
+        });
+      });
+      growthTimeline = Array.from(monthBuckets.values()).sort((a, b) => a.date.localeCompare(b.date));
+    }
+
+    // Period-over-period improvement calculation (strictly from real recorded points!)
+    const latestInRangePct =
+      growthTimeline.length > 0
+        ? growthTimeline[growthTimeline.length - 1].overallCareerProgressPct
+        : overallProgressBreakdown.overallCareerProgressPct;
+    const prevPeriodPct =
+      pointsInPrevRange.length > 0
+        ? pointsInPrevRange[pointsInPrevRange.length - 1].overallCareerProgressPct
+        : growthTimeline.length >= 2
+        ? growthTimeline[0].overallCareerProgressPct
+        : null;
+    const periodImprovementDelta =
+      prevPeriodPct !== null ? latestInRangePct - prevPeriodPct : null;
+
+    // Persist today's snapshot when user has any real activity (non-blocking)
+    const todayKey = formatDateKey(now);
+    const hasAnyActivity =
       attempts.length > 0 ||
-      completedLearning.length > 0 ||
+      learningProgressDocs.length > 0 ||
       portfolioProjects.length > 0 ||
-      applications.length > 0
-    ) {
+      resumesCount > 0 ||
+      applications.length > 0;
+
+    if (hasAnyActivity) {
       ProgressSnapshot.findOneAndUpdate(
         { userId, dateKey: todayKey },
         {
           $set: {
+            overallCareerProgressPct: overallProgressBreakdown.overallCareerProgressPct,
             overallJourneyPct: journeyPercentage,
             assessmentAvgPct: avgAssessmentScore,
             learningCompletionPct,
+            learningHours: totalLearningHours,
             assignmentsCompleted: completedAssignments.length,
             portfolioCount: portfolioProjects.length,
-            applicationsCount: applications.length
+            resumesCount,
+            applicationsCount: applications.length,
+            interviewsCount,
+            offersCount,
+            hiredCount
           }
         },
         { upsert: true }
       ).catch(() => {});
     }
 
-    // 7. Data-Backed Personalized Insights (strictly real numbers!)
-    const insights: Array<{ type: 'positive' | 'action' | 'info'; message: string; route?: string }> = [];
+    // ------------------------------------------------------------
+    // 6. SECTION F: PERSONAL ACHIEVEMENTS (100% Real MongoDB Data)
+    // ------------------------------------------------------------
+    const passedAssessments = attempts.filter((a) => a.passed);
+    const profileCertsCount = (Array.isArray(sp.qualifications) ? sp.qualifications : []).filter(
+      (q: any) => /certif/i.test(q.institute || '') || /certif/i.test(q.title || '')
+    ).length;
+    const earnedCertificatesCount = passedAssessments.length + profileCertsCount;
+
+    const achievements = [
+      {
+        id: 'assessments',
+        title: 'Completed Assessments',
+        count: attempts.length,
+        subtitle:
+          attempts.length > 0
+            ? `${passedAssessments.length} passed • Avg ${avgAssessmentScore}%`
+            : 'Take your first skill test',
+        unlocked: attempts.length > 0,
+        route: '/assess',
+        items: attempts.slice(-4).reverse().map((a: any) => `${a.domain}: ${a.percentage}%`)
+      },
+      {
+        id: 'certificates',
+        title: 'Earned Certificates & Badges',
+        count: earnedCertificatesCount,
+        subtitle:
+          earnedCertificatesCount > 0
+            ? `${passedAssessments.length} verified skill badge(s) + ${profileCertsCount} cert(s)`
+            : 'Pass an assessment to earn your first verified badge',
+        unlocked: earnedCertificatesCount > 0,
+        route: '/assess',
+        items: passedAssessments.slice(0, 4).map((a: any) => `Verified: ${a.domain}`)
+      },
+      {
+        id: 'projects',
+        title: 'Completed Projects',
+        count: portfolioProjects.length,
+        subtitle:
+          portfolioProjects.length > 0
+            ? `${portfolioProjects.length} portfolio project(s) • ${completedAssignments.length} assignment(s)`
+            : 'Publish your first project in Portfolio',
+        unlocked: portfolioProjects.length > 0,
+        route: '/portfolio',
+        items: portfolioProjects.slice(0, 4).map((p: any) => p.title)
+      },
+      {
+        id: 'resume',
+        title: 'Resume Completion',
+        count: resumesCount,
+        subtitle:
+          resumesCount > 0
+            ? `${builtResumes.length} SETU built • ${uploadedResumes.length} uploaded`
+            : 'Create or upload your resume',
+        unlocked: resumesCount > 0,
+        route: '/portfolio',
+        items: [
+          ...builtResumes.slice(0, 2).map((r: any) => r.versionName || 'SETU Resume'),
+          ...uploadedResumes.slice(0, 2).map((u: any) => u.originalFilename)
+        ]
+      },
+      {
+        id: 'learning',
+        title: 'Learning Milestones',
+        count: completedLearning.length,
+        subtitle:
+          completedLearning.length > 0
+            ? `${completedLearning.length} course(s) completed • ${totalLearningHours} hrs`
+            : 'Complete your first tutorial in Learn & Practice',
+        unlocked: completedLearning.length > 0,
+        route: '/learn',
+        items: completedLearning
+          .slice(-4)
+          .reverse()
+          .map((l: any) => l.resourceId?.title || 'Completed Module')
+      },
+      {
+        id: 'applications',
+        title: 'Job Application Milestones',
+        count: applications.length,
+        subtitle:
+          applications.length > 0
+            ? `${interviewsCount} interview(s) • ${offersCount} offer(s) • ${hiredCount} hired`
+            : 'Apply to your first matched opportunity',
+        unlocked: applications.length > 0,
+        route: '/applications',
+        items: applications
+          .slice(-4)
+          .reverse()
+          .map((a: any) => `${a.opportunityId?.title || 'Role'} (${a.status})`)
+      }
+    ];
+
+    // ------------------------------------------------------------
+    // 7. DATA-BACKED INSIGHTS
+    // ------------------------------------------------------------
+    const insights: Array<{ type: 'positive' | 'action' | 'info'; message: string; route?: string }> =
+      [];
 
     const improvedSkill = assessedSkills.find(
       (s) => typeof s.improvement === 'number' && s.improvement > 0
@@ -511,86 +877,78 @@ export const getSeekerProgressAnalytics = async (
     if (improvedSkill) {
       insights.push({
         type: 'positive',
-        message: `Your ${improvedSkill.skill} assessment performance improved by ${improvedSkill.improvement} percentage points (now ${improvedSkill.currentProficiency}%).`,
+        message: `Your ${improvedSkill.skill} assessment improved by +${improvedSkill.improvement}% (now ${improvedSkill.currentProficiency}%).`,
         route: '/assess'
       });
     }
-
-    const thirtyDaysAgo = getRangeStartDate('30d');
-    const recentCompletedLearning = completedLearning.filter(
-      (l: any) => new Date(l.completedAt || l.updatedAt || l.createdAt) >= thirtyDaysAgo
-    ).length;
-    if (recentCompletedLearning > 0) {
+    if (completedLearning.length > 0) {
       insights.push({
         type: 'positive',
-        message: `You completed ${recentCompletedLearning} learning module${recentCompletedLearning === 1 ? '' : 's'} in the last 30 days.`,
+        message: `You have logged ${totalLearningHours} learning hours across ${completedLearning.length} completed module(s).`,
         route: '/learn'
       });
     }
-
     if (attempts.length === 0) {
       insights.push({
         type: 'action',
-        message: 'Complete your first skill assessment to discover your verified strengths and pinpoint focus areas.',
+        message:
+          'Complete your first skill assessment to unlock verified scores in your Skill Development chart.',
         route: '/assess'
       });
     } else if (weakestSkill && weakestSkill.currentProficiency < 75) {
       insights.push({
         type: 'action',
-        message: `Your lowest assessed score so far is ${weakestSkill.skill} (${weakestSkill.currentProficiency}%). Review matching tutorials in Learn & Practice to boost it.`,
+        message: `${weakestSkill.skill} (${weakestSkill.currentProficiency}%) needs attention. Complete matching tutorials in Learn & Practice to improve it.`,
         route: `/learn?skill=${encodeURIComponent(weakestSkill.skill)}`
       });
     }
-
-    if (completedAssignments.length === 0) {
+    if (resumesCount === 0 || portfolioProjects.length === 0) {
       insights.push({
         type: 'action',
-        message: "You haven't completed any practical assignments yet — submitting one automatically strengthens your Portfolio.",
-        route: '/learn'
-      });
-    }
-
-    if (portfolioProjects.length === 0) {
-      insights.push({
-        type: 'action',
-        message: 'Add a project or create your ATS-ready resume in Portfolio to stand out to employers.',
+        message:
+          'Add a project and save or upload your resume in Portfolio to earn up to +20% on your Career Growth score.',
         route: '/portfolio'
       });
     }
-
-    if (applications.length > 0 && statusCounts['Interview Scheduled'] > 0) {
+    if (interviewsCount > 0) {
       insights.push({
         type: 'positive',
-        message: `You have ${statusCounts['Interview Scheduled']} interview invitation(s) scheduled! Practice mock interviews with CANE before your call.`,
-        route: '/applications'
+        message: `You have reached ${interviewsCount} interview stage(s)! Practice role-specific mock interviews with CANE AI.`,
+        route: '/cane'
       });
     }
 
-    const isFreshAccount =
-      attempts.length === 0 &&
-      learningProgressDocs.length === 0 &&
-      portfolioProjects.length === 0 &&
-      applications.length === 0;
+    const isFreshAccount = !hasAnyActivity;
 
     sendSuccess(res, 'Progress analytics computed from recorded activity', {
       range,
+      viewMode,
       isFreshAccount,
       summary: {
+        overallCareerProgressPct: overallProgressBreakdown.overallCareerProgressPct,
+        progressFormula: overallProgressBreakdown,
+        periodImprovementDelta,
         journeyPercentage,
         completedStagesCount,
         profileCompletionPercentage: profilePct,
         totalAssessments: attempts.length,
-        passedAssessments: attempts.filter((a) => a.passed).length,
+        passedAssessments: passedAssessments.length,
         averageAssessmentScore: avgAssessmentScore,
         completedLearningCount: completedLearning.length,
         inProgressLearningCount: inProgressLearning.length,
+        totalLearningHours,
         completedAssignmentsCount: completedAssignments.length,
         portfolioProjectsCount: portfolioProjects.length,
-        applicationsCount: applications.length
+        resumesCount,
+        applicationsCount: applications.length,
+        interviewsCount,
+        offersCount,
+        hiredCount
       },
       growthTimeline,
       hasTimelineData: growthTimeline.length > 0,
       skillDevelopment: {
+        coreCategories: coreSkillCategories,
         assessedSkills,
         selfReportedSkills,
         strongestSkill,
@@ -603,18 +961,23 @@ export const getSeekerProgressAnalytics = async (
         notStarted: notStartedCatalog,
         enrolledTotal,
         catalogTotal: totalCatalogResources,
-        completionPercentage: learningCompletionPct
+        completionPercentage: learningCompletionPct,
+        totalLearningHours,
+        weeklyActivity: weeklyLearningActivity
       },
       applications: {
         total: totalApps,
         statusCounts,
-        funnel: applicationFunnel
+        funnel: applicationFunnel,
+        overTime: applicationsOverTime
       },
       journeyStages,
       journeyPercentage,
+      achievements,
       insights
     });
   } catch (error: any) {
-    sendError(res, error.message || 'Failed to compute progress analytics', 500);
+    console.error('[Analytics] Error computing progress:', error?.message || '');
+    sendError(res, 'Failed to compute progress analytics right now. Please try again.', 500);
   }
 };

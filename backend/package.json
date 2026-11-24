@@ -16,6 +16,7 @@
     "test:platform": "tsx scripts/test-platform.ts",
     "test:employer": "tsx scripts/test-employer-portal.ts",
     "test:resume": "tsx scripts/test-resume-upload.ts",
+    "test:progress": "tsx scripts/test-progress-dashboard.ts",
     "test:gemini": "tsx scripts/test-cane-gemini.ts",
     "check:gemini": "tsx scripts/check-gemini.ts"
   },

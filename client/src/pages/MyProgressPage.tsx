@@ -28,7 +28,12 @@ import {
   ShieldCheck,
   Target,
   Info,
-  ChevronRight
+  Clock,
+  Trophy,
+  FileText,
+  FolderGit2,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
@@ -47,27 +52,27 @@ ChartJS.register(
   Filler
 );
 
-type RangeKey = '7d' | '30d' | '3m' | '6m' | '12m';
+type ViewRangeKey = 'weekly' | 'monthly' | 'yearly';
 
-const RANGE_OPTIONS: Array<{ id: RangeKey; label: string }> = [
-  { id: '7d', label: 'Last 7 days' },
-  { id: '30d', label: 'Last 30 days' },
-  { id: '3m', label: 'Last 3 months' },
-  { id: '6m', label: 'Last 6 months' },
-  { id: '12m', label: 'Last 12 months' }
+const VIEW_OPTIONS: Array<{ id: ViewRangeKey; label: string; subtitle: string }> = [
+  { id: 'weekly', label: 'Weekly', subtitle: 'Last 7 days' },
+  { id: 'monthly', label: 'Monthly', subtitle: 'Last 30 days' },
+  { id: 'yearly', label: 'Yearly', subtitle: 'Last 12 months' }
 ];
 
 export const MyProgressPage: React.FC = () => {
   const { language } = useLanguage();
   const { user } = useAuth();
 
-  const [range, setRange] = useState<RangeKey>('30d');
+  const [range, setRange] = useState<ViewRangeKey>('monthly');
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedStageId, setSelectedStageId] = useState<string>('discover');
+  const [expandedAchievement, setExpandedAchievement] = useState<string | null>(null);
+  const [showFormula, setShowFormula] = useState(false);
 
-  const loadAnalytics = async (selectedRange: RangeKey = range) => {
+  const loadAnalytics = async (selectedRange: ViewRangeKey = range) => {
     setLoading(true);
     setError('');
     try {
@@ -75,7 +80,6 @@ export const MyProgressPage: React.FC = () => {
       if (res.ok && res.data) {
         const payload = unwrapData(res.data);
         setData(payload);
-        // Auto-select first incomplete stage for helpful guidance
         const stages = Array.isArray(payload?.journeyStages) ? payload.journeyStages : [];
         const firstIncomplete = stages.find((s: any) => !s.completed);
         if (firstIncomplete) setSelectedStageId(firstIncomplete.id);
@@ -128,52 +132,64 @@ export const MyProgressPage: React.FC = () => {
   }
 
   const summary = data?.summary || {};
+  const formula = summary.progressFormula || {};
   const timeline: any[] = Array.isArray(data?.growthTimeline) ? data.growthTimeline : [];
+  const coreCategories: any[] = Array.isArray(data?.skillDevelopment?.coreCategories)
+    ? data.skillDevelopment.coreCategories
+    : [];
   const assessedSkills: any[] = Array.isArray(data?.skillDevelopment?.assessedSkills)
     ? data.skillDevelopment.assessedSkills
-    : [];
-  const selfReportedSkills: any[] = Array.isArray(data?.skillDevelopment?.selfReportedSkills)
-    ? data.skillDevelopment.selfReportedSkills
-    : [];
-  const strongestSkill = data?.skillDevelopment?.strongestSkill || null;
-  const weakestSkill = data?.skillDevelopment?.weakestSkill || null;
-  const assessmentPerformance: any[] = Array.isArray(data?.assessmentPerformance)
-    ? data.assessmentPerformance
     : [];
   const learningDonut = data?.learningDonut || {
     completed: 0,
     inProgress: 0,
     notStarted: 0,
     enrolledTotal: 0,
-    completionPercentage: 0
+    completionPercentage: 0,
+    totalLearningHours: 0,
+    weeklyActivity: []
   };
+  const weeklyLearning: any[] = Array.isArray(learningDonut.weeklyActivity)
+    ? learningDonut.weeklyActivity
+    : [];
   const applicationFunnel: any[] = Array.isArray(data?.applications?.funnel)
     ? data.applications.funnel
     : [];
-  const statusCounts: Record<string, number> = data?.applications?.statusCounts || {};
+  const appsOverTime: any[] = Array.isArray(data?.applications?.overTime)
+    ? data.applications.overTime
+    : [];
   const journeyStages: any[] = Array.isArray(data?.journeyStages) ? data.journeyStages : [];
+  const achievements: any[] = Array.isArray(data?.achievements) ? data.achievements : [];
   const insights: any[] = Array.isArray(data?.insights) ? data.insights : [];
   const activeStage =
     journeyStages.find((s) => s.id === selectedStageId) || journeyStages[0] || null;
 
-  // 1.1 Career Growth Line Chart
+  const overallPct = summary.overallCareerProgressPct ?? summary.journeyPercentage ?? 0;
+  const periodDelta: number | null =
+    typeof summary.periodImprovementDelta === 'number' ? summary.periodImprovementDelta : null;
+  const hasCoreSkillActivity = coreCategories.some((c) => c.hasActivity);
+
+  // SECTION A: "My Career Growth" Line Chart
   const growthChartData = {
     labels: timeline.map((pt) =>
-      new Date(pt.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+      pt.date.length === 7
+        ? pt.date
+        : new Date(pt.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
     ),
     datasets: [
       {
-        label: 'Overall Career Journey (%)',
-        data: timeline.map((pt) => pt.overallJourneyPct),
+        label: 'Career Progress (%)',
+        data: timeline.map((pt) => pt.overallCareerProgressPct ?? pt.overallJourneyPct),
         borderColor: '#3B9EE8',
         backgroundColor: 'rgba(162, 210, 255, 0.28)',
         fill: true,
         tension: 0.35,
         pointRadius: 5,
+        pointHoverRadius: 7,
         pointBackgroundColor: '#2589D6'
       },
       {
-        label: 'Assessment Performance (%)',
+        label: 'Assessment Avg (%)',
         data: timeline.map((pt) => pt.assessmentAvgPct),
         borderColor: '#EC4899',
         backgroundColor: 'rgba(244, 114, 182, 0.12)',
@@ -195,48 +211,29 @@ export const MyProgressPage: React.FC = () => {
     ]
   };
 
-  // 1.2 Skill Development Bar Chart (Current vs Previous from real assessments)
-  const skillDevChartData = {
-    labels: assessedSkills.map((s) => s.skill),
+  // SECTION B: 6-Category Skill Development Bar Chart
+  const coreSkillChartData = {
+    labels: coreCategories.map((c) => c.category),
     datasets: [
       {
-        label: 'Current Proficiency (%)',
-        data: assessedSkills.map((s) => s.currentProficiency),
-        backgroundColor: '#60B6F8',
-        borderRadius: 10
-      },
-      {
-        label: 'Previous Attempt (%)',
-        data: assessedSkills.map((s) => s.previousProficiency ?? 0),
-        backgroundColor: '#FBCFE8',
+        label: 'Skill Progress (%)',
+        data: coreCategories.map((c) => c.score),
+        backgroundColor: coreCategories.map((c) => {
+          if (!c.hasActivity) return '#E2F1FC';
+          if (c.status === 'improving' || c.status === 'strong') return '#34D399';
+          return '#60B6F8';
+        }),
         borderRadius: 10
       }
     ]
   };
 
-  // 1.3 Assessment Performance Chart
-  const assessmentPerfChartData = {
-    labels: assessmentPerformance.map((a, idx) => `${idx + 1}. ${a.domain}`),
-    datasets: [
-      {
-        label: 'Score (%)',
-        data: assessmentPerformance.map((a) => a.percentage),
-        backgroundColor: assessmentPerformance.map((a) => (a.passed ? '#34D399' : '#93C5FD')),
-        borderRadius: 10
-      }
-    ]
-  };
-
-  // 1.4 Learning Progress Donut Chart
+  // SECTION C: Learning Donut & Weekly Learning Activity
   const learningDonutData = {
-    labels: ['Completed', 'In Progress', 'Not Started (Catalog)'],
+    labels: ['Completed', 'In Progress', 'Not Started'],
     datasets: [
       {
-        data: [
-          learningDonut.completed,
-          learningDonut.inProgress,
-          learningDonut.notStarted
-        ],
+        data: [learningDonut.completed, learningDonut.inProgress, learningDonut.notStarted],
         backgroundColor: ['#34D399', '#60B6F8', '#E2F1FC'],
         borderColor: '#FFFFFF',
         borderWidth: 3
@@ -244,445 +241,578 @@ export const MyProgressPage: React.FC = () => {
     ]
   };
 
-  // 1.5 Job Application Funnel Chart
+  const weeklyLearningChartData = {
+    labels: weeklyLearning.map((w) => `Wk of ${w.week.slice(5)}`),
+    datasets: [
+      {
+        label: 'Learning Hours',
+        data: weeklyLearning.map((w) => w.hours),
+        backgroundColor: '#60B6F8',
+        borderRadius: 8
+      },
+      {
+        label: 'Modules Completed',
+        data: weeklyLearning.map((w) => w.completedCount),
+        backgroundColor: '#34D399',
+        borderRadius: 8
+      }
+    ]
+  };
+
+  // SECTION D: 6-Stage Job Application Funnel + Applications Over Time
   const funnelChartData = {
-    labels: [...applicationFunnel.map((f) => f.stage), 'Rejected'],
+    labels: applicationFunnel.map((f) => f.stage),
     datasets: [
       {
         label: 'Applications',
-        data: [
-          ...applicationFunnel.map((f) => f.count),
-          statusCounts.Rejected || 0
-        ],
-        backgroundColor: [
-          '#60B6F8',
-          '#93C5FD',
-          '#C4B5FD',
-          '#F9A8D4',
-          '#34D399',
-          '#CBD5E1'
-        ],
+        data: applicationFunnel.map((f) => f.count),
+        backgroundColor: ['#93C5FD', '#60A5FA', '#3B82F6', '#6366F1', '#A855F7', '#10B981'],
         borderRadius: 10
       }
     ]
   };
 
-  const pctAxisOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { position: 'bottom' as const }
-    },
-    scales: {
-      y: {
-        min: 0,
-        max: 100,
-        ticks: { callback: (val: any) => `${val}%` }
+  const appsOverTimeData = {
+    labels: appsOverTime.map((pt) =>
+      pt.date.length === 7
+        ? pt.date
+        : new Date(pt.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+    ),
+    datasets: [
+      {
+        label: 'Applications Submitted',
+        data: appsOverTime.map((pt) => pt.count),
+        borderColor: '#6366F1',
+        backgroundColor: 'rgba(99, 102, 241, 0.15)',
+        fill: true,
+        tension: 0.35,
+        pointRadius: 4
       }
+    ]
+  };
+
+  const achievementIcon = (id: string) => {
+    switch (id) {
+      case 'assessments':
+        return Award;
+      case 'certificates':
+        return ShieldCheck;
+      case 'projects':
+        return FolderGit2;
+      case 'resume':
+        return FileText;
+      case 'learning':
+        return BookOpen;
+      default:
+        return Briefcase;
+    }
+  };
+
+  const skillStatusBadge = (status: string) => {
+    switch (status) {
+      case 'improving':
+        return { label: 'Improving', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+      case 'strong':
+        return { label: 'Strong', cls: 'bg-sky-50 text-sky-700 border-sky-200' };
+      case 'needs_attention':
+        return { label: 'Needs Attention', cls: 'bg-amber-50 text-amber-800 border-amber-200' };
+      default:
+        return { label: 'Not Started', cls: 'bg-slate-50 text-slate-500 border-slate-200' };
     }
   };
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-12">
-      {/* Header Banner */}
-      <div className="bg-gradient-to-r from-[#EAF7FF] via-white to-[#FCE7F3]/50 rounded-3xl border border-[#BDE0FE] p-6 sm:p-8 shadow-baby space-y-3">
-        <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#2589D6] bg-white px-3 py-1 rounded-full border border-[#BDE0FE]">
-          <TrendingUp className="w-3.5 h-3.5" />
-          <span>Career Progress Analytics</span>
+      {/* Header + Weekly / Monthly / Yearly Switcher */}
+      <div className="bg-white rounded-3xl border border-[#D8ECFA] p-6 shadow-baby-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#2589D6]">
+            <TrendingUp className="w-3.5 h-3.5" />
+            <span>Interactive Career Analytics</span>
+          </span>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#1E3A5F] font-display mt-0.5">
+            {language === 'hi' ? 'मेरी प्रगति और करियर यात्रा' : 'My Progress & Career Analytics'}
+          </h1>
+          <p className="text-xs sm:text-sm text-[#64748B] mt-1">
+            Every metric and chart is computed live from your real SETU assessments, courses, portfolio, resume, and applications.
+          </p>
         </div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-[#334155]">
-          {language === 'hi' ? 'मेरी करियर प्रगति और एनालिटिक्स 📈' : 'My Career Analytics Dashboard 📈'}
-        </h1>
-        <p className="text-xs sm:text-sm text-[#64748B] max-w-3xl leading-relaxed">
-          Every chart and milestone below is computed live from your actual MongoDB records —
-          assessments, learning completions, practical assignments, portfolio deliverables, and
-          applications.
-        </p>
 
-        {/* Range Filter Pills */}
-        <div className="flex flex-wrap items-center gap-2 pt-2">
-          {RANGE_OPTIONS.map((opt) => (
-            <button
-              key={opt.id}
-              type="button"
-              onClick={() => setRange(opt.id)}
-              className={`px-3.5 py-2 rounded-2xl text-xs font-bold border transition ${
-                range === opt.id
-                  ? 'bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] text-[#1E3A5F] border-[#60B6F8] shadow-baby-sm'
-                  : 'bg-white text-[#64748B] border-[#D8ECFA] hover:bg-[#EAF7FF] hover:text-[#334155]'
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex p-1 rounded-2xl bg-[#F8FCFF] border border-[#D8ECFA]">
+            {VIEW_OPTIONS.map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => setRange(opt.id)}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
+                  range === opt.id
+                    ? 'bg-[#3B9EE8] text-white shadow-xs'
+                    : 'text-[#64748B] hover:text-[#1E3A5F]'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => loadAnalytics(range)}
+            className="p-2 rounded-2xl bg-[#F8FCFF] border border-[#D8ECFA] text-[#475569] hover:bg-[#EAF7FF]"
+            aria-label="Refresh analytics"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
       </div>
 
-      {/* Top KPI Cards */}
+      {/* Top Real-Data Summary KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-3xl border border-[#D8ECFA] p-5 shadow-baby-sm space-y-1">
+        <div className="bg-white rounded-3xl border border-[#D8ECFA] p-5 shadow-baby-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[#64748B]">Journey Completion</span>
-            <Target className="w-4 h-4 text-[#3B9EE8]" />
+            <span className="text-xs font-semibold text-[#64748B]">Overall Career Progress</span>
+            <TrendingUp className="w-4 h-4 text-[#3B9EE8]" />
           </div>
-          <p className="text-2xl font-extrabold text-[#1E3A5F]">
-            {summary.journeyPercentage ?? 0}%
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-3xl font-extrabold text-[#1E3A5F]">{overallPct}%</span>
+            {periodDelta !== null && (
+              <span
+                className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                  periodDelta >= 0
+                    ? 'bg-emerald-50 text-emerald-700'
+                    : 'bg-amber-50 text-amber-800'
+                }`}
+              >
+                {periodDelta >= 0 ? `+${periodDelta}%` : `${periodDelta}%`} vs prior
+              </span>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowFormula((s) => !s)}
+            className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-[#2589D6] hover:underline"
+          >
+            <Info className="w-3 h-3" /> How it&apos;s calculated
+          </button>
+        </div>
+
+        <div className="bg-white rounded-3xl border border-[#D8ECFA] p-5 shadow-baby-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-[#64748B]">Learning Hours</span>
+            <Clock className="w-4 h-4 text-emerald-600" />
+          </div>
+          <p className="mt-2 text-3xl font-extrabold text-[#1E3A5F]">
+            {summary.totalLearningHours ?? 0}h
           </p>
-          <p className="text-[11px] text-[#64748B]">
-            {summary.completedStagesCount ?? 0} of 7 SETU stages completed
+          <p className="text-[11px] text-[#64748B] mt-1">
+            {summary.completedLearningCount ?? 0} completed • {summary.inProgressLearningCount ?? 0} in progress
           </p>
         </div>
 
-        <div className="bg-white rounded-3xl border border-[#D8ECFA] p-5 shadow-baby-sm space-y-1">
+        <div className="bg-white rounded-3xl border border-[#D8ECFA] p-5 shadow-baby-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[#64748B]">Assessments Taken</span>
+            <span className="text-xs font-semibold text-[#64748B]">Skill Assessments</span>
             <Award className="w-4 h-4 text-pink-500" />
           </div>
-          <p className="text-2xl font-extrabold text-[#334155]">
+          <p className="mt-2 text-3xl font-extrabold text-[#1E3A5F]">
             {summary.totalAssessments ?? 0}
           </p>
-          <p className="text-[11px] text-[#64748B]">
-            {summary.totalAssessments > 0
-              ? `Avg ${summary.averageAssessmentScore}% • ${summary.passedAssessments} passed`
-              : 'Take your first assessment'}
+          <p className="text-[11px] text-[#64748B] mt-1">
+            {summary.passedAssessments ?? 0} passed • Avg {summary.averageAssessmentScore ?? 0}%
           </p>
         </div>
 
-        <div className="bg-white rounded-3xl border border-[#D8ECFA] p-5 shadow-baby-sm space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-[#64748B]">Learning &amp; Practice</span>
-            <BookOpen className="w-4 h-4 text-emerald-600" />
-          </div>
-          <p className="text-2xl font-extrabold text-[#334155]">
-            {summary.completedLearningCount ?? 0}
-          </p>
-          <p className="text-[11px] text-[#64748B]">
-            {summary.completedAssignmentsCount ?? 0} assignments • {summary.portfolioProjectsCount ?? 0} projects
-          </p>
-        </div>
-
-        <div className="bg-white rounded-3xl border border-[#D8ECFA] p-5 shadow-baby-sm space-y-1">
+        <div className="bg-white rounded-3xl border border-[#D8ECFA] p-5 shadow-baby-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-[#64748B]">Job Applications</span>
-            <Briefcase className="w-4 h-4 text-[#3B9EE8]" />
+            <Briefcase className="w-4 h-4 text-indigo-500" />
           </div>
-          <p className="text-2xl font-extrabold text-[#334155]">
+          <p className="mt-2 text-3xl font-extrabold text-[#1E3A5F]">
             {summary.applicationsCount ?? 0}
           </p>
-          <p className="text-[11px] text-[#64748B]">
-            {statusCounts['Interview Scheduled'] || 0} interviews • {statusCounts.Selected || 0} offers
+          <p className="text-[11px] text-[#64748B] mt-1">
+            {summary.interviewsCount ?? 0} interviews • {summary.offersCount ?? 0} offers
           </p>
         </div>
       </div>
 
-      {/* 1.1 My Career Growth Journey (Large Line Chart) */}
-      <section className="bg-white rounded-3xl border border-[#D8ECFA] p-6 shadow-baby-sm space-y-4">
+      {/* Expandable Transparent Formula Breakdown */}
+      {showFormula && (
+        <div className="p-4 rounded-3xl bg-[#EAF7FF]/70 border border-[#BDE0FE] text-xs text-[#1E3A5F] grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <div className="p-3 rounded-2xl bg-white border border-[#D8ECFA]">
+            <p className="text-[10px] font-bold uppercase text-[#64748B]">Profile (15%)</p>
+            <p className="text-base font-extrabold mt-0.5">{formula.profilePoints ?? 0}/15</p>
+          </div>
+          <div className="p-3 rounded-2xl bg-white border border-[#D8ECFA]">
+            <p className="text-[10px] font-bold uppercase text-[#64748B]">Assessments (20%)</p>
+            <p className="text-base font-extrabold mt-0.5">{formula.assessmentPoints ?? 0}/20</p>
+          </div>
+          <div className="p-3 rounded-2xl bg-white border border-[#D8ECFA]">
+            <p className="text-[10px] font-bold uppercase text-[#64748B]">Learning (20%)</p>
+            <p className="text-base font-extrabold mt-0.5">{formula.learningPoints ?? 0}/20</p>
+          </div>
+          <div className="p-3 rounded-2xl bg-white border border-[#D8ECFA]">
+            <p className="text-[10px] font-bold uppercase text-[#64748B]">Portfolio &amp; Resume (20%)</p>
+            <p className="text-base font-extrabold mt-0.5">{formula.portfolioResumePoints ?? 0}/20</p>
+          </div>
+          <div className="p-3 rounded-2xl bg-white border border-[#D8ECFA]">
+            <p className="text-[10px] font-bold uppercase text-[#64748B]">Applications (25%)</p>
+            <p className="text-base font-extrabold mt-0.5">{formula.applicationPoints ?? 0}/25</p>
+          </div>
+        </div>
+      )}
+
+      {/* SECTION A: OVERALL CAREER PROGRESS — "My Career Growth" */}
+      <div className="bg-white rounded-3xl border border-[#D8ECFA] p-6 shadow-baby-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <h2 className="text-lg font-extrabold text-[#334155] font-display">
-              My Career Growth Journey
-            </h2>
+            <h2 className="text-lg font-bold text-[#1E3A5F]">My Career Growth</h2>
             <p className="text-xs text-[#64748B]">
-              Real recorded progress timeline across assessments, learning, assignments, portfolio, and job activity ({RANGE_OPTIONS.find((r) => r.id === range)?.label})
+              Timestamped career progress (0–100%) tracked across {VIEW_OPTIONS.find((v) => v.id === range)?.subtitle.toLowerCase()}. Hover any point for milestone details.
             </p>
           </div>
+          {periodDelta !== null && (
+            <span
+              className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border self-start ${
+                periodDelta >= 0
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  : 'bg-amber-50 text-amber-800 border-amber-200'
+              }`}
+            >
+              <TrendingUp className="w-3.5 h-3.5" />
+              <span>
+                {periodDelta >= 0 ? `+${periodDelta}%` : `${periodDelta}%`} compared to previous period
+              </span>
+            </span>
+          )}
         </div>
 
         {timeline.length === 0 ? (
-          <div className="p-8 rounded-2xl bg-[#F8FCFF] border border-dashed border-[#BDE0FE] text-center space-y-3">
-            <Sparkles className="w-8 h-8 text-[#3B9EE8] mx-auto" />
-            <p className="text-sm font-bold text-[#334155]">
-              No Recorded Activity in This Timeframe Yet
-            </p>
+          <div className="p-10 rounded-2xl bg-[#F8FCFF] border border-dashed border-[#BDE0FE] text-center space-y-3">
+            <Sparkles className="w-9 h-9 text-[#3B9EE8] mx-auto" />
+            <h3 className="text-sm font-bold text-[#1E3A5F]">Your Career Growth chart starts with your first action</h3>
             <p className="text-xs text-[#64748B] max-w-md mx-auto">
-              SETU never fabricates fake growth charts. Complete a skill assessment, finish a
-              tutorial, submit a practice assignment, or add a portfolio project to watch your real
-              growth curve appear!
+              Complete a skill assessment, finish a learning module, add a project, upload your resume, or apply to a job to record your first timestamped progress point.
             </p>
             <div className="flex flex-wrap justify-center gap-2 pt-1">
-              <Link
-                to="/assess"
-                className="px-4 py-2 rounded-2xl bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] text-[#1E3A5F] text-xs font-bold shadow-baby-sm"
-              >
-                Take Skill Assessment
+              <Link to="/assess" className="px-4 py-2 rounded-xl bg-[#3B9EE8] text-white text-xs font-bold">
+                Take First Assessment
               </Link>
-              <Link
-                to="/learn"
-                className="px-4 py-2 rounded-2xl bg-white border border-[#BDE0FE] text-[#334155] text-xs font-bold"
-              >
-                Start a Tutorial
+              <Link to="/learn" className="px-4 py-2 rounded-xl bg-[#EAF7FF] text-[#1E3A5F] border border-[#BDE0FE] text-xs font-bold">
+                Start a Course
               </Link>
             </div>
           </div>
         ) : (
-          <div className="h-72 sm:h-80">
-            <Line data={growthChartData} options={pctAxisOptions} />
-          </div>
-        )}
-      </section>
-
-      {/* 1.2 My Skill Development + 1.3 Assessment Performance */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 1.2 Skill Development */}
-        <section className="bg-white rounded-3xl border border-[#D8ECFA] p-6 shadow-baby-sm space-y-4">
-          <div>
-            <h2 className="text-base font-extrabold text-[#334155] font-display">
-              My Skill Development
-            </h2>
-            <p className="text-xs text-[#64748B]">
-              Measured proficiency (0–100) strictly from completed SETU assessments (Current vs Previous attempt)
-            </p>
-          </div>
-
-          {assessedSkills.length === 0 ? (
-            <div className="p-6 rounded-2xl bg-[#F8FCFF] border border-dashed border-[#BDE0FE] text-center space-y-2">
-              <p className="text-xs font-bold text-[#334155]">No Assessed Skills Yet</p>
-              <p className="text-xs text-[#64748B]">
-                Self-reported profile skills are never treated as verified scores. Take an
-                assessment to benchmark your measurable proficiency!
-              </p>
-              <Link
-                to="/assess"
-                className="inline-flex items-center gap-1 text-xs font-bold text-[#2589D6] hover:underline"
-              >
-                <span>Go to Skill Assessments</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
+          <>
+            <div className="h-72">
+              <Line
+                data={growthChartData}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  interaction: { mode: 'index', intersect: false },
+                  scales: {
+                    y: { min: 0, max: 100, ticks: { callback: (v) => `${v}%` } }
+                  },
+                  plugins: {
+                    tooltip: {
+                      callbacks: {
+                        afterBody: (items) => {
+                          const idx = items[0]?.dataIndex ?? -1;
+                          const ms = timeline[idx]?.milestones || [];
+                          return ms.length > 0 ? [`Milestones: ${ms.join(', ')}`] : [];
+                        }
+                      }
+                    }
+                  }
+                }}
+              />
             </div>
-          ) : (
-            <>
-              <div className="h-64">
-                <Bar data={skillDevChartData} options={pctAxisOptions} />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2">
-                {strongestSkill && (
-                  <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs">
-                    <span className="text-[10px] font-bold uppercase text-emerald-700 block">
-                      Strongest Assessed Skill
-                    </span>
-                    <span className="font-extrabold text-emerald-900">
-                      {strongestSkill.skill} ({strongestSkill.currentProficiency}%)
-                    </span>
-                  </div>
-                )}
-                {weakestSkill && (
-                  <div className="p-3 rounded-2xl bg-[#FCE7F3]/50 border border-pink-200 text-xs">
-                    <span className="text-[10px] font-bold uppercase text-pink-700 block">
-                      Focus Area to Improve
-                    </span>
-                    <span className="font-extrabold text-[#334155]">
-                      {weakestSkill.skill} ({weakestSkill.currentProficiency}%)
-                    </span>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
 
-          {/* Self-Reported Skills Kept Clearly Separate */}
-          {selfReportedSkills.length > 0 && (
-            <div className="pt-3 border-t border-[#EAF7FF] space-y-2">
-              <p className="text-[11px] font-bold text-[#64748B]">
-                Self-Reported Profile Skills (Not Yet Assessed — Click to Verify):
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {selfReportedSkills.map((s, i) => (
-                  <Link
+            {/* Milestones strip */}
+            {timeline.some((pt) => pt.milestones?.length > 0) && (
+              <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#EAF7FF]">
+                <span className="text-[11px] font-bold uppercase text-[#64748B]">Milestones:</span>
+                {Array.from(new Set(timeline.flatMap((pt) => pt.milestones || []))).map((m: any, i) => (
+                  <span
                     key={i}
-                    to="/assess"
-                    className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-[#F8FCFF] hover:bg-[#EAF7FF] border border-[#D8ECFA] text-[#475569]"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#EAF7FF] text-[#1E3A5F] border border-[#BDE0FE] text-[11px] font-semibold"
                   >
-                    {s.name} ({s.proficiency})
-                  </Link>
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                    {m}
+                  </span>
                 ))}
               </div>
-            </div>
-          )}
-        </section>
-
-        {/* 1.3 Assessment Performance Graph */}
-        <section className="bg-white rounded-3xl border border-[#D8ECFA] p-6 shadow-baby-sm space-y-4">
-          <div>
-            <h2 className="text-base font-extrabold text-[#334155] font-display">
-              Assessment Performance History
-            </h2>
-            <p className="text-xs text-[#64748B]">
-              Score obtained, percentage, and improvement across recorded attempts
-            </p>
-          </div>
-
-          {assessmentPerformance.length === 0 ? (
-            <div className="p-6 rounded-2xl bg-[#F8FCFF] border border-dashed border-[#BDE0FE] text-center space-y-2">
-              <p className="text-xs font-bold text-[#334155]">No Assessment Attempts Recorded</p>
-              <p className="text-xs text-[#64748B]">
-                Complete your first assessment to see score breakdowns and attempt-by-attempt
-                improvement here.
-              </p>
-            </div>
-          ) : (
-            <>
-              <div className="h-56">
-                <Bar data={assessmentPerfChartData} options={pctAxisOptions} />
-              </div>
-              <div className="max-h-40 overflow-y-auto space-y-2 pt-2 border-t border-[#EAF7FF]">
-                {assessmentPerformance
-                  .slice()
-                  .reverse()
-                  .slice(0, 6)
-                  .map((a) => (
-                    <div
-                      key={a.id}
-                      className="p-2.5 rounded-xl bg-[#F8FCFF] border border-[#D8ECFA] flex items-center justify-between gap-2 text-xs"
-                    >
-                      <div className="min-w-0">
-                        <p className="font-bold text-[#334155] truncate">{a.assessmentName}</p>
-                        <p className="text-[11px] text-[#64748B]">
-                          {new Date(a.date).toLocaleDateString('en-IN')} • {a.score}/{a.maxScore}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="font-extrabold text-[#1E3A5F]">{a.percentage}%</span>
-                        {typeof a.improvement === 'number' && a.improvement !== 0 && (
-                          <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                              a.improvement > 0
-                                ? 'bg-emerald-50 text-emerald-700'
-                                : 'bg-rose-50 text-rose-700'
-                            }`}
-                          >
-                            {a.improvement > 0 ? `+${a.improvement}%` : `${a.improvement}%`}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </>
-          )}
-        </section>
+            )}
+          </>
+        )}
       </div>
 
-      {/* 1.4 Learning Progress Donut + 1.5 Job Application Funnel */}
+      {/* SECTION B: SKILL DEVELOPMENT GRAPH (6 CORE CATEGORIES) */}
+      <div className="bg-white rounded-3xl border border-[#D8ECFA] p-6 shadow-baby-sm space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h2 className="text-lg font-bold text-[#1E3A5F] flex items-center gap-2">
+              <Target className="w-5 h-5 text-[#3B9EE8]" />
+              <span>Skill Development Across Core Competencies</span>
+            </h2>
+            <p className="text-xs text-[#64748B] mt-0.5">
+              Calculated strictly from your completed SETU assessments and learning modules — zero fabricated scores.
+            </p>
+          </div>
+          <Link to="/assess" className="text-xs font-bold text-[#2589D6] hover:underline">
+            Take Skill Assessments →
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-center">
+          <div className="lg:col-span-3 h-64">
+            <Bar
+              data={coreSkillChartData}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { y: { min: 0, max: 100, ticks: { callback: (v) => `${v}%` } } },
+                plugins: {
+                  legend: { display: false },
+                  tooltip: {
+                    callbacks: {
+                      label: (ctx) => {
+                        const cat = coreCategories[ctx.dataIndex];
+                        if (!cat?.hasActivity) return 'No assessments or courses completed yet (0%)';
+                        return `${cat.score}% (${cat.assessmentsCount} assessment(s), ${cat.completedLearningCount} course(s))`;
+                      }
+                    }
+                  }
+                }
+              }}
+            />
+          </div>
+
+          <div className="lg:col-span-2 space-y-2">
+            {coreCategories.map((c) => {
+              const badge = skillStatusBadge(c.status);
+              return (
+                <div
+                  key={c.category}
+                  className="p-3 rounded-2xl bg-[#F8FCFF] border border-[#D8ECFA] flex items-center justify-between gap-2"
+                >
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-[#1E3A5F] truncate">{c.category}</p>
+                    <p className="text-[11px] text-[#64748B]">
+                      {c.hasActivity
+                        ? `${c.assessmentsCount} test(s) • ${c.completedLearningCount} course(s)`
+                        : 'No recorded activity yet'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs font-extrabold text-[#1E3A5F]">{c.score}%</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${badge.cls}`}>
+                      {badge.label}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {!hasCoreSkillActivity && (
+          <p className="text-xs text-[#64748B] bg-[#F8FCFF] p-3.5 rounded-2xl border border-dashed border-[#BDE0FE] text-center">
+            All categories begin at 0% until you complete real assessments or courses. Start in{' '}
+            <Link to="/assess" className="text-[#2589D6] font-bold underline">Assessments</Link> or{' '}
+            <Link to="/learn" className="text-[#2589D6] font-bold underline">Learn &amp; Practice</Link> to see your verified progress grow.
+          </p>
+        )}
+
+        {assessedSkills.length > 0 && (
+          <div className="pt-3 border-t border-[#EAF7FF]">
+            <p className="text-[11px] font-bold uppercase text-[#64748B] mb-2">
+              Individual Assessed Domains
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {assessedSkills.map((sk) => (
+                <span
+                  key={sk.skill}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-[#F8FCFF] border border-[#BDE0FE] text-xs font-semibold text-[#1E3A5F]"
+                >
+                  {sk.verified && <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />}
+                  <span>{sk.skill}: {sk.currentProficiency}%</span>
+                  {typeof sk.improvement === 'number' && sk.improvement !== 0 && (
+                    <span className={sk.improvement > 0 ? 'text-emerald-600 font-bold' : 'text-amber-700'}>
+                      ({sk.improvement > 0 ? `+${sk.improvement}%` : `${sk.improvement}%`})
+                    </span>
+                  )}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* SECTION C: LEARNING ANALYTICS (DONUT + WEEKLY ACTIVITY + HOURS) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 1.4 Learning Donut */}
-        <section className="bg-white rounded-3xl border border-[#D8ECFA] p-6 shadow-baby-sm space-y-4">
-          <div className="flex items-center justify-between gap-2">
+        <div className="bg-white rounded-3xl border border-[#D8ECFA] p-6 shadow-baby-sm space-y-4">
+          <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-base font-extrabold text-[#334155] font-display">
-                Learning Progress
+              <h2 className="text-base font-bold text-[#1E3A5F] flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-[#3B9EE8]" />
+                <span>Learning Progress Overview</span>
               </h2>
               <p className="text-xs text-[#64748B]">
-                Enrolled: {learningDonut.enrolledTotal} • Completion Rate:{' '}
-                <strong className="text-[#1E3A5F]">{learningDonut.completionPercentage}%</strong>
+                Course completion rate: <strong>{learningDonut.completionPercentage}%</strong> • Total:{' '}
+                <strong>{learningDonut.totalLearningHours ?? 0} hrs</strong>
               </p>
             </div>
             <Link to="/learn" className="text-xs font-bold text-[#2589D6] hover:underline">
-              Open Learn →
+              Explore Courses
             </Link>
           </div>
 
-          <div className="h-60 flex items-center justify-center">
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="p-3 rounded-2xl bg-emerald-50/70 border border-emerald-200">
+              <p className="text-lg font-extrabold text-emerald-800">{learningDonut.completed}</p>
+              <p className="text-[11px] font-semibold text-emerald-700">Completed</p>
+            </div>
+            <div className="p-3 rounded-2xl bg-[#EAF7FF] border border-[#BDE0FE]">
+              <p className="text-lg font-extrabold text-[#1E3A5F]">{learningDonut.inProgress}</p>
+              <p className="text-[11px] font-semibold text-[#2589D6]">In Progress</p>
+            </div>
+            <div className="p-3 rounded-2xl bg-[#F8FCFF] border border-[#D8ECFA]">
+              <p className="text-lg font-extrabold text-[#475569]">{learningDonut.notStarted}</p>
+              <p className="text-[11px] font-semibold text-[#64748B]">Not Started</p>
+            </div>
+          </div>
+
+          <div className="h-52 flex items-center justify-center">
             <Doughnut
               data={learningDonutData}
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
-                cutout: '62%',
+                cutout: '64%',
                 plugins: { legend: { position: 'bottom' } }
               }}
             />
           </div>
+        </div>
 
-          <div className="grid grid-cols-3 gap-2 text-center text-xs">
-            <div className="p-2.5 rounded-2xl bg-emerald-50 border border-emerald-200">
-              <p className="font-extrabold text-emerald-800 text-base">{learningDonut.completed}</p>
-              <p className="text-[11px] text-emerald-700">Completed</p>
-            </div>
-            <div className="p-2.5 rounded-2xl bg-[#EAF7FF] border border-[#BDE0FE]">
-              <p className="font-extrabold text-[#1E3A5F] text-base">{learningDonut.inProgress}</p>
-              <p className="text-[11px] text-[#2589D6]">In Progress</p>
-            </div>
-            <div className="p-2.5 rounded-2xl bg-[#F8FCFF] border border-[#D8ECFA]">
-              <p className="font-extrabold text-[#475569] text-base">{learningDonut.notStarted}</p>
-              <p className="text-[11px] text-[#64748B]">Not Started</p>
-            </div>
+        <div className="bg-white rounded-3xl border border-[#D8ECFA] p-6 shadow-baby-sm space-y-4">
+          <div>
+            <h2 className="text-base font-bold text-[#1E3A5F]">Weekly Learning Activity</h2>
+            <p className="text-xs text-[#64748B]">
+              Modules completed and estimated learning hours per week from your real completions
+            </p>
           </div>
-        </section>
+          {weeklyLearning.length === 0 ? (
+            <div className="h-64 flex flex-col items-center justify-center rounded-2xl bg-[#F8FCFF] border border-dashed border-[#BDE0FE] text-center p-6 space-y-2">
+              <BookOpen className="w-8 h-8 text-[#94A3B8]" />
+              <p className="text-xs font-bold text-[#1E3A5F]">No weekly learning activity yet</p>
+              <p className="text-[11px] text-[#64748B] max-w-xs">
+                Complete a course or practical assignment in Learn &amp; Practice to track your weekly study hours here.
+              </p>
+            </div>
+          ) : (
+            <div className="h-64">
+              <Bar
+                data={weeklyLearningChartData}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  scales: { y: { beginAtZero: true } }
+                }}
+              />
+            </div>
+          )}
+        </div>
+      </div>
 
-        {/* 1.5 Job Application Analytics & Funnel */}
-        <section className="bg-white rounded-3xl border border-[#D8ECFA] p-6 shadow-baby-sm space-y-4">
-          <div className="flex items-center justify-between gap-2">
+      {/* SECTION D: JOB APPLICATION ANALYTICS (6-STAGE FUNNEL + OVER TIME) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-3xl border border-[#D8ECFA] p-6 shadow-baby-sm space-y-4">
+          <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-base font-extrabold text-[#334155] font-display">
-                Job Application Analytics &amp; Funnel
-              </h2>
+              <h2 className="text-base font-bold text-[#1E3A5F]">Job Application Funnel</h2>
               <p className="text-xs text-[#64748B]">
-                Live conversion tracking from submission to interviews and offers
+                Submitted → Reviewed → Shortlisted → Interviews → Offers → Hired
               </p>
             </div>
             <Link to="/applications" className="text-xs font-bold text-[#2589D6] hover:underline">
-              My Applications →
+              My Applications
             </Link>
           </div>
 
-          {(data?.applications?.total || 0) === 0 ? (
-            <div className="p-8 rounded-2xl bg-[#F8FCFF] border border-dashed border-[#BDE0FE] text-center space-y-2">
-              <p className="text-xs font-bold text-[#334155]">No Applications Submitted Yet</p>
-              <p className="text-xs text-[#64748B]">
-                Apply to opportunities on SETU to track your conversion funnel from Submitted →
-                Shortlisted → Interview → Offer.
+          {(data?.applications?.total ?? 0) === 0 ? (
+            <div className="h-60 flex flex-col items-center justify-center rounded-2xl bg-[#F8FCFF] border border-dashed border-[#BDE0FE] text-center p-6 space-y-2">
+              <Briefcase className="w-8 h-8 text-[#94A3B8]" />
+              <p className="text-xs font-bold text-[#1E3A5F]">No job applications submitted yet</p>
+              <p className="text-[11px] text-[#64748B] max-w-xs">
+                Apply directly to matched SETU opportunities to track your progression through interviews and offers.
               </p>
-              <Link
-                to="/opportunities"
-                className="inline-flex items-center gap-1 text-xs font-bold text-[#2589D6] hover:underline"
-              >
-                <span>Explore Opportunities</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+              <Link to="/opportunities" className="px-3.5 py-1.5 rounded-xl bg-[#EAF7FF] text-[#1E3A5F] text-xs font-bold border border-[#BDE0FE]">
+                Explore Opportunities
               </Link>
             </div>
           ) : (
-            <>
-              <div className="h-56">
-                <Bar
-                  data={funnelChartData}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
-                  }}
-                />
-              </div>
-              <div className="grid grid-cols-5 gap-1.5 text-center text-[11px]">
-                {applicationFunnel.map((stage) => (
-                  <div
-                    key={stage.stage}
-                    className="p-2 rounded-xl bg-[#F8FCFF] border border-[#D8ECFA]"
-                  >
-                    <p className="font-extrabold text-[#1E3A5F]">{stage.rate}%</p>
-                    <p className="text-[10px] text-[#64748B] truncate">{stage.stage}</p>
-                  </div>
-                ))}
-              </div>
-            </>
+            <div className="h-60">
+              <Bar
+                data={funnelChartData}
+                options={{
+                  indexAxis: 'y',
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: { legend: { display: false } },
+                  scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }
+                }}
+              />
+            </div>
           )}
-        </section>
-      </div>
+        </div>
 
-      {/* 1.6 Interactive 7-Stage Career Journey */}
-      <section className="bg-white rounded-3xl border border-[#D8ECFA] p-6 shadow-baby-sm space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div className="bg-white rounded-3xl border border-[#D8ECFA] p-6 shadow-baby-sm space-y-4">
           <div>
-            <h2 className="text-base font-extrabold text-[#334155] font-display">
-              Interactive 7-Stage SETU Career Journey
-            </h2>
+            <h2 className="text-base font-bold text-[#1E3A5F]">Applications Submitted Over Time</h2>
             <p className="text-xs text-[#64748B]">
-              Click any stage to inspect completed activities, pending requirements, and your next step
+              Chronological record of your direct job applications on SETU
             </p>
           </div>
-          <span className="text-xs font-bold px-3 py-1 rounded-full bg-[#EAF7FF] text-[#1E3A5F] border border-[#BDE0FE] self-start">
-            {summary.journeyPercentage ?? 0}% Overall
-          </span>
+          {appsOverTime.length === 0 ? (
+            <div className="h-60 flex flex-col items-center justify-center rounded-2xl bg-[#F8FCFF] border border-dashed border-[#BDE0FE] text-center p-6 space-y-2">
+              <TrendingUp className="w-8 h-8 text-[#94A3B8]" />
+              <p className="text-xs font-bold text-[#1E3A5F]">No application trend in this period</p>
+              <p className="text-[11px] text-[#64748B]">
+                Submit applications on SETU to visualize your momentum over time.
+              </p>
+            </div>
+          ) : (
+            <div className="h-60">
+              <Line
+                data={appsOverTimeData}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: { legend: { display: false } },
+                  scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+                }}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* SECTION E: INTERACTIVE SEVEN-STAGE CAREER JOURNEY */}
+      <div className="bg-white rounded-3xl border border-[#D8ECFA] p-6 shadow-baby-sm space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h2 className="text-lg font-bold text-[#1E3A5F] flex items-center gap-2">
+              <Layers className="w-5 h-5 text-[#3B9EE8]" />
+              <span>Seven-Stage SETU Career Journey</span>
+            </h2>
+            <p className="text-xs text-[#64748B]">
+              {summary.completedStagesCount ?? 0} of 7 stages completed ({summary.journeyPercentage ?? 0}%). Click any stage to inspect completed &amp; pending actions.
+            </p>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
@@ -693,25 +823,27 @@ export const MyProgressPage: React.FC = () => {
                 key={stage.id}
                 type="button"
                 onClick={() => setSelectedStageId(stage.id)}
-                className={`p-3.5 rounded-2xl border text-left transition space-y-1.5 ${
+                className={`p-3.5 rounded-2xl border text-left transition ${
                   isSelected
-                    ? 'bg-gradient-to-br from-[#EAF7FF] to-[#D6EEFF] border-[#3B9EE8] shadow-baby-sm'
+                    ? 'bg-[#EAF7FF] border-[#3B9EE8] shadow-xs'
                     : stage.completed
-                    ? 'bg-emerald-50/70 border-emerald-200 hover:border-emerald-400'
-                    : 'bg-[#F8FCFF] border-[#D8ECFA] hover:border-[#A2D2FF]'
+                    ? 'bg-emerald-50/60 border-emerald-200 hover:bg-emerald-50'
+                    : 'bg-[#F8FCFF] border-[#D8ECFA] hover:bg-[#EAF7FF]/50'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-[#64748B]">Stage {idx + 1}</span>
-                  {stage.completed ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  ) : (
-                    <span className="w-3.5 h-3.5 rounded-full border-2 border-[#A2D2FF]" />
-                  )}
+                  <span className="text-[10px] font-bold uppercase text-[#64748B]">Stage {idx + 1}</span>
+                  {stage.completed && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
                 </div>
-                <p className="text-xs font-extrabold text-[#334155]">{stage.label}</p>
-                <p className="text-[10px] text-[#64748B]">
-                  {stage.completed ? 'Completed' : 'In Progress'}
+                <p className="text-xs font-bold text-[#1E3A5F] mt-1 truncate">{stage.label}</p>
+                <div className="mt-2 w-full h-1.5 bg-white rounded-full overflow-hidden border border-[#D8ECFA]">
+                  <div
+                    className={`h-full rounded-full ${stage.completed ? 'bg-emerald-500' : 'bg-[#3B9EE8]'}`}
+                    style={{ width: `${stage.completionPct ?? (stage.completed ? 100 : 0)}%` }}
+                  />
+                </div>
+                <p className="text-[10px] font-bold text-[#2589D6] mt-1">
+                  {stage.completionPct ?? (stage.completed ? 100 : 0)}%
                 </p>
               </button>
             );
@@ -722,25 +854,15 @@ export const MyProgressPage: React.FC = () => {
           <div className="p-5 rounded-2xl bg-[#F8FCFF] border border-[#BDE0FE] space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-extrabold text-[#1E3A5F]">{activeStage.label}</h3>
-                  <span
-                    className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
-                      activeStage.completed
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : 'bg-[#EAF7FF] text-[#2589D6] border border-[#BDE0FE]'
-                    }`}
-                  >
-                    {activeStage.completed ? 'Completed ✓' : 'Pending'}
-                  </span>
-                </div>
-                <p className="text-xs text-[#64748B] mt-0.5">{activeStage.requirements}</p>
+                <h3 className="text-base font-bold text-[#1E3A5F]">
+                  {activeStage.label} — {activeStage.completionPct ?? (activeStage.completed ? 100 : 0)}% Complete
+                </h3>
+                <p className="text-xs text-[#64748B]">{activeStage.description}</p>
               </div>
-
               {activeStage.nextAction && (
                 <Link
                   to={activeStage.nextAction.route}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] text-[#1E3A5F] text-xs font-bold shadow-baby-sm shrink-0"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-[#3B9EE8] hover:bg-[#2589D6] text-white text-xs font-bold self-start sm:self-auto"
                 >
                   <span>{activeStage.nextAction.label}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -749,81 +871,137 @@ export const MyProgressPage: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div className="p-3.5 rounded-xl bg-white border border-[#D8ECFA] space-y-1.5">
-                <p className="font-bold text-emerald-700">✓ Completed Activities</p>
+              <div className="p-3.5 rounded-2xl bg-white border border-emerald-200/80 space-y-1.5">
+                <p className="font-bold text-emerald-800">Completed Activities</p>
                 {activeStage.completedActivities?.length > 0 ? (
-                  <ul className="space-y-1 text-[#475569]">
-                    {activeStage.completedActivities.map((act: string, i: number) => (
-                      <li key={i}>• {act}</li>
-                    ))}
-                  </ul>
+                  activeStage.completedActivities.map((act: string, i: number) => (
+                    <p key={i} className="text-[#334155]">✓ {act}</p>
+                  ))
                 ) : (
-                  <p className="text-[#64748B]">None recorded yet for this stage.</p>
+                  <p className="text-[#64748B]">No completed activities in this stage yet.</p>
                 )}
               </div>
-
-              <div className="p-3.5 rounded-xl bg-white border border-[#D8ECFA] space-y-1.5">
-                <p className="font-bold text-[#1E3A5F]">Next Requirements</p>
+              <div className="p-3.5 rounded-2xl bg-white border border-amber-200/80 space-y-1.5">
+                <p className="font-bold text-amber-800">Pending Activities</p>
                 {activeStage.pendingActivities?.length > 0 ? (
-                  <ul className="space-y-1 text-[#475569]">
-                    {activeStage.pendingActivities.map((act: string, i: number) => (
-                      <li key={i}>• {act}</li>
-                    ))}
-                  </ul>
+                  activeStage.pendingActivities.map((act: string, i: number) => (
+                    <p key={i} className="text-[#334155]">• {act}</p>
+                  ))
                 ) : (
-                  <p className="text-emerald-700 font-medium">All stage requirements met! 🩵</p>
+                  <p className="text-emerald-700 font-medium">All requirements for this stage are complete!</p>
                 )}
               </div>
             </div>
           </div>
         )}
-      </section>
+      </div>
 
-      {/* 1.7 Your Career Insights */}
-      <section className="bg-white rounded-3xl border border-[#D8ECFA] p-6 shadow-baby-sm space-y-4">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-[#3B9EE8]" />
-          <h2 className="text-base font-extrabold text-[#334155] font-display">
-            Your Career Insights
+      {/* SECTION F: PERSONAL ACHIEVEMENTS (INTERACTIVE CARDS) */}
+      <div className="bg-white rounded-3xl border border-[#D8ECFA] p-6 shadow-baby-sm space-y-4">
+        <div>
+          <h2 className="text-lg font-bold text-[#1E3A5F] flex items-center gap-2">
+            <Trophy className="w-5 h-5 text-amber-500" />
+            <span>Personal Achievements &amp; Milestones</span>
           </h2>
+          <p className="text-xs text-[#64748B]">
+            Click any achievement card to inspect your earned milestones or jump directly to the activity.
+          </p>
         </div>
 
-        {insights.length === 0 ? (
-          <p className="text-xs text-[#64748B]">
-            Keep completing activities on SETU to unlock personalized data-backed career insights.
-          </p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {insights.map((item, idx) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {achievements.map((ach) => {
+            const Icon = achievementIcon(ach.id);
+            const isOpen = expandedAchievement === ach.id;
+            return (
               <div
-                key={idx}
-                className={`p-4 rounded-2xl border flex items-start justify-between gap-3 text-xs ${
-                  item.type === 'positive'
-                    ? 'bg-emerald-50/60 border-emerald-200 text-emerald-900'
-                    : 'bg-[#F8FCFF] border-[#BDE0FE] text-[#334155]'
+                key={ach.id}
+                className={`rounded-2xl border p-4 transition ${
+                  ach.unlocked
+                    ? 'bg-gradient-to-br from-[#F8FCFF] to-[#EAF7FF]/50 border-[#BDE0FE]'
+                    : 'bg-[#F8FCFF]/60 border-[#D8ECFA]'
                 }`}
               >
-                <div className="flex items-start gap-2.5">
-                  {item.type === 'positive' ? (
-                    <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <button
+                  type="button"
+                  onClick={() => setExpandedAchievement(isOpen ? null : ach.id)}
+                  className="w-full text-left flex items-start justify-between gap-3"
+                >
+                  <div className="flex items-start gap-3">
+                    <div
+                      className={`p-2.5 rounded-2xl shrink-0 ${
+                        ach.unlocked
+                          ? 'bg-white text-[#3B9EE8] border border-[#BDE0FE]'
+                          : 'bg-slate-100 text-slate-400'
+                      }`}
+                    >
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-[#1E3A5F]">{ach.title}</p>
+                      <p className="text-xl font-extrabold text-[#1E3A5F] mt-0.5">{ach.count}</p>
+                      <p className="text-[11px] text-[#64748B] mt-0.5">{ach.subtitle}</p>
+                    </div>
+                  </div>
+                  {isOpen ? (
+                    <ChevronUp className="w-4 h-4 text-[#64748B] shrink-0" />
                   ) : (
-                    <Info className="w-4 h-4 text-[#3B9EE8] shrink-0 mt-0.5" />
+                    <ChevronDown className="w-4 h-4 text-[#64748B] shrink-0" />
                   )}
-                  <span className="leading-relaxed font-medium">{item.message}</span>
-                </div>
-                {item.route && (
+                </button>
+
+                {isOpen && (
+                  <div className="mt-3 pt-3 border-t border-[#D8ECFA] space-y-2">
+                    {ach.items?.length > 0 ? (
+                      <ul className="space-y-1 text-[11px] text-[#334155]">
+                        {ach.items.map((item: string, idx: number) => (
+                          <li key={idx} className="truncate">• {item}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-[11px] text-[#64748B]">
+                        Complete your first milestone to unlock this badge.
+                      </p>
+                    )}
+                    <Link
+                      to={ach.route}
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-[#2589D6] hover:underline"
+                    >
+                      <span>Open section</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </Link>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Personalized Actionable Insights */}
+      {insights.length > 0 && (
+        <div className="bg-white rounded-3xl border border-[#D8ECFA] p-6 shadow-baby-sm space-y-3">
+          <h2 className="text-base font-bold text-[#1E3A5F]">Data-Backed Recommendations</h2>
+          <div className="space-y-2">
+            {insights.map((ins, i) => (
+              <div
+                key={i}
+                className="p-3.5 rounded-2xl bg-[#F8FCFF] border border-[#EAF7FF] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+              >
+                <span className="text-[#334155]">{ins.message}</span>
+                {ins.route && (
                   <Link
-                    to={item.route}
-                    className="text-[#2589D6] font-bold hover:underline shrink-0 inline-flex items-center"
+                    to={ins.route}
+                    className="inline-flex items-center gap-1 text-[#2589D6] font-bold shrink-0 hover:underline"
                   >
-                    <ChevronRight className="w-4 h-4" />
+                    <span>Take Action</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 )}
               </div>
             ))}
           </div>
-        )}
-      </section>
+        </div>
+      )}
     </div>
   );
 };

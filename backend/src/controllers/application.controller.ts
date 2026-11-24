@@ -5,6 +5,7 @@ import { Opportunity } from '../models/Opportunity';
 import { RecruitmentNotification } from '../models/RecruitmentNotification';
 import { sendSuccess, sendError } from '../utils/response';
 import { applicationSchema } from '../utils/validators';
+import { recordUserProgressSnapshot } from '../services/progressSnapshot.service';
 
 export const ALLOWED_APPLICATION_STATUSES: ApplicationStatus[] = [
   'Applied',
@@ -128,6 +129,7 @@ export const createApplication = async (
     });
 
     await newApp.save();
+    void recordUserProgressSnapshot(req.user._id);
 
     // Notify employer about the new application (best-effort)
     await RecruitmentNotification.create({
@@ -280,6 +282,7 @@ export const updateApplicationStatus = async (
     });
 
     await application.save();
+    void recordUserProgressSnapshot(application.seekerId);
 
     const oppTitle = (application.opportunityId as any)?.title || 'your applied role';
     if (isEmployer || isAdmin) {

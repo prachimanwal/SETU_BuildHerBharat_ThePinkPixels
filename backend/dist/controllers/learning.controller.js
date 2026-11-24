@@ -6,6 +6,7 @@ const LearningProgress_1 = require("../models/LearningProgress");
 const Portfolio_1 = require("../models/Portfolio");
 const AssessmentResult_1 = require("../models/AssessmentResult");
 const response_1 = require("../utils/response");
+const progressSnapshot_service_1 = require("../services/progressSnapshot.service");
 const isValidHttpUrl = (value) => {
     try {
         const parsed = new URL(value);
@@ -278,6 +279,7 @@ const updateLearningProgress = async (req, res) => {
             }
         }
         await progress.save();
+        void (0, progressSnapshot_service_1.recordUserProgressSnapshot)(req.user._id);
         // If practical assignment is completed, add/update Portfolio deliverable (never auto-verifies skill badge)
         let createdPortfolioProject = null;
         if (status === 'completed' && resource.type === 'practical_assignment') {

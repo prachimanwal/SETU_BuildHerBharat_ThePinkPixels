@@ -214,15 +214,45 @@ async function run() {
     const pdfForm = new FormData();
     pdfForm.append('file', new Blob([new Uint8Array(pdfBuffer)], { type: 'application/pdf' }), 'ananya-resume.pdf');
 
+    const idempKey = `pdf-key-${Date.now()}`;
     const pdfRes = await fetch(`${baseUrl}/api/resumes/upload`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${tokenA}` }, // NOTE: NO manual Content-Type!
+      headers: {
+        Authorization: `Bearer ${tokenA}`,
+        'X-Idempotency-Key': idempKey,
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Mobile/15E148'
+      },
       body: pdfForm
     });
     const pdfJson: any = await pdfRes.json();
     assert.equal(pdfRes.status, 201, `Expected 201 for valid PDF, got ${pdfRes.status}: ${JSON.stringify(pdfJson)}`);
     assert.equal(pdfJson.data.versionNumber, 1);
+    assert.equal(pdfJson.data.parseStatus, 'completed');
     assert.equal(pdfJson.data.shareWithEmployers, false, 'Must NEVER auto-share with employers');
+
+    // Retry with same X-Idempotency-Key must NOT create a duplicate upload
+    const dupRetryForm = new FormData();
+    dupRetryForm.append('file', new Blob([new Uint8Array(pdfBuffer)], { type: 'application/pdf' }), 'ananya-resume.pdf');
+    const retryRes = await fetch(`${baseUrl}/api/resumes/upload`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${tokenA}`,
+        'X-Idempotency-Key': idempKey
+      },
+      body: dupRetryForm
+    });
+    const retryJson: any = await retryRes.json();
+    assert.equal(String(retryJson.data.uploadId), String(pdfJson.data.uploadId), 'Retry with same idempotency key must deduplicate');
+
+    // Status polling endpoint check (owner 200, other user 403)
+    const statusOwner = await fetch(`${baseUrl}/api/resumes/upload/${pdfJson.data.uploadId}/status`, {
+      headers: { Authorization: `Bearer ${tokenA}` }
+    });
+    assert.equal(statusOwner.status, 200);
+    const statusOther = await fetch(`${baseUrl}/api/resumes/upload/${pdfJson.data.uploadId}/status`, {
+      headers: { Authorization: `Bearer ${tokenB}` }
+    });
+    assert.equal(statusOther.status, 403);
     assert.equal(pdfJson.data.extractedData.fullName, 'Ananya Sharma');
     assert.equal(pdfJson.data.extractedData.email, 'ananya.sharma@example.com');
     assert.ok(pdfJson.data.extractedData.skills.includes('Python'));
@@ -420,7 +450,21 @@ async function run() {
     const badJsonBody: any = await badJsonRes.json();
     assert.equal(badJsonRes.status, 400);
     assert.ok(!badJsonBody.message.includes('Unexpected token'), 'Must never leak raw JSON.parse error to user');
-    console.log('  ✓ 7. Unauthenticated request (401), cross-user privacy isolation (403) & clean error masking verified');
+
+    // MongoDB unavailable check (readyState = 0 -> HTTP 503 structured JSON)
+    if (!usingRealMongo) {
+      Object.defineProperty(mongoose.connection, 'readyState', { configurable: true, get: () => 0 });
+      const dbDownForm = new FormData();
+      dbDownForm.append('file', new Blob([new Uint8Array(pdfBuffer)], { type: 'application/pdf' }), 'dbdown.pdf');
+      const dbDownRes = await fetch(`${baseUrl}/api/resumes/upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tokenA}` },
+        body: dbDownForm
+      });
+      assert.equal(dbDownRes.status, 503);
+      Object.defineProperty(mongoose.connection, 'readyState', { configurable: true, get: () => 1 });
+    }
+    console.log('  ✓ 7. Unauthenticated (401), cross-user privacy (403), DB unavailable (503), idempotent retries & clean error masking verified');
 
     console.log('\n✅ ALL 7 RESUME UPLOAD, PARSING & SECURITY TESTS PASSED!');
   } finally {

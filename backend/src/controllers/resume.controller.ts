@@ -10,8 +10,10 @@ import {
   extractRawTextFromResumeBuffer,
   parseStructuredResumeText,
   createEmptyExtractedResumeData,
+  validateResumeFileSignature,
   ResumeFileCorruptedError
 } from '../services/resumeParser.service';
+import { recordUserProgressSnapshot } from '../services/progressSnapshot.service';
 import {
   generateResumePdfBuffer,
   generateResumeDocxBuffer
@@ -186,6 +188,7 @@ export const createResume = async (req: AuthenticatedRequest, res: Response): Pr
     });
 
     await resume.save();
+    void recordUserProgressSnapshot(req.user._id);
     sendSuccess(res, 'Resume saved successfully', resume, 201);
   } catch (error: any) {
     sendError(res, error.message || 'Failed to create resume', 500);
@@ -336,6 +339,46 @@ export const downloadResumeDocx = async (
 
 // ==================== RESUME UPLOAD & PARSING ====================
 
+const INLINE_PARSE_WAIT_MS = 10_000;
+const HARD_PARSE_CAP_MS = 25_000;
+
+async function parseBufferWithCap(
+  buffer: Buffer,
+  mimeType: string,
+  filename: string
+): Promise<{ ok: true; text: string } | { ok: false; corrupted: boolean; error: string }> {
+  let timer: NodeJS.Timeout | undefined;
+  try {
+    const text = await Promise.race<string>([
+      extractRawTextFromResumeBuffer(buffer, mimeType, filename),
+      new Promise<string>((_, reject) => {
+        timer = setTimeout(() => reject(new Error('PARSE_TIMEOUT')), HARD_PARSE_CAP_MS);
+      })
+    ]);
+    return { ok: true, text };
+  } catch (err: any) {
+    if (err instanceof ResumeFileCorruptedError) {
+      return { ok: false, corrupted: true, error: err.message };
+    }
+    if (err?.message === 'PARSE_TIMEOUT') {
+      return {
+        ok: false,
+        corrupted: false,
+        error:
+          'Automatic text extraction took too long for this document. Your file was uploaded safely—you can enter or review details manually.'
+      };
+    }
+    return {
+      ok: false,
+      corrupted: true,
+      error:
+        'We could not parse this resume file. Please ensure it is a valid, unencrypted PDF or DOCX document and try again.'
+    };
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 export const uploadAndParseResume = async (
   req: AuthenticatedRequest,
   res: Response
@@ -349,6 +392,36 @@ export const uploadAndParseResume = async (
     if (mongoose.connection.readyState !== 1) {
       sendError(res, 'Database connection is temporarily unavailable. Please try again shortly.', 503);
       return;
+    }
+
+    const idempotencyKey = String(req.headers['x-idempotency-key'] || '').trim().slice(0, 128);
+    if (idempotencyKey) {
+      const existingByKey = await UploadedResumeFile.findOne({
+        userId: req.user._id,
+        idempotencyKey
+      });
+      if (existingByKey) {
+        sendSuccess(
+          res,
+          existingByKey.parseStatus === 'processing'
+            ? 'Resume upload already received and currently parsing.'
+            : 'Resume uploaded and parsed for your review.',
+          {
+            uploadId: existingByKey._id,
+            versionNumber: existingByKey.versionNumber || 1,
+            originalFilename: existingByKey.originalFilename,
+            sizeBytes: existingByKey.sizeBytes,
+            shareWithEmployers: existingByKey.shareWithEmployers,
+            parseStatus: existingByKey.parseStatus || 'completed',
+            extractedData: existingByKey.extractedData,
+            parseWarning: existingByKey.parseWarning || '',
+            parseError: existingByKey.parseError || '',
+            createdAt: existingByKey.createdAt
+          },
+          existingByKey.parseStatus === 'processing' ? 202 : 201
+        );
+        return;
+      }
     }
 
     const file = (req as any).file as Express.Multer.File | undefined;
@@ -380,34 +453,17 @@ export const uploadAndParseResume = async (
       return;
     }
 
-    let extractedText = '';
-    let parseWarning = '';
+    // Validate binary magic bytes synchronously BEFORE storing anything in MongoDB
     try {
-      extractedText = await extractRawTextFromResumeBuffer(
-        file.buffer,
-        file.mimetype,
-        file.originalname
-      );
-      if (!extractedText) {
-        parseWarning =
-          'Your resume was uploaded securely, but no selectable text was found (it may be a scanned image). Please enter or verify your details below before saving.';
-      }
-    } catch (parseErr: any) {
-      if (parseErr instanceof ResumeFileCorruptedError) {
-        sendError(res, parseErr.message, 400);
-        return;
-      }
+      validateResumeFileSignature(file.buffer, file.mimetype, file.originalname);
+    } catch (sigErr: any) {
       sendError(
         res,
-        'We could not parse this resume file. Please ensure it is a valid, unencrypted PDF or DOCX document and try again.',
+        sigErr?.message || 'This file is not a valid PDF or DOCX document.',
         400
       );
       return;
     }
-
-    const extractedData = extractedText
-      ? parseStructuredResumeText(extractedText)
-      : createEmptyExtractedResumeData();
 
     const normalizedMime = lowerName.endsWith('.docx')
       ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
@@ -425,32 +481,166 @@ export const uploadAndParseResume = async (
       mimeType: normalizedMime,
       sizeBytes: file.size,
       fileData: file.buffer,
-      extractedText: extractedText.slice(0, 25000),
-      extractedData,
+      extractedText: '',
+      extractedData: createEmptyExtractedResumeData(),
       confirmedByUser: false,
-      shareWithEmployers: false
+      shareWithEmployers: false,
+      parseStatus: 'processing',
+      parseWarning: '',
+      parseError: '',
+      idempotencyKey
     });
 
     await uploadedDoc.save();
 
+    // Start parsing; race against INLINE_PARSE_WAIT_MS so fast files return 201 immediately
+    // while unusually heavy PDFs transition cleanly to 202 async status polling without timing out
+    const parseTask = parseBufferWithCap(file.buffer, normalizedMime, file.originalname);
+    const raceResult = await Promise.race([
+      parseTask.then((r) => ({ finished: true as const, result: r })),
+      new Promise<{ finished: false }>((resolve) =>
+        setTimeout(() => resolve({ finished: false }), INLINE_PARSE_WAIT_MS)
+      )
+    ]);
+
+    if (raceResult.finished) {
+      const outcome = raceResult.result;
+      if (!outcome.ok && outcome.corrupted) {
+        // Delete unparseable corrupted doc so junk never pollutes user's version history
+        await UploadedResumeFile.findByIdAndDelete(uploadedDoc._id).catch(() => {});
+        sendError(res, outcome.error, 400);
+        return;
+      }
+
+      const extractedText = outcome.ok ? outcome.text : '';
+      const parseWarning = !outcome.ok
+        ? outcome.error
+        : !extractedText
+        ? 'Your resume was uploaded securely, but no selectable text was found (it may be a scanned image). Please enter or verify your details below before saving.'
+        : '';
+
+      const extractedData = extractedText
+        ? parseStructuredResumeText(extractedText)
+        : createEmptyExtractedResumeData();
+
+      uploadedDoc.extractedText = extractedText.slice(0, 25000);
+      uploadedDoc.extractedData = extractedData;
+      uploadedDoc.parseStatus = 'completed';
+      uploadedDoc.parseWarning = parseWarning;
+      await uploadedDoc.save();
+      void recordUserProgressSnapshot(req.user._id);
+
+      sendSuccess(
+        res,
+        'Resume uploaded and parsed for your review. No profile fields were overwritten yet.',
+        {
+          uploadId: uploadedDoc._id,
+          versionNumber: uploadedDoc.versionNumber,
+          originalFilename: uploadedDoc.originalFilename,
+          sizeBytes: uploadedDoc.sizeBytes,
+          shareWithEmployers: uploadedDoc.shareWithEmployers,
+          parseStatus: 'completed',
+          extractedData,
+          parseWarning,
+          createdAt: uploadedDoc.createdAt
+        },
+        201
+      );
+      return;
+    }
+
+    // Slow parse: complete safely in background and let frontend poll GET /api/resumes/upload/:id/status
+    const userIdForSnapshot = req.user._id;
+    parseTask
+      .then(async (outcome) => {
+        if (!outcome.ok && outcome.corrupted) {
+          await UploadedResumeFile.findByIdAndUpdate(uploadedDoc._id, {
+            $set: { parseStatus: 'failed', parseError: outcome.error }
+          }).catch(() => {});
+          return;
+        }
+        const extractedText = outcome.ok ? outcome.text : '';
+        const parseWarning = !outcome.ok
+          ? outcome.error
+          : !extractedText
+          ? 'No selectable text was found in this document. Please review or enter details manually.'
+          : '';
+        const extractedData = extractedText
+          ? parseStructuredResumeText(extractedText)
+          : createEmptyExtractedResumeData();
+
+        await UploadedResumeFile.findByIdAndUpdate(uploadedDoc._id, {
+          $set: {
+            extractedText: extractedText.slice(0, 25000),
+            extractedData,
+            parseStatus: 'completed',
+            parseWarning
+          }
+        }).catch(() => {});
+        void recordUserProgressSnapshot(userIdForSnapshot);
+      })
+      .catch(() => {});
+
     sendSuccess(
       res,
-      'Resume uploaded and parsed for your review. No profile fields were overwritten yet.',
+      'Resume uploaded securely. Extracting details in background...',
       {
         uploadId: uploadedDoc._id,
         versionNumber: uploadedDoc.versionNumber,
         originalFilename: uploadedDoc.originalFilename,
         sizeBytes: uploadedDoc.sizeBytes,
         shareWithEmployers: uploadedDoc.shareWithEmployers,
-        extractedData,
-        parseWarning,
+        parseStatus: 'processing',
         createdAt: uploadedDoc.createdAt
       },
-      201
+      202
     );
   } catch (error: any) {
     console.error('[Resume Upload] Unexpected error:', error?.name || 'Error', error?.message || '');
-    sendError(res, 'Could not upload and process your resume right now. Please try again shortly.', 500);
+    sendError(
+      res,
+      'Could not upload and process your resume right now. Please try again shortly.',
+      500
+    );
+  }
+};
+
+export const getUploadedResumeStatus = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      sendError(res, 'Authentication required', 401);
+      return;
+    }
+
+    const upload = await UploadedResumeFile.findById(req.params.id).select(
+      '-fileData -extractedText'
+    );
+    if (!upload) {
+      sendError(res, 'Uploaded resume not found', 404);
+      return;
+    }
+    if (upload.userId.toString() !== req.user._id.toString()) {
+      sendError(res, 'Access denied.', 403);
+      return;
+    }
+
+    sendSuccess(res, 'Resume parse status retrieved', {
+      uploadId: upload._id,
+      versionNumber: upload.versionNumber || 1,
+      originalFilename: upload.originalFilename,
+      sizeBytes: upload.sizeBytes,
+      shareWithEmployers: upload.shareWithEmployers,
+      parseStatus: upload.parseStatus || 'completed',
+      extractedData: upload.extractedData,
+      parseWarning: upload.parseWarning || '',
+      parseError: upload.parseError || '',
+      createdAt: upload.createdAt
+    });
+  } catch (error: any) {
+    sendError(res, 'Could not check resume status right now.', 500);
   }
 };
 
@@ -628,6 +818,7 @@ export const confirmUploadedResumeData = async (
     upload.extractedData = confirmed;
     upload.confirmedByUser = true;
     await upload.save();
+    void recordUserProgressSnapshot(req.user._id);
 
     sendSuccess(res, 'Confirmed resume information saved to your SETU profile', {
       user: serializeUser(req.user),

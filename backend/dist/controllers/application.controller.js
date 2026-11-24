@@ -6,6 +6,7 @@ const Opportunity_1 = require("../models/Opportunity");
 const RecruitmentNotification_1 = require("../models/RecruitmentNotification");
 const response_1 = require("../utils/response");
 const validators_1 = require("../utils/validators");
+const progressSnapshot_service_1 = require("../services/progressSnapshot.service");
 exports.ALLOWED_APPLICATION_STATUSES = [
     'Applied',
     'Under Review',
@@ -100,6 +101,7 @@ const createApplication = async (req, res) => {
             ]
         });
         await newApp.save();
+        void (0, progressSnapshot_service_1.recordUserProgressSnapshot)(req.user._id);
         // Notify employer about the new application (best-effort)
         await RecruitmentNotification_1.RecruitmentNotification.create({
             recipientId: opportunity.employerId,
@@ -220,6 +222,7 @@ const updateApplicationStatus = async (req, res) => {
             timestamp: new Date()
         });
         await application.save();
+        void (0, progressSnapshot_service_1.recordUserProgressSnapshot)(application.seekerId);
         const oppTitle = application.opportunityId?.title || 'your applied role';
         if (isEmployer || isAdmin) {
             await RecruitmentNotification_1.RecruitmentNotification.create({

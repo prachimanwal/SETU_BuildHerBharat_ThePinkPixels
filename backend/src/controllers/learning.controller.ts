@@ -5,6 +5,7 @@ import { LearningProgress, LearningStatus } from '../models/LearningProgress';
 import { Portfolio } from '../models/Portfolio';
 import { AssessmentResult } from '../models/AssessmentResult';
 import { sendSuccess, sendError } from '../utils/response';
+import { recordUserProgressSnapshot } from '../services/progressSnapshot.service';
 
 const isValidHttpUrl = (value: string): boolean => {
   try {
@@ -325,6 +326,7 @@ export const updateLearningProgress = async (
     }
 
     await progress.save();
+    void recordUserProgressSnapshot(req.user._id);
 
     // If practical assignment is completed, add/update Portfolio deliverable (never auto-verifies skill badge)
     let createdPortfolioProject = null;

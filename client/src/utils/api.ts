@@ -112,17 +112,126 @@ const fetchWithTimeout = async (
   }
 };
 
+export interface ApiFetchOptions extends RequestInit {
+  timeoutMs?: number;
+}
+
+export interface ApiFetchResult {
+  ok: boolean;
+  status: number;
+  data: any;
+  error?: string;
+  timedOut?: boolean;
+  networkError?: boolean;
+}
+
+/**
+ * On-demand server readiness check used strictly before large uploads (never a background keep-alive).
+ * Detects Render free-tier cold starts cleanly so the UI can show "Connecting to SETU server..."
+ * before transmitting a multi-megabyte file body.
+ */
+export const ensureBackendAwake = async (
+  onStatusChange?: (statusMessage: string) => void
+): Promise<{
+  ready: boolean;
+  wasColdStart: boolean;
+  retryable: boolean;
+  error?: string;
+}> => {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return {
+      ready: false,
+      wasColdStart: false,
+      retryable: true,
+      error: 'No internet connection detected. Please reconnect and tap Retry.'
+    };
+  }
+
+  const healthUrl = getApiUrl('/api/health');
+  const maxTotalMs = 68_000;
+  const startedAt = Date.now();
+  let attempt = 0;
+  let detectedColdStart = false;
+
+  while (Date.now() - startedAt < maxTotalMs) {
+    attempt++;
+    const perAttemptTimeout = attempt === 1 ? 4500 : 8000;
+
+    try {
+      const res = await fetchWithTimeout(
+        healthUrl,
+        { method: 'GET', credentials: 'include' },
+        perAttemptTimeout
+      );
+
+      if (res.ok) {
+        const ct = res.headers.get('content-type') || '';
+        if (ct.includes('application/json')) {
+          const body = await res.json().catch(() => null);
+          const dbStatus = body?.data?.database;
+          if (dbStatus === 'disconnected') {
+            return {
+              ready: false,
+              wasColdStart: detectedColdStart,
+              retryable: true,
+              error: 'SETU database is temporarily reconnecting. Please tap Retry in a moment.'
+            };
+          }
+          return { ready: true, wasColdStart: detectedColdStart, retryable: false };
+        }
+      }
+
+      // 502/503/504 typically indicates Render waking up from sleep
+      if (res.status === 502 || res.status === 503 || res.status === 504) {
+        detectedColdStart = true;
+        onStatusChange?.('Connecting to SETU server...');
+      } else {
+        // Non-cold-start HTTP error (e.g., 404 misconfigured proxy) — don't spin waiting
+        return {
+          ready: false,
+          wasColdStart: false,
+          retryable: true,
+          error: 'Could not reach the SETU upload service. Please try again shortly.'
+        };
+      }
+    } catch (err: any) {
+      if (err?.name === 'AbortError') {
+        detectedColdStart = true;
+        onStatusChange?.('Connecting to SETU server...');
+      } else {
+        return {
+          ready: false,
+          wasColdStart: detectedColdStart,
+          retryable: true,
+          error: 'Network connection was interrupted while reaching SETU. Please check your connection and tap Retry.'
+        };
+      }
+    }
+
+    await new Promise((resolve) => window.setTimeout(resolve, 1800));
+  }
+
+  return {
+    ready: false,
+    wasColdStart: true,
+    retryable: true,
+    error:
+      'SETU server is still waking up after inactivity. Please tap Retry to continue your upload.'
+  };
+};
+
 export const apiFetch = async (
   endpoint: string,
-  options: RequestInit = {}
-): Promise<{ ok: boolean; status: number; data: any; error?: string }> => {
+  options: ApiFetchOptions = {}
+): Promise<ApiFetchResult> => {
   const url = getApiUrl(endpoint);
   const method = (options.method || 'GET').toUpperCase();
-  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+  const { timeoutMs: customTimeout, ...fetchOpts } = options;
+  const isFormData = typeof FormData !== 'undefined' && fetchOpts.body instanceof FormData;
 
   const headers: Record<string, string> = {
-    ...(options.body && !isFormData ? { 'Content-Type': 'application/json' } : {}),
-    ...(options.headers as Record<string, string>)
+    ...(fetchOpts.body && !isFormData ? { 'Content-Type': 'application/json' } : {}),
+    ...(fetchOpts.headers as Record<string, string>)
   };
 
   // Never manually set Content-Type on FormData so the browser supplies multipart/form-data with boundary
@@ -138,13 +247,13 @@ export const apiFetch = async (
   }
 
   const requestInit: RequestInit = {
-    ...options,
+    ...fetchOpts,
     method,
     headers,
     credentials: 'include' // Required for HttpOnly cookies
   };
 
-  const timeoutMs = isFormData ? 45000 : DEFAULT_TIMEOUT_MS;
+  const timeoutMs = customTimeout ?? (isFormData ? 60000 : DEFAULT_TIMEOUT_MS);
 
   const execute = async (): Promise<Response> => {
     const res = await fetchWithTimeout(url, requestInit, timeoutMs);
@@ -228,15 +337,18 @@ export const apiFetch = async (
     };
   } catch (err: any) {
     const isAbort = err?.name === 'AbortError';
+    const isOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
     return {
       ok: false,
       status: 0,
       data: null,
+      timedOut: isAbort,
+      networkError: !isAbort,
       error: isAbort
-        ? 'The server is taking longer than usual to respond (cold start). Please try again.'
-        : typeof navigator !== 'undefined' && navigator.onLine === false
+        ? 'The request timed out before the server finished responding. Please check your connection and try again.'
+        : isOffline
         ? 'Network connection failed. Please check your internet connection and try again.'
-        : 'Unable to reach the SETU backend server. Please ensure the server is running or try again shortly.'
+        : 'Unable to reach the SETU backend server. Please try again shortly.'
     };
   }
 };

@@ -5,6 +5,7 @@ const Assessment_1 = require("../models/Assessment");
 const AssessmentResult_1 = require("../models/AssessmentResult");
 const LearningResource_1 = require("../models/LearningResource");
 const response_1 = require("../utils/response");
+const progressSnapshot_service_1 = require("../services/progressSnapshot.service");
 const sanitizeAssessment = (doc) => {
     const obj = typeof doc.toObject === 'function' ? doc.toObject() : { ...doc };
     const questions = Array.isArray(obj.questions)
@@ -334,6 +335,7 @@ const submitAssessment = async (req, res) => {
             answers
         });
         await result.save();
+        void (0, progressSnapshot_service_1.recordUserProgressSnapshot)(req.user._id);
         // Fetch learning recommendations matching identified skill gaps or domain
         const gapTerms = Array.from(new Set([...uniqueGaps, assessment.domain, ...skillsToVerify].filter(Boolean)));
         const gapRegexes = gapTerms.map((t) => new RegExp(t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'));

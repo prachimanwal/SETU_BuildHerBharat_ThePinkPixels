@@ -32,6 +32,10 @@ export interface IUploadedResumeFile extends Document {
   extractedData: IExtractedResumeData;
   confirmedByUser: boolean;
   shareWithEmployers: boolean;
+  parseStatus: 'processing' | 'completed' | 'failed';
+  parseWarning?: string;
+  parseError?: string;
+  idempotencyKey?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -64,7 +68,15 @@ const UploadedResumeFileSchema = new Schema<IUploadedResumeFile>(
       careerInterests: { type: [String], default: [] }
     },
     confirmedByUser: { type: Boolean, default: false },
-    shareWithEmployers: { type: Boolean, default: false }
+    shareWithEmployers: { type: Boolean, default: false },
+    parseStatus: {
+      type: String,
+      enum: ['processing', 'completed', 'failed'],
+      default: 'completed'
+    },
+    parseWarning: { type: String, default: '' },
+    parseError: { type: String, default: '' },
+    idempotencyKey: { type: String, default: '', index: true }
   },
   { timestamps: true }
 );

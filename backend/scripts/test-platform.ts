@@ -250,6 +250,9 @@ async function run() {
 
   (UploadedResumeFile as any).find = (q: any) =>
     makeQuery(uploadedResumes.filter((u) => !q?.userId || u.userId.toString() === String(q.userId)));
+  (UploadedResumeFile as any).countDocuments = async (q: any) =>
+    uploadedResumes.filter((u) => !q?.userId || u.userId.toString() === String(q.userId)).length;
+  (ProgressSnapshot as any).find = () => makeQuery([]);
   (ProgressSnapshot as any).findOneAndUpdate = async () => null;
 
   (CaneConversation as any).create = async (doc: any) => {
