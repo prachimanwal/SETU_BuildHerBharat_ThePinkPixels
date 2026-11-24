@@ -20,12 +20,20 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { useToast } from '../context/ToastContext';
 import { apiFetch, extractArray, unwrapData } from '../utils/api';
 import { ResumeBuilderModal } from '../components/ResumeBuilderModal';
 import { ResumeUploadReviewModal } from '../components/ResumeUploadReviewModal';
+import { ConfirmModal } from '../components/ConfirmModal';
+
+type DeleteTarget =
+  | { kind: 'resume'; id: string; label: string }
+  | { kind: 'upload'; id: string; label: string }
+  | { kind: 'project'; id: string; label: string };
 
 export const PortfolioPage: React.FC = () => {
   const { language } = useLanguage();
+  const { toast } = useToast();
   const [searchParams] = useSearchParams();
 
   const [projects, setProjects] = useState<any[]>([]);
@@ -59,6 +67,8 @@ export const PortfolioPage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [improvingDesc, setImprovingDesc] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadAll = async () => {
     setLoading(true);
@@ -206,21 +216,68 @@ export const PortfolioPage: React.FC = () => {
 
       if (!res.ok) {
         setErrorMsg(res.error || 'Failed to save project');
+        toast.error(res.error || 'Failed to save project.');
       } else {
         setModalOpen(false);
+        toast.success(editingProject ? 'Portfolio project updated.' : 'Portfolio project added.');
         await loadAll();
       }
     } catch (err: any) {
       setErrorMsg(err?.message || 'Network error');
+      toast.error('Network error while saving project.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleDeleteProject = async (id: string) => {
-    if (!window.confirm('Remove this project from your portfolio?')) return;
-    const res = await apiFetch(`/api/portfolio/${id}`, { method: 'DELETE' });
-    if (res.ok) await loadAll();
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget || deleting) return;
+    setDeleting(true);
+    try {
+      if (deleteTarget.kind === 'resume') {
+        const res = await apiFetch(`/api/resumes/${deleteTarget.id}`, { method: 'DELETE' });
+        if (!res.ok) {
+          toast.error(res.error || 'Could not delete resume. Please try again.');
+          return;
+        }
+        const payload = unwrapData(res.data);
+        const newDefaultId = payload?.newDefaultId;
+        setResumes((prev) =>
+          prev
+            .filter((item) => item._id !== deleteTarget.id)
+            .map((item) =>
+              newDefaultId && item._id === newDefaultId ? { ...item, isDefault: true } : item
+            )
+        );
+        toast.success('Resume deleted successfully.');
+        setDeleteTarget(null);
+        await loadAll();
+      } else if (deleteTarget.kind === 'upload') {
+        const res = await apiFetch(`/api/resumes/upload/${deleteTarget.id}`, { method: 'DELETE' });
+        if (!res.ok) {
+          toast.error(res.error || 'Could not delete uploaded resume file.');
+          return;
+        }
+        setUploadedFiles((prev) => prev.filter((item) => item._id !== deleteTarget.id));
+        toast.success('Uploaded resume file deleted permanently.');
+        setDeleteTarget(null);
+        await loadAll();
+      } else {
+        const res = await apiFetch(`/api/portfolio/${deleteTarget.id}`, { method: 'DELETE' });
+        if (!res.ok) {
+          toast.error(res.error || 'Could not remove portfolio project.');
+          return;
+        }
+        setProjects((prev) => prev.filter((item) => item._id !== deleteTarget.id));
+        toast.success('Project removed from your portfolio.');
+        setDeleteTarget(null);
+        await loadAll();
+      }
+    } catch {
+      toast.error('Network error occurred. Please check your connection and try again.');
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const handleSetDefaultResume = async (id: string) => {
@@ -228,13 +285,12 @@ export const PortfolioPage: React.FC = () => {
       method: 'PUT',
       body: JSON.stringify({ isDefault: true })
     });
-    if (res.ok) await loadAll();
-  };
-
-  const handleDeleteResume = async (id: string) => {
-    if (!window.confirm('Delete this saved resume version?')) return;
-    const res = await apiFetch(`/api/resumes/${id}`, { method: 'DELETE' });
-    if (res.ok) await loadAll();
+    if (res.ok) {
+      toast.success('Default resume updated.');
+      await loadAll();
+    } else {
+      toast.error(res.error || 'Could not set default resume.');
+    }
   };
 
   const handleToggleUploadShare = async (id: string, nextVal: boolean) => {
@@ -242,13 +298,12 @@ export const PortfolioPage: React.FC = () => {
       method: 'PATCH',
       body: JSON.stringify({ shareWithEmployers: nextVal })
     });
-    if (res.ok) await loadAll();
-  };
-
-  const handleDeleteUpload = async (id: string) => {
-    if (!window.confirm('Delete this uploaded resume file permanently?')) return;
-    const res = await apiFetch(`/api/resumes/upload/${id}`, { method: 'DELETE' });
-    if (res.ok) await loadAll();
+    if (res.ok) {
+      toast.success(nextVal ? 'Resume shared with verified employers.' : 'Resume set to private.');
+      await loadAll();
+    } else {
+      toast.error(res.error || 'Could not update resume sharing preference.');
+    }
   };
 
   const apiBase = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
@@ -387,9 +442,15 @@ export const PortfolioPage: React.FC = () => {
                     )}
                     <button
                       type="button"
-                      onClick={() => handleDeleteResume(r._id)}
+                      onClick={() =>
+                        setDeleteTarget({
+                          kind: 'resume',
+                          id: r._id,
+                          label: r.versionName || 'Saved Resume'
+                        })
+                      }
                       className="p-1.5 rounded-xl text-[#64748B] hover:text-rose-600 hover:bg-rose-50 ml-auto"
-                      aria-label="Delete resume"
+                      aria-label={`Delete resume ${r.versionName || ''}`}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -473,9 +534,15 @@ export const PortfolioPage: React.FC = () => {
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleDeleteUpload(uf._id)}
+                      onClick={() =>
+                        setDeleteTarget({
+                          kind: 'upload',
+                          id: uf._id,
+                          label: uf.originalFilename || 'Uploaded Resume'
+                        })
+                      }
                       className="p-1.5 rounded-xl text-[#64748B] hover:text-rose-600 hover:bg-rose-50 ml-auto"
-                      aria-label="Delete uploaded file"
+                      aria-label={`Delete uploaded file ${uf.originalFilename || ''}`}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -635,9 +702,15 @@ export const PortfolioPage: React.FC = () => {
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleDeleteProject(p._id)}
+                      onClick={() =>
+                        setDeleteTarget({
+                          kind: 'project',
+                          id: p._id,
+                          label: p.title || 'Portfolio Project'
+                        })
+                      }
                       className="p-1.5 rounded-xl text-[#64748B] hover:bg-rose-50 hover:text-rose-600"
-                      aria-label="Delete project"
+                      aria-label={`Delete project ${p.title || ''}`}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -843,13 +916,50 @@ export const PortfolioPage: React.FC = () => {
       {showUploadModal && (
         <ResumeUploadReviewModal
           onClose={() => setShowUploadModal(false)}
-          onConfirmed={loadAll}
+          onConfirmed={() => {
+            toast.success('Resume imported and synced to your SETU profile.');
+            void loadAll();
+          }}
           onCreateWithSetu={() => {
             setEditingResume(null);
             setShowResumeBuilder(true);
           }}
         />
       )}
+
+      {/* Custom Accessible Delete Confirmation Modal */}
+      <ConfirmModal
+        open={Boolean(deleteTarget)}
+        title={
+          deleteTarget?.kind === 'project'
+            ? 'Remove Portfolio Project?'
+            : deleteTarget?.kind === 'upload'
+              ? 'Delete Uploaded Resume?'
+              : 'Delete Resume?'
+        }
+        description={
+          deleteTarget?.kind === 'project'
+            ? 'Are you sure you want to remove this project from your portfolio? This action cannot be undone.'
+            : deleteTarget?.kind === 'upload'
+              ? 'Are you sure you want to permanently delete this uploaded resume file? This action cannot be undone.'
+              : 'Are you sure you want to delete this saved resume? This action cannot be undone.'
+        }
+        itemName={deleteTarget?.label}
+        confirmLabel={
+          deleteTarget?.kind === 'project'
+            ? 'Remove Project'
+            : deleteTarget?.kind === 'upload'
+              ? 'Delete File'
+              : 'Delete Resume'
+        }
+        variant="danger"
+        iconType="trash"
+        loading={deleting}
+        onConfirm={() => void handleConfirmDelete()}
+        onCancel={() => {
+          if (!deleting) setDeleteTarget(null);
+        }}
+      />
     </div>
   );
 };

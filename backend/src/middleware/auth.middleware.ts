@@ -10,25 +10,26 @@ export interface AuthenticatedRequest extends Request {
   token?: string;
 }
 
-export const generateToken = (user: IUser): string => {
+export const generateToken = (user: IUser, rememberMe = false): string => {
   return jwt.sign(
     {
       id: user._id.toString(),
       email: user.email,
-      role: user.role
+      role: user.role,
+      tv: user.tokenVersion ?? 0
     },
     ENV.JWT_SECRET,
-    { expiresIn: '7d' }
+    { expiresIn: rememberMe ? '30d' : '7d' }
   );
 };
 
-export const setAuthCookie = (res: Response, token: string): void => {
+export const setAuthCookie = (res: Response, token: string, rememberMe = false): void => {
   const isProduction = ENV.NODE_ENV === 'production';
   res.cookie('setu_token', token, {
     httpOnly: true,
     secure: isProduction,
     sameSite: isProduction ? 'none' : 'lax',
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    maxAge: (rememberMe ? 30 : 7) * 24 * 60 * 60 * 1000,
     path: '/'
   });
 };
@@ -69,12 +70,13 @@ export const authenticate = async (
       return;
     }
 
-    let decoded: { id: string; email: string; role: string };
+    let decoded: { id: string; email: string; role: string; tv?: number };
     try {
       decoded = jwt.verify(token, ENV.JWT_SECRET) as {
         id: string;
         email: string;
         role: string;
+        tv?: number;
       };
     } catch (jwtErr: any) {
       clearAuthCookie(res);
@@ -99,6 +101,12 @@ export const authenticate = async (
     if (!user) {
       clearAuthCookie(res);
       sendError(res, 'Account not found or session has expired. Please sign in again.', 401);
+      return;
+    }
+
+    if ((decoded.tv ?? 0) !== (user.tokenVersion ?? 0)) {
+      clearAuthCookie(res);
+      sendError(res, 'Your session is no longer active. Please sign in again.', 401);
       return;
     }
 
@@ -130,9 +138,9 @@ export const optionalAuthenticate = async (
     const token = extractRequestToken(req);
 
     if (token && mongoose.connection.readyState === 1) {
-      const decoded = jwt.verify(token, ENV.JWT_SECRET) as { id: string };
+      const decoded = jwt.verify(token, ENV.JWT_SECRET) as { id: string; tv?: number };
       const user = await User.findById(decoded.id).select('-passwordHash');
-      if (user) {
+      if (user && (decoded.tv ?? 0) === (user.tokenVersion ?? 0)) {
         req.user = user;
         req.token = token;
       }

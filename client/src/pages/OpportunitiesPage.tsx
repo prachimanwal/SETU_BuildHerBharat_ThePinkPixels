@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { apiFetch, extractArray, formatLocation, unwrapData } from '../utils/api';
 
 type OppTab = 'all' | 'recommended' | 'saved';
@@ -72,6 +73,7 @@ const OFFICIAL_CAREER_PORTALS = [
 export const OpportunitiesPage: React.FC = () => {
   const { language } = useLanguage();
   const { user } = useAuth();
+  const { toast } = useToast();
   const isAuthenticated = Boolean(user);
 
   const [opportunities, setOpportunities] = useState<any[]>([]);
@@ -206,11 +208,14 @@ export const OpportunitiesPage: React.FC = () => {
       });
 
       if (!res.ok) {
-        setApplyError(res.error || 'Failed to submit application.');
+        const errText = res.error || 'Failed to submit application.';
+        setApplyError(errText);
+        toast.error(errText);
       } else {
         setApplySuccess(
           'Application submitted successfully! Track updates anytime in My Applications.'
         );
+        toast.success('Application submitted successfully!');
         setOpportunities((prev) =>
           prev.map((o) =>
             String(o._id) === String(applyOpp._id) ? { ...o, hasApplied: true } : o
@@ -662,7 +667,7 @@ export const OpportunitiesPage: React.FC = () => {
                       type="button"
                       onClick={() => {
                         if (!isAuthenticated) {
-                          alert('Please sign in as a Job Seeker to apply.');
+                          toast.warning('Please sign in as a Job Seeker to apply for opportunities.');
                           return;
                         }
                         setApplyOpp(opp);

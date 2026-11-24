@@ -62,6 +62,30 @@ const UserSchema = new mongoose_1.Schema({
     emailVerified: { type: Boolean, default: false },
     profileCompletion: { type: Number, default: 10, min: 0, max: 100 },
     lastLogin: { type: Date },
+    themePreference: {
+        type: String,
+        enum: ['light', 'dark', 'system'],
+        default: 'system'
+    },
+    tokenVersion: { type: Number, default: 0 },
+    googleId: { type: String, default: '' },
+    notificationPreferences: {
+        jobApplicationUpdates: { type: Boolean, default: true },
+        interviewNotifications: { type: Boolean, default: true },
+        learningReminders: { type: Boolean, default: true },
+        accountSecurityAlerts: { type: Boolean, default: true }
+    },
+    securityActivity: {
+        type: [
+            {
+                action: { type: String, required: true },
+                timestamp: { type: Date, default: Date.now },
+                ipAddress: { type: String, default: '' },
+                userAgent: { type: String, default: '' }
+            }
+        ],
+        default: []
+    },
     seekerProfile: {
         headline: { type: String, default: '' },
         bio: { type: String, default: '' },

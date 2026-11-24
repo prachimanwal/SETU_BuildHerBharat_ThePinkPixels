@@ -2,6 +2,9 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { ToastProvider } from './context/ToastContext';
+import { ToastContainer } from './components/ToastContainer';
 
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
@@ -11,6 +14,11 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
+import { OtpLoginPage } from './pages/OtpLoginPage';
+import { VerifyEmailPage } from './pages/VerifyEmailPage';
+import { AccountSecuritySettingsPage } from './pages/AccountSecuritySettingsPage';
 import { SeekerDashboardPage } from './pages/SeekerDashboardPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { ProfileOnboardingPage } from './pages/ProfileOnboardingPage';
@@ -161,28 +169,57 @@ const HomeRoute: React.FC = () => {
 export default function App() {
   return (
     <ErrorBoundary>
-      <LanguageProvider>
-        <AuthProvider>
-          <BrowserRouter>
-          <Routes>
-            {/* Landing & Public Discovery Routes */}
-            <Route path="/" element={<HomeRoute />} />
-            <Route
-              path="/login"
-              element={
-                <AuthOnlyRoute>
-                  <LoginPage />
-                </AuthOnlyRoute>
-              }
-            />
-            <Route
-              path="/register"
-              element={
-                <AuthOnlyRoute>
-                  <RegisterPage />
-                </AuthOnlyRoute>
-              }
-            />
+      <ToastProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <ThemeProvider>
+              <ToastContainer />
+              <BrowserRouter>
+                <Routes>
+                  {/* Landing & Public Discovery Routes */}
+                  <Route path="/" element={<HomeRoute />} />
+                  <Route
+                    path="/login"
+                    element={
+                      <AuthOnlyRoute>
+                        <LoginPage />
+                      </AuthOnlyRoute>
+                    }
+                  />
+                  <Route
+                    path="/register"
+                    element={
+                      <AuthOnlyRoute>
+                        <RegisterPage />
+                      </AuthOnlyRoute>
+                    }
+                  />
+                  <Route
+                    path="/forgot-password"
+                    element={
+                      <AuthOnlyRoute>
+                        <ForgotPasswordPage />
+                      </AuthOnlyRoute>
+                    }
+                  />
+                  <Route
+                    path="/otp-login"
+                    element={
+                      <AuthOnlyRoute>
+                        <OtpLoginPage />
+                      </AuthOnlyRoute>
+                    }
+                  />
+                  <Route path="/reset-password" element={<ResetPasswordPage />} />
+                  <Route path="/verify-email" element={<VerifyEmailPage />} />
+                  <Route
+                    path="/settings"
+                    element={
+                      <ProtectedDashboardRoute allowedRoles={['seeker', 'employer', 'admin']}>
+                        <AccountSecuritySettingsPage />
+                      </ProtectedDashboardRoute>
+                    }
+                  />
 
             {/* Dual Access Routes (Public when logged out; 20:80 Dashboard when logged in) */}
             <Route
@@ -409,9 +446,11 @@ export default function App() {
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-          </BrowserRouter>
-        </AuthProvider>
-      </LanguageProvider>
+              </BrowserRouter>
+            </ThemeProvider>
+          </AuthProvider>
+        </LanguageProvider>
+      </ToastProvider>
     </ErrorBoundary>
   );
 }

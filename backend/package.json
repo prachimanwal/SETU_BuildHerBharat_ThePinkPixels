@@ -13,6 +13,7 @@
     "seed:dev-opportunities": "tsx src/seed/seedDevSampleOpportunities.ts",
     "verify": "tsx scripts/verify-all.ts",
     "test:auth": "tsx scripts/test-auth.ts",
+    "test:security": "tsx scripts/test-auth-security.ts",
     "test:platform": "tsx scripts/test-platform.ts",
     "test:employer": "tsx scripts/test-employer-portal.ts",
     "test:resume": "tsx scripts/test-resume-upload.ts",

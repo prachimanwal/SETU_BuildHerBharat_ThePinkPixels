@@ -20,6 +20,7 @@ import { Sidebar } from './Sidebar';
 import { Footer } from './Footer';
 import { UserAvatar } from './UserAvatar';
 import { CaneFloatingWidget } from './CaneChatWidget';
+import { ThemeToggleButton } from './ThemeToggleButton';
 import { apiFetch, unwrapData } from '../utils/api';
 
 interface DashboardLayoutProps {
@@ -140,6 +141,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
     if (p.startsWith('/progress')) return 'My Progress & Journey';
     if (p.startsWith('/cane')) return 'CANE AI Career Companion';
     if (p.startsWith('/profile')) return 'My Career Profile';
+    if (p.startsWith('/settings')) return 'Account & Security Settings';
     if (p.startsWith('/admin')) return 'Administrator Console';
     return 'SETU Platform';
   };
@@ -186,6 +188,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
           </div>
 
           <div className="flex items-center gap-2.5 sm:gap-3">
+            {/* Theme Toggle (immediately before Notification Bell and User Profile) */}
+            <ThemeToggleButton />
+
             {/* Interactive Notifications Bell */}
             <div className="relative" ref={notifRef}>
               <button
@@ -358,6 +363,14 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
                           <Settings className="w-4 h-4 text-[#64748B]" />
                           <span>Employer Settings</span>
                         </Link>
+                        <Link
+                          to="/settings"
+                          onClick={() => setDropdownOpen(false)}
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-2xl text-xs font-medium text-[#64748B] hover:text-[#334155] hover:bg-[#EAF7FF] transition-colors"
+                        >
+                          <ShieldCheck className="w-4 h-4 text-[#3B9EE8]" />
+                          <span>Account &amp; Security</span>
+                        </Link>
                       </>
                     ) : (
                       <>
@@ -388,7 +401,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
                           <span>Skill Assessments</span>
                         </Link>
                         <Link
-                          to="/profile?tab=settings"
+                          to="/settings"
                           onClick={() => setDropdownOpen(false)}
                           className="flex items-center gap-2.5 px-3 py-2 rounded-2xl text-xs font-medium text-[#64748B] hover:text-[#334155] hover:bg-[#EAF7FF] transition-colors"
                         >

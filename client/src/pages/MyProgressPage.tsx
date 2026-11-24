@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { apiFetch, unwrapData } from '../utils/api';
 
 ChartJS.register(
@@ -63,6 +64,7 @@ const VIEW_OPTIONS: Array<{ id: ViewRangeKey; label: string; subtitle: string }>
 export const MyProgressPage: React.FC = () => {
   const { language } = useLanguage();
   const { user } = useAuth();
+  const { isDark } = useTheme();
 
   const [range, setRange] = useState<ViewRangeKey>('monthly');
   const [data, setData] = useState<any>(null);
@@ -219,7 +221,7 @@ export const MyProgressPage: React.FC = () => {
         label: 'Skill Progress (%)',
         data: coreCategories.map((c) => c.score),
         backgroundColor: coreCategories.map((c) => {
-          if (!c.hasActivity) return '#E2F1FC';
+          if (!c.hasActivity) return isDark ? '#334155' : '#E2F1FC';
           if (c.status === 'improving' || c.status === 'strong') return '#34D399';
           return '#60B6F8';
         }),
@@ -234,8 +236,8 @@ export const MyProgressPage: React.FC = () => {
     datasets: [
       {
         data: [learningDonut.completed, learningDonut.inProgress, learningDonut.notStarted],
-        backgroundColor: ['#34D399', '#60B6F8', '#E2F1FC'],
-        borderColor: '#FFFFFF',
+        backgroundColor: ['#34D399', '#60B6F8', isDark ? '#334155' : '#E2F1FC'],
+        borderColor: isDark ? '#1E293B' : '#FFFFFF',
         borderWidth: 3
       }
     ]

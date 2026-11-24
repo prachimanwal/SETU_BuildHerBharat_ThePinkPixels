@@ -205,14 +205,17 @@ async function run() {
   const port = (server.address() as any).port;
 
   try {
-    // 1. Google auth route is completely removed (404 JSON)
+    // 1. Google auth rejects unconfigured / fake credentials cleanly (never issues demo session)
     const googleRes = await request(port, 'POST', '/api/auth/google', {
       body: { credential: 'anything' }
     });
-    assert.equal(googleRes.status, 404);
+    assert.ok(
+      googleRes.status === 503 || googleRes.status === 401 || googleRes.status === 400,
+      `Expected 503/401/400 without valid Google config/token, got ${googleRes.status}`
+    );
     assert.equal(googleRes.body.success, false);
     assert.equal(googleRes.cookies.setu_token, undefined);
-    console.log('  ✓ 1. /api/auth/google route is removed (returns HTTP 404 JSON)');
+    console.log('  ✓ 1. /api/auth/google rejects unconfigured/invalid tokens with zero demo fallback');
 
     // 2. Public Admin registration is strictly blocked
     const adminRegRes = await request(port, 'POST', '/api/auth/register', {

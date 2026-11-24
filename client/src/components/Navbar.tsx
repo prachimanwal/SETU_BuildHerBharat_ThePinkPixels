@@ -13,6 +13,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { UserAvatar } from './UserAvatar';
+import { ThemeToggleButton } from './ThemeToggleButton';
 
 export const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
@@ -106,8 +107,9 @@ export const Navbar: React.FC = () => {
             })}
           </nav>
 
-          {/* RIGHT SECTION: Language Selector & Auth */}
+          {/* RIGHT SECTION: Theme Toggle, Language Selector & Auth */}
           <div className="hidden lg:flex items-center space-x-3">
+            <ThemeToggleButton />
             <button
               onClick={toggleLanguage}
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-[#D8ECFA] bg-[#F8FCFF] hover:bg-[#EAF7FF] text-[#334155] text-xs font-semibold transition"
@@ -207,6 +209,7 @@ export const Navbar: React.FC = () => {
 
           {/* MOBILE HAMBURGER BUTTON */}
           <div className="flex items-center gap-2 lg:hidden">
+            <ThemeToggleButton className="!p-2 rounded-full" />
             <button
               onClick={toggleLanguage}
               className="px-3 py-2 rounded-full border border-[#D8ECFA] bg-[#F8FCFF] text-[#334155] text-xs font-semibold"

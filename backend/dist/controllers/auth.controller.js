@@ -12,6 +12,7 @@ const auth_middleware_1 = require("../middleware/auth.middleware");
 const response_1 = require("../utils/response");
 const validators_1 = require("../utils/validators");
 const userSerializer_1 = require("../utils/userSerializer");
+const securityHelpers_1 = require("../utils/securityHelpers");
 const isDatabaseReady = () => mongoose_1.default.connection.readyState === 1;
 const isDatabaseError = (error) => {
     const name = String(error?.name || '');
@@ -20,21 +21,6 @@ const isDatabaseError = (error) => {
         name === 'MongoServerSelectionError' ||
         name === 'MongoTimeoutError');
 };
-const createEmptySeekerProfile = () => ({
-    headline: '',
-    phone: '',
-    location: { city: '', state: '', isRural: false },
-    languages: [],
-    educationLevel: '',
-    qualifications: [],
-    skills: [],
-    experienceLevel: '',
-    careerGoals: '',
-    interests: [],
-    preferredWorkMode: 'any',
-    resumeUrl: '',
-    isCareerRestart: false
-});
 const register = async (req, res) => {
     try {
         if (!isDatabaseReady()) {
@@ -71,7 +57,7 @@ const register = async (req, res) => {
             role: assignedRole,
             emailVerified: false,
             lastLogin: new Date(),
-            seekerProfile: assignedRole === 'seeker' ? createEmptySeekerProfile() : undefined,
+            seekerProfile: assignedRole === 'seeker' ? (0, securityHelpers_1.createEmptySeekerProfile)() : undefined,
             employerProfile: assignedRole === 'employer'
                 ? {
                     companyName: name,
@@ -90,6 +76,7 @@ const register = async (req, res) => {
                 : undefined
         });
         newUser.profileCompletion = (0, userSerializer_1.calculateProfileCompletion)(newUser);
+        (0, securityHelpers_1.recordSecurityActivity)(newUser, 'Account created', req);
         await newUser.save();
         // If employer, synchronize with Employer collection
         if (assignedRole === 'employer') {
@@ -131,6 +118,7 @@ const login = async (req, res) => {
             return;
         }
         const { email, password } = parseResult.data;
+        const rememberMe = Boolean(req.body?.rememberMe);
         const normalizedEmail = email.toLowerCase().trim();
         const user = await User_1.User.findOne({ email: normalizedEmail });
         if (!user) {
@@ -144,9 +132,10 @@ const login = async (req, res) => {
         }
         user.lastLogin = new Date();
         user.profileCompletion = (0, userSerializer_1.calculateProfileCompletion)(user);
+        (0, securityHelpers_1.recordSecurityActivity)(user, 'Password sign-in', req);
         await user.save();
-        const token = (0, auth_middleware_1.generateToken)(user);
-        (0, auth_middleware_1.setAuthCookie)(res, token);
+        const token = (0, auth_middleware_1.generateToken)(user, rememberMe);
+        (0, auth_middleware_1.setAuthCookie)(res, token, rememberMe);
         (0, response_1.sendSuccess)(res, 'Logged in successfully', {
             user: (0, userSerializer_1.serializeUser)(user),
             token

@@ -198,6 +198,14 @@ export const serializeUser = (user: IUser) => {
     missingSections: completionDetails.missingSections,
     lastLogin: user.lastLogin,
     createdAt: user.createdAt,
+    themePreference: user.themePreference || 'system',
+    googleLinked: Boolean(user.googleId),
+    notificationPreferences: {
+      jobApplicationUpdates: user.notificationPreferences?.jobApplicationUpdates ?? true,
+      interviewNotifications: user.notificationPreferences?.interviewNotifications ?? true,
+      learningReminders: user.notificationPreferences?.learningReminders ?? true,
+      accountSecurityAlerts: user.notificationPreferences?.accountSecurityAlerts ?? true
+    },
     seekerProfile: user.seekerProfile,
     employerProfile: user.employerProfile
   };

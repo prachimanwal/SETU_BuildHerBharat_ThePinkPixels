@@ -126,6 +126,22 @@ export interface IEmployerProfile {
   verifiedAt?: Date;
 }
 
+export type ThemePreference = 'light' | 'dark' | 'system';
+
+export interface INotificationPreferences {
+  jobApplicationUpdates: boolean;
+  interviewNotifications: boolean;
+  learningReminders: boolean;
+  accountSecurityAlerts: boolean;
+}
+
+export interface ISecurityActivityEntry {
+  action: string;
+  timestamp: Date;
+  ipAddress?: string;
+  userAgent?: string;
+}
+
 export interface IUser extends Document {
   _id: mongoose.Types.ObjectId;
   name: string;
@@ -138,6 +154,11 @@ export interface IUser extends Document {
   emailVerified: boolean;
   profileCompletion: number;
   lastLogin?: Date;
+  themePreference?: ThemePreference;
+  tokenVersion?: number;
+  googleId?: string;
+  notificationPreferences?: INotificationPreferences;
+  securityActivity?: ISecurityActivityEntry[];
   seekerProfile?: ISeekerProfile;
   employerProfile?: IEmployerProfile;
   savedOpportunities?: mongoose.Types.ObjectId[];
@@ -171,6 +192,30 @@ const UserSchema = new Schema<IUser>(
     emailVerified: { type: Boolean, default: false },
     profileCompletion: { type: Number, default: 10, min: 0, max: 100 },
     lastLogin: { type: Date },
+    themePreference: {
+      type: String,
+      enum: ['light', 'dark', 'system'],
+      default: 'system'
+    },
+    tokenVersion: { type: Number, default: 0 },
+    googleId: { type: String, default: '' },
+    notificationPreferences: {
+      jobApplicationUpdates: { type: Boolean, default: true },
+      interviewNotifications: { type: Boolean, default: true },
+      learningReminders: { type: Boolean, default: true },
+      accountSecurityAlerts: { type: Boolean, default: true }
+    },
+    securityActivity: {
+      type: [
+        {
+          action: { type: String, required: true },
+          timestamp: { type: Date, default: Date.now },
+          ipAddress: { type: String, default: '' },
+          userAgent: { type: String, default: '' }
+        }
+      ],
+      default: []
+    },
     seekerProfile: {
       headline: { type: String, default: '' },
       bio: { type: String, default: '' },

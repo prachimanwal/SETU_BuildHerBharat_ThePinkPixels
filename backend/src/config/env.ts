@@ -29,5 +29,13 @@ export const ENV = {
   GEMINI_FALLBACK_MODEL: process.env.GEMINI_FALLBACK_MODEL || '',
   OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
   OPENAI_BASE_URL: (process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(/\/$/, ''),
-  CANE_AI_MODEL: process.env.CANE_AI_MODEL || ''
+  CANE_AI_MODEL: process.env.CANE_AI_MODEL || '',
+  // Transactional email delivery providers (Render HTTPS APIs; keep strictly on backend)
+  RESEND_API_KEY: process.env.RESEND_API_KEY || '',
+  BREVO_API_KEY: process.env.BREVO_API_KEY || '',
+  EMAIL_FROM: process.env.EMAIL_FROM || 'no-reply@oursetu.app',
+  EMAIL_FROM_NAME: process.env.EMAIL_FROM_NAME || 'SETU Career Platform',
+  // Google OAuth Client ID (optional; only verified ID tokens allowed)
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',
+  OTP_PEPPER: process.env.OTP_PEPPER || process.env.JWT_SECRET || 'setu_otp_pepper_2026'
 };

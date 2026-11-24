@@ -11,9 +11,12 @@ import {
   Sparkles
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
+import { ThemeToggleButton } from '../components/ThemeToggleButton';
 
 export const RegisterPage: React.FC = () => {
   const { register } = useAuth();
+  const { toast } = useToast();
   const navigate = useNavigate();
 
   const [role, setRole] = useState<'seeker' | 'employer'>('seeker');
@@ -74,18 +77,24 @@ export const RegisterPage: React.FC = () => {
 
     if (res.success) {
       setSuccessMsg('Account created successfully! Taking you to your career profile...');
+      toast.success('Account created successfully! Welcome to SETU.');
       if (res.user?.role === 'employer' || role === 'employer') {
         navigate('/employer/onboarding');
       } else {
         navigate('/onboarding');
       }
     } else {
-      setError(res.error || 'Registration was unsuccessful. Please try again.');
+      const msg = res.error || 'Registration was unsuccessful. Please try again.';
+      setError(msg);
+      toast.error(msg);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FCFF] flex">
+    <div className="min-h-screen bg-[#F8FCFF] dark:bg-[#0B1120] flex relative">
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20">
+        <ThemeToggleButton />
+      </div>
       {/* DESKTOP LEFT COLUMN: Cheerful Baby-Blue Branding */}
       <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-[#EAF7FF] via-[#D6EEFF] to-[#BDE0FE]/70 border-r border-[#D8ECFA] p-12 flex-col justify-between overflow-hidden">
         <div className="absolute top-1/4 left-1/4 w-80 h-80 bg-white/50 rounded-full blur-3xl pointer-events-none animate-float-slow" />

@@ -269,8 +269,25 @@ export const deleteResume = async (req: AuthenticatedRequest, res: Response): Pr
       return;
     }
 
+    const wasDefault = Boolean(resume.isDefault);
     await Resume.findByIdAndDelete(resume._id);
-    sendSuccess(res, 'Resume deleted successfully');
+
+    let newDefaultId: string | null = null;
+    if (wasDefault) {
+      const nextDefault = await Resume.findOne({ userId: req.user._id }).sort({ updatedAt: -1 });
+      if (nextDefault) {
+        nextDefault.isDefault = true;
+        await nextDefault.save();
+        newDefaultId = nextDefault._id.toString();
+      }
+    }
+
+    void recordUserProgressSnapshot(req.user._id);
+    sendSuccess(res, 'Resume deleted successfully', {
+      deletedId: resume._id.toString(),
+      wasDefault,
+      newDefaultId
+    });
   } catch (error: any) {
     sendError(res, error.message || 'Failed to delete resume', 500);
   }

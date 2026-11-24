@@ -57,6 +57,13 @@ export interface EmploymentPreferences {
   willingToRelocate?: boolean;
 }
 
+export interface NotificationPreferences {
+  jobApplicationUpdates: boolean;
+  interviewNotifications: boolean;
+  learningReminders: boolean;
+  accountSecurityAlerts: boolean;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -66,6 +73,9 @@ export interface User {
   avatar?: string;
   profilePicture?: string;
   emailVerified?: boolean;
+  themePreference?: 'light' | 'dark' | 'system';
+  googleLinked?: boolean;
+  notificationPreferences?: NotificationPreferences;
   profileCompletion?: number;
   completedSections?: string[];
   missingSections?: string[];
@@ -139,7 +149,8 @@ interface AuthContextType {
   successNotice: string;
   setSuccessNotice: (msg: string) => void;
   clearSuccessNotice: () => void;
-  login: (email: string, password: string) => Promise<AuthResult>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<AuthResult>;
+  loginWithSession: (userData: User, token?: string) => void;
   register: (data: any) => Promise<AuthResult>;
   logout: () => Promise<void>;
   updateProfile: (data: any) => Promise<{ success: boolean; user?: User; error?: string }>;
@@ -215,13 +226,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const clearSessionNotice = () => setSessionNotice('');
   const clearSuccessNotice = () => setSuccessNotice('');
 
-  const login = async (email: string, password: string): Promise<AuthResult> => {
+  const login = async (
+    email: string,
+    password: string,
+    rememberMe = false
+  ): Promise<AuthResult> => {
     try {
       setSessionNotice('');
       setSuccessNotice('');
       const res = await apiFetch('/api/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password, rememberMe })
       });
 
       if (!res.ok) {
@@ -243,6 +258,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         error: err.message || 'Network connection failed. Please try again.'
       };
     }
+  };
+
+  const loginWithSession = (userData: User, token?: string) => {
+    setSessionNotice('');
+    setSuccessNotice('');
+    if (token) {
+      localStorage.setItem('setu_auth_token', token);
+    }
+    sessionStorage.setItem(SESSION_MARKER_KEY, '1');
+    setUser(userData);
   };
 
   const register = async (data: any): Promise<AuthResult> => {
@@ -324,6 +349,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSuccessNotice,
         clearSuccessNotice,
         login,
+        loginWithSession,
         register,
         logout,
         updateProfile,

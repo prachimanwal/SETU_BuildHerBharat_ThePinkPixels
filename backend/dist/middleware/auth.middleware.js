@@ -9,21 +9,22 @@ const mongoose_1 = __importDefault(require("mongoose"));
 const env_1 = require("../config/env");
 const User_1 = require("../models/User");
 const response_1 = require("../utils/response");
-const generateToken = (user) => {
+const generateToken = (user, rememberMe = false) => {
     return jsonwebtoken_1.default.sign({
         id: user._id.toString(),
         email: user.email,
-        role: user.role
-    }, env_1.ENV.JWT_SECRET, { expiresIn: '7d' });
+        role: user.role,
+        tv: user.tokenVersion ?? 0
+    }, env_1.ENV.JWT_SECRET, { expiresIn: rememberMe ? '30d' : '7d' });
 };
 exports.generateToken = generateToken;
-const setAuthCookie = (res, token) => {
+const setAuthCookie = (res, token, rememberMe = false) => {
     const isProduction = env_1.ENV.NODE_ENV === 'production';
     res.cookie('setu_token', token, {
         httpOnly: true,
         secure: isProduction,
         sameSite: isProduction ? 'none' : 'lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        maxAge: (rememberMe ? 30 : 7) * 24 * 60 * 60 * 1000,
         path: '/'
     });
 };
@@ -81,6 +82,11 @@ const authenticate = async (req, res, next) => {
             (0, response_1.sendError)(res, 'Account not found or session has expired. Please sign in again.', 401);
             return;
         }
+        if ((decoded.tv ?? 0) !== (user.tokenVersion ?? 0)) {
+            (0, exports.clearAuthCookie)(res);
+            (0, response_1.sendError)(res, 'Your session is no longer active. Please sign in again.', 401);
+            return;
+        }
         req.user = user;
         req.token = token;
         next();
@@ -101,7 +107,7 @@ const optionalAuthenticate = async (req, _res, next) => {
         if (token && mongoose_1.default.connection.readyState === 1) {
             const decoded = jsonwebtoken_1.default.verify(token, env_1.ENV.JWT_SECRET);
             const user = await User_1.User.findById(decoded.id).select('-passwordHash');
-            if (user) {
+            if (user && (decoded.tv ?? 0) === (user.tokenVersion ?? 0)) {
                 req.user = user;
                 req.token = token;
             }

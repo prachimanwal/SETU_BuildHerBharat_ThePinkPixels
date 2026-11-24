@@ -12,6 +12,7 @@ import {
 import { sendSuccess, sendError } from '../utils/response';
 import { registerSchema, loginSchema } from '../utils/validators';
 import { calculateProfileCompletion, serializeUser } from '../utils/userSerializer';
+import { createEmptySeekerProfile, recordSecurityActivity } from '../utils/securityHelpers';
 
 const isDatabaseReady = (): boolean => mongoose.connection.readyState === 1;
 
@@ -24,22 +25,6 @@ const isDatabaseError = (error: any): boolean => {
     name === 'MongoTimeoutError'
   );
 };
-
-const createEmptySeekerProfile = () => ({
-  headline: '',
-  phone: '',
-  location: { city: '', state: '', isRural: false },
-  languages: [] as string[],
-  educationLevel: '',
-  qualifications: [] as Array<{ title: string; institute?: string; year?: string }>,
-  skills: [] as string[],
-  experienceLevel: '',
-  careerGoals: '',
-  interests: [] as string[],
-  preferredWorkMode: 'any' as const,
-  resumeUrl: '',
-  isCareerRestart: false
-});
 
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -109,6 +94,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     });
 
     newUser.profileCompletion = calculateProfileCompletion(newUser);
+    recordSecurityActivity(newUser, 'Account created', req);
     await newUser.save();
 
     // If employer, synchronize with Employer collection
@@ -171,6 +157,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     }
 
     const { email, password } = parseResult.data;
+    const rememberMe = Boolean(req.body?.rememberMe);
     const normalizedEmail = email.toLowerCase().trim();
 
     const user = await User.findOne({ email: normalizedEmail });
@@ -187,10 +174,11 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     user.lastLogin = new Date();
     user.profileCompletion = calculateProfileCompletion(user);
+    recordSecurityActivity(user, 'Password sign-in', req);
     await user.save();
 
-    const token = generateToken(user);
-    setAuthCookie(res, token);
+    const token = generateToken(user, rememberMe);
+    setAuthCookie(res, token, rememberMe);
 
     sendSuccess(res, 'Logged in successfully', {
       user: serializeUser(user),

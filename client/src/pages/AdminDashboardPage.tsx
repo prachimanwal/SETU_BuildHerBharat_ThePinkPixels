@@ -18,11 +18,31 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useToast } from '../context/ToastContext';
+import { PromptModal } from '../components/PromptModal';
 import { apiFetch, extractArray, formatLocation, getApiUrl, unwrapData } from '../utils/api';
+
+type AdminPromptState =
+  | {
+      kind: 'employer';
+      employerId: string;
+      newStatus: string;
+      defaultNote: string;
+      title: string;
+      label: string;
+    }
+  | {
+      kind: 'document';
+      docId: string;
+      status: 'Rejected' | 'Additional Information Required';
+      title: string;
+      label: string;
+    };
 
 export const AdminDashboardPage: React.FC = () => {
   const { user } = useAuth();
   const { language } = useLanguage();
+  const { toast } = useToast();
 
   const [activeTab, setActiveTab] = useState<'verification' | 'reports' | 'listings' | 'support'>('verification');
   const [stats, setStats] = useState<any>(null);
@@ -32,8 +52,10 @@ export const AdminDashboardPage: React.FC = () => {
   const [supportTickets, setSupportTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Admin note prompt
+  // Admin note modal
   const [actionSuccess, setActionSuccess] = useState('');
+  const [promptState, setPromptState] = useState<AdminPromptState | null>(null);
+  const [promptSubmitting, setPromptSubmitting] = useState(false);
 
   const loadData = async () => {
     try {
@@ -65,30 +87,19 @@ export const AdminDashboardPage: React.FC = () => {
     loadData();
   }, []);
 
-  const handleUpdateEmployer = async (
+  const handleUpdateEmployer = (
     employerId: string,
     newStatus: string,
     defaultNote: string
   ) => {
-    const note = prompt('Admin review note for audit:', defaultNote) || defaultNote;
-    try {
-      const res = await apiFetch(`/api/admin/employers/${employerId}/verify`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          status: newStatus,
-          notes: note,
-          adminReviewNotes: note
-        })
-      });
-
-      if (res.ok) {
-        setActionSuccess(`Employer status changed to ${newStatus}`);
-        await loadData();
-        setTimeout(() => setActionSuccess(''), 3000);
-      }
-    } catch (err) {
-      console.error(err);
-    }
+    setPromptState({
+      kind: 'employer',
+      employerId,
+      newStatus,
+      defaultNote,
+      title: `Update Employer Status (${newStatus})`,
+      label: 'Admin review note for audit'
+    });
   };
 
   const handlePreviewEmployerDoc = async (docId: string) => {
@@ -97,28 +108,82 @@ export const AdminDashboardPage: React.FC = () => {
       credentials: 'include',
       headers: token ? { Authorization: `Bearer ${token}` } : {}
     });
-    if (!res.ok) return;
+    if (!res.ok) {
+      toast.error('Could not preview document right now.');
+      return;
+    }
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
-  const handleReviewDoc = async (
+  const submitDocReview = async (
     docId: string,
-    status: 'Verified' | 'Rejected' | 'Additional Information Required'
+    status: 'Verified' | 'Rejected' | 'Additional Information Required',
+    reason: string
   ) => {
-    const reason =
-      status === 'Verified'
-        ? 'Document verified by SETU administrator.'
-        : prompt(`Enter feedback / reason for marking document "${status}":`, '') || status;
     const res = await apiFetch(`/api/admin/verification/documents/${docId}`, {
       method: 'PUT',
       body: JSON.stringify({ status, rejectionReason: reason, adminNotes: reason })
     });
     if (res.ok) {
       setActionSuccess(`Document marked as ${status}`);
+      toast.success(`Document marked as ${status}.`);
       await loadData();
       setTimeout(() => setActionSuccess(''), 3000);
+    } else {
+      toast.error(res.error || 'Could not update document status.');
+    }
+  };
+
+  const handleReviewDoc = async (
+    docId: string,
+    status: 'Verified' | 'Rejected' | 'Additional Information Required'
+  ) => {
+    if (status === 'Verified') {
+      await submitDocReview(docId, status, 'Document verified by SETU administrator.');
+      return;
+    }
+    setPromptState({
+      kind: 'document',
+      docId,
+      status,
+      title: `Mark Document as "${status}"`,
+      label: `Feedback / reason for "${status}"`
+    });
+  };
+
+  const handlePromptConfirm = async (value: string) => {
+    if (!promptState || promptSubmitting) return;
+    setPromptSubmitting(true);
+    try {
+      if (promptState.kind === 'employer') {
+        const note = value || promptState.defaultNote;
+        const res = await apiFetch(`/api/admin/employers/${promptState.employerId}/verify`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            status: promptState.newStatus,
+            notes: note,
+            adminReviewNotes: note
+          })
+        });
+        if (res.ok) {
+          setActionSuccess(`Employer status changed to ${promptState.newStatus}`);
+          toast.success(`Employer status updated to ${promptState.newStatus}.`);
+          setPromptState(null);
+          await loadData();
+          setTimeout(() => setActionSuccess(''), 3000);
+        } else {
+          toast.error(res.error || 'Could not update employer verification status.');
+        }
+      } else {
+        await submitDocReview(promptState.docId, promptState.status, value || promptState.status);
+        setPromptState(null);
+      }
+    } catch {
+      toast.error('Network error while saving admin review note.');
+    } finally {
+      setPromptSubmitting(false);
     }
   };
 
@@ -654,6 +719,21 @@ export const AdminDashboardPage: React.FC = () => {
           )}
         </div>
       )}
+
+      <PromptModal
+        open={Boolean(promptState)}
+        title={promptState?.title || 'Admin Review Note'}
+        description="Provide clear audit feedback for this moderation decision."
+        label={promptState?.label || 'Review Note'}
+        defaultValue={promptState?.kind === 'employer' ? promptState.defaultNote : ''}
+        placeholder="Enter review note or reason..."
+        confirmLabel="Save & Apply"
+        loading={promptSubmitting}
+        onConfirm={(val) => void handlePromptConfirm(val)}
+        onCancel={() => {
+          if (!promptSubmitting) setPromptState(null);
+        }}
+      />
     </div>
   );
 };
