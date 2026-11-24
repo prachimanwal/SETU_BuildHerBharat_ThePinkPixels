@@ -19,13 +19,16 @@ import {
 } from 'lucide-react';
 import {
   useAuth,
+  GenderOption,
   EducationEntry,
   DetailedSkill,
   ExperienceEntry
 } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { UserAvatar } from '../components/UserAvatar';
 import { EducationManager } from '../components/EducationManager';
 import {
+  GENDER_OPTIONS,
   PROFICIENCY_LEVELS,
   CAREER_INTERESTS,
   CAREER_GOALS,
@@ -40,6 +43,7 @@ type ProfileTab = 'profile' | 'skills' | 'preferences' | 'settings';
 
 export const ProfilePage: React.FC = () => {
   const { user, updateProfile } = useAuth();
+  const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const tabParam = searchParams.get('tab') || 'profile';
@@ -71,6 +75,7 @@ export const ProfilePage: React.FC = () => {
 
   // Personal & Education
   const [name, setName] = useState('');
+  const [gender, setGender] = useState<GenderOption>('');
   const [profilePhoto, setProfilePhoto] = useState('');
   const [headline, setHeadline] = useState('');
   const [bio, setBio] = useState('');
@@ -121,6 +126,7 @@ export const ProfilePage: React.FC = () => {
     if (!user) return;
     const sp = user.seekerProfile || {};
     setName(user.name || '');
+    setGender((user.gender as GenderOption) || '');
     setProfilePhoto(user.profilePicture || user.avatar || '');
     setHeadline(sp.headline || '');
     setBio(sp.bio || '');
@@ -237,6 +243,7 @@ export const ProfilePage: React.FC = () => {
 
     const payload = {
       name: name.trim(),
+      gender,
       profilePicture: profilePhoto.trim(),
       seekerProfile: {
         headline: headline.trim() || bio.trim().slice(0, 120),
@@ -281,9 +288,12 @@ export const ProfilePage: React.FC = () => {
     setSaving(false);
     if (res.success) {
       setSuccessMsg('Your career profile has been saved and updated!');
+      toast.success('Profile updated successfully.');
       setTimeout(() => setSuccessMsg(''), 4000);
     } else {
-      setErrorMsg(res.error || 'Failed to update profile');
+      const msg = res.error || 'Failed to update profile';
+      setErrorMsg(msg);
+      toast.error(msg);
     }
   };
 
@@ -494,6 +504,31 @@ export const ProfilePage: React.FC = () => {
                   placeholder="e.g. B.Tech Student | Aspiring Data Analyst"
                   className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-sm outline-none"
                 />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="profile-gender"
+                  className="block text-xs font-semibold text-[#334155] mb-1.5"
+                >
+                  Gender <span className="text-[#64748B] font-normal">(Optional)</span>
+                </label>
+                <select
+                  id="profile-gender"
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value as GenderOption)}
+                  className="w-full px-3.5 py-2.5 rounded-2xl border border-[#D8ECFA] text-sm outline-none"
+                >
+                  <option value="">Prefer not specified</option>
+                  {GENDER_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-[#64748B] mt-1">
+                  Optional. Determines eligibility for women-centric initiatives like Build Her.
+                </p>
               </div>
             </div>
 
@@ -987,23 +1022,25 @@ export const ProfilePage: React.FC = () => {
               </label>
             </div>
 
-            <div className="p-4 bg-pink-50/70 rounded-2xl border border-pink-200 flex items-start gap-3">
-              <input
-                type="checkbox"
-                id="restart-setting"
-                checked={isCareerRestart}
-                onChange={(e) => setIsCareerRestart(e.target.checked)}
-                className="w-4 h-4 mt-0.5 accent-pink-500"
-              />
-              <div>
-                <label htmlFor="restart-setting" className="text-xs font-bold text-pink-900 cursor-pointer block">
-                  Build Her Participant: Women Returning to Work / Financial Independence
-                </label>
-                <p className="text-[11px] text-pink-700 mt-0.5 leading-relaxed">
-                  Enables curated career-restart opportunities with flexible hours and returnee mentorship.
-                </p>
+            {user?.role === 'seeker' && gender === 'Female' && (
+              <div className="p-4 bg-pink-50/70 rounded-2xl border border-pink-200 flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  id="restart-setting"
+                  checked={isCareerRestart}
+                  onChange={(e) => setIsCareerRestart(e.target.checked)}
+                  className="w-4 h-4 mt-0.5 accent-pink-500"
+                />
+                <div>
+                  <label htmlFor="restart-setting" className="text-xs font-bold text-pink-900 cursor-pointer block">
+                    Build Her Participant: Women Returning to Work / Financial Independence
+                  </label>
+                  <p className="text-[11px] text-pink-700 mt-0.5 leading-relaxed">
+                    Enables curated career-restart opportunities with flexible hours and returnee mentorship.
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 

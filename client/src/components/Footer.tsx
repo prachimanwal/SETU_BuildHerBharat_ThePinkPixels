@@ -1,7 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth, isBuildHerEligible } from '../context/AuthContext';
 
 export const Footer: React.FC = () => {
+  const { user } = useAuth();
+  const showBuildHer = isBuildHerEligible(user);
+
   return (
     <footer className="bg-gradient-to-b from-[#EAF7FF] to-[#F8FCFF] text-[#64748B] py-10 border-t border-[#D8ECFA] mt-auto">
       <div className="max-w-7xl mx-auto px-6 sm:px-8 space-y-8">
@@ -38,9 +42,11 @@ export const Footer: React.FC = () => {
             <Link to="/learn" className="hover:text-[#334155] transition-colors">
               Learn
             </Link>
-            <Link to="/build-her" className="hover:text-[#3B9EE8] transition-colors">
-              Mentorship
-            </Link>
+            {showBuildHer && (
+              <Link to="/build-her" className="hover:text-[#3B9EE8] transition-colors">
+                Build Her
+              </Link>
+            )}
             <Link to="/schemes" className="hover:text-[#334155] transition-colors">
               Schemes
             </Link>

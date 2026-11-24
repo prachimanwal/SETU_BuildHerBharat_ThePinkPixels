@@ -1,14 +1,18 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.schemeSchema = exports.portfolioSchema = exports.interviewSchema = exports.hiringPreferenceSchema = exports.applicationSchema = exports.opportunitySchema = exports.profileUpdateSchema = exports.loginSchema = exports.registerSchema = void 0;
+exports.schemeSchema = exports.portfolioSchema = exports.interviewSchema = exports.hiringPreferenceSchema = exports.applicationSchema = exports.opportunitySchema = exports.profileUpdateSchema = exports.loginSchema = exports.registerSchema = exports.genderSchema = void 0;
 const zod_1 = require("zod");
+exports.genderSchema = zod_1.z
+    .enum(['', 'Female', 'Male', 'Non-binary', 'Other', 'Prefer not to say'])
+    .optional();
 exports.registerSchema = zod_1.z.object({
     name: zod_1.z.string().trim().min(2, 'Name must be at least 2 characters long'),
     email: zod_1.z.string().trim().email('Invalid email address'),
     password: zod_1.z.string().min(6, 'Password must be at least 6 characters long'),
     role: zod_1.z.enum(['seeker', 'employer'], {
         errorMap: () => ({ message: "Role must be 'seeker' or 'employer'" })
-    })
+    }),
+    gender: exports.genderSchema
 });
 exports.loginSchema = zod_1.z.object({
     email: zod_1.z.string().trim().email('Invalid email address'),
@@ -104,6 +108,7 @@ exports.profileUpdateSchema = zod_1.z.object({
     fullName: zod_1.z.string().trim().min(2).optional(),
     avatar: zod_1.z.string().optional(),
     profilePicture: zod_1.z.string().optional(),
+    gender: exports.genderSchema,
     seekerProfile: zod_1.z
         .object({
         headline: zod_1.z.string().optional(),

@@ -43,7 +43,7 @@ const updateProfile = async (req, res) => {
             (0, response_1.sendError)(res, parseResult.error.errors[0]?.message || 'Invalid profile fields', 400);
             return;
         }
-        const { name, fullName, avatar, profilePicture, seekerProfile, employerProfile } = parseResult.data;
+        const { name, fullName, avatar, profilePicture, gender, seekerProfile, employerProfile } = parseResult.data;
         const user = req.user;
         const resolvedName = name || fullName;
         if (resolvedName) {
@@ -54,6 +54,9 @@ const updateProfile = async (req, res) => {
         if (resolvedAvatar !== undefined) {
             user.avatar = resolvedAvatar;
             user.profilePicture = resolvedAvatar;
+        }
+        if (gender !== undefined) {
+            user.gender = gender;
         }
         if (user.role === 'seeker' && seekerProfile) {
             const existing = (user.seekerProfile || {});

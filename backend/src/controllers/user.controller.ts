@@ -53,7 +53,7 @@ export const updateProfile = async (req: AuthenticatedRequest, res: Response): P
       return;
     }
 
-    const { name, fullName, avatar, profilePicture, seekerProfile, employerProfile } =
+    const { name, fullName, avatar, profilePicture, gender, seekerProfile, employerProfile } =
       parseResult.data;
     const user = req.user;
 
@@ -67,6 +67,10 @@ export const updateProfile = async (req: AuthenticatedRequest, res: Response): P
     if (resolvedAvatar !== undefined) {
       user.avatar = resolvedAvatar;
       user.profilePicture = resolvedAvatar;
+    }
+
+    if (gender !== undefined) {
+      user.gender = gender;
     }
 
     if (user.role === 'seeker' && seekerProfile) {

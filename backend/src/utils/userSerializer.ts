@@ -180,6 +180,15 @@ export const calculateProfileCompletion = (user: any): number => {
   return getProfileCompletionDetails(user).completionPercentage;
 };
 
+export const isEligibleForBuildHer = (
+  user?: { role?: string; gender?: string } | null
+): boolean =>
+  Boolean(
+    user &&
+      user.role === 'seeker' &&
+      String(user.gender || '').trim().toLowerCase() === 'female'
+  );
+
 export const serializeUser = (user: IUser) => {
   const picture = user.profilePicture || user.avatar || '';
   const completionDetails = getProfileCompletionDetails(user);
@@ -190,6 +199,8 @@ export const serializeUser = (user: IUser) => {
     fullName: user.fullName || user.name,
     email: user.email,
     role: user.role,
+    gender: user.gender || '',
+    buildHerEligible: isEligibleForBuildHer(user),
     avatar: picture,
     profilePicture: picture,
     emailVerified: Boolean(user.emailVerified),

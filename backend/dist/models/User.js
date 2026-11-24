@@ -36,9 +36,16 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.User = void 0;
+exports.User = exports.GENDER_OPTIONS = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
+exports.GENDER_OPTIONS = [
+    'Female',
+    'Male',
+    'Non-binary',
+    'Other',
+    'Prefer not to say'
+];
 const UserSchema = new mongoose_1.Schema({
     name: { type: String, required: true, trim: true },
     fullName: { type: String, trim: true },
@@ -62,6 +69,11 @@ const UserSchema = new mongoose_1.Schema({
     emailVerified: { type: Boolean, default: false },
     profileCompletion: { type: Number, default: 10, min: 0, max: 100 },
     lastLogin: { type: Date },
+    gender: {
+        type: String,
+        enum: ['', 'Female', 'Male', 'Non-binary', 'Other', 'Prefer not to say'],
+        default: ''
+    },
     themePreference: {
         type: String,
         enum: ['light', 'dark', 'system'],

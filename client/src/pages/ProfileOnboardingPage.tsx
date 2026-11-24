@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import {
   useAuth,
+  GenderOption,
   EducationEntry,
   DetailedSkill,
   ExperienceEntry
@@ -36,6 +37,7 @@ import {
   getDisplayEducationStatus
 } from '../utils/educationHelpers';
 import {
+  GENDER_OPTIONS,
   SUGGESTED_SKILLS,
   PROFICIENCY_LEVELS,
   CAREER_INTERESTS,
@@ -81,6 +83,7 @@ export const ProfileOnboardingPage: React.FC = () => {
 
   // Step 1: Personal Information
   const [fullName, setFullName] = useState('');
+  const [gender, setGender] = useState<GenderOption>('');
   const [profilePhoto, setProfilePhoto] = useState('');
   const [city, setCity] = useState('');
   const [stateName, setStateName] = useState('');
@@ -130,6 +133,7 @@ export const ProfileOnboardingPage: React.FC = () => {
     if (!user) return;
     const sp = user.seekerProfile || {};
     setFullName(user.name || user.fullName || '');
+    setGender((user.gender as GenderOption) || '');
     setProfilePhoto(user.profilePicture || user.avatar || '');
     setCity(sp.location?.city || '');
     setStateName(sp.location?.state || '');
@@ -224,6 +228,7 @@ export const ProfileOnboardingPage: React.FC = () => {
     onboardingSkipped?: boolean;
   } = {}) => ({
     name: fullName.trim() || user?.name || 'SETU Member',
+    gender,
     profilePicture: profilePhoto.trim(),
     seekerProfile: {
       headline: bio.trim().slice(0, 120),
@@ -600,6 +605,28 @@ export const ProfileOnboardingPage: React.FC = () => {
                   {PREFERRED_LANGUAGES.map((lang) => (
                     <option key={lang} value={lang}>
                       {lang}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="onboarding-gender"
+                  className="block text-xs font-semibold text-[#334155] mb-1.5"
+                >
+                  Gender <span className="text-[#64748B] font-normal">(Optional)</span>
+                </label>
+                <select
+                  id="onboarding-gender"
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value as GenderOption)}
+                  className="w-full px-4 py-2.5 rounded-2xl border border-[#D8ECFA] text-sm outline-none focus:ring-2 focus:ring-[#BDE0FE]"
+                >
+                  <option value="">Select gender (Optional)</option>
+                  {GENDER_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
                     </option>
                   ))}
                 </select>

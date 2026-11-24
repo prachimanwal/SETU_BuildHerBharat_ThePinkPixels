@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.requireApprovedEmployer = exports.requireRole = void 0;
+exports.requireBuildHerAccess = exports.requireApprovedEmployer = exports.requireRole = exports.isEligibleForBuildHer = void 0;
+const userSerializer_1 = require("../utils/userSerializer");
+Object.defineProperty(exports, "isEligibleForBuildHer", { enumerable: true, get: function () { return userSerializer_1.isEligibleForBuildHer; } });
 const response_1 = require("../utils/response");
 const requireRole = (...allowedRoles) => {
     return (req, res, next) => {
@@ -33,3 +35,19 @@ const requireApprovedEmployer = (req, res, next) => {
     next();
 };
 exports.requireApprovedEmployer = requireApprovedEmployer;
+/**
+ * Enforces strict Build Her eligibility from the authenticated MongoDB user profile.
+ * Accessible exclusively to Job Seekers whose stored gender is Female.
+ */
+const requireBuildHerAccess = (req, res, next) => {
+    if (!req.user) {
+        (0, response_1.sendError)(res, 'Authentication required', 401);
+        return;
+    }
+    if (!(0, userSerializer_1.isEligibleForBuildHer)(req.user)) {
+        (0, response_1.sendError)(res, 'Access denied. Build Her is exclusively available to eligible female job seekers.', 403);
+        return;
+    }
+    next();
+};
+exports.requireBuildHerAccess = requireBuildHerAccess;

@@ -64,12 +64,22 @@ export interface NotificationPreferences {
   accountSecurityAlerts: boolean;
 }
 
+export type GenderOption =
+  | 'Female'
+  | 'Male'
+  | 'Non-binary'
+  | 'Other'
+  | 'Prefer not to say'
+  | '';
+
 export interface User {
   id: string;
   name: string;
   fullName?: string;
   email: string;
   role: 'seeker' | 'employer' | 'admin';
+  gender?: GenderOption;
+  buildHerEligible?: boolean;
   avatar?: string;
   profilePicture?: string;
   emailVerified?: boolean;
@@ -160,6 +170,13 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const SESSION_MARKER_KEY = 'setu_had_session';
+
+export const isBuildHerEligible = (user?: User | null): boolean =>
+  Boolean(
+    user &&
+      user.role === 'seeker' &&
+      String(user.gender || '').trim().toLowerCase() === 'female'
+  );
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);

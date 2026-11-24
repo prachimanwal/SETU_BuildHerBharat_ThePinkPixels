@@ -4,7 +4,7 @@ import cookieParser from 'cookie-parser';
 import mongoose from 'mongoose';
 import { ENV } from './config/env';
 import { authenticate, optionalAuthenticate, AuthenticatedRequest } from './middleware/auth.middleware';
-import { requireRole } from './middleware/role.middleware';
+import { requireRole, requireBuildHerAccess } from './middleware/role.middleware';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware';
 import { sendSuccess, sendError } from './utils/response';
 import { getDashboard, getProfile, updateProfile, getProfileCompletion } from './controllers/user.controller';
@@ -41,6 +41,7 @@ import { Opportunity } from './models/Opportunity';
 import { AssessmentResult } from './models/AssessmentResult';
 import { LearningProgress } from './models/LearningProgress';
 import { LearningResource } from './models/LearningResource';
+import { GovernmentScheme } from './models/GovernmentScheme';
 import { Report } from './models/Report';
 
 import authRoutes from './routes/auth.routes';
@@ -88,6 +89,7 @@ app.use(
       const isAllowed =
         allowedOrigins.includes(normalizedOrigin) ||
         /^https:\/\/[a-z0-9-]+(--[a-z0-9-]+)?\.netlify\.app$/i.test(normalizedOrigin) ||
+        /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(normalizedOrigin) ||
         (ENV.NODE_ENV !== 'production' && isLocalOrigin);
 
       if (isAllowed) {
@@ -209,14 +211,27 @@ app.post('/api/seeker/report', authenticate, async (req: AuthenticatedRequest, r
   }
 });
 
-app.post('/api/seeker/support-ticket', async (req, res) => {
+const handleBuildHerSupportTicket = async (req: AuthenticatedRequest, res: express.Response) => {
   const { subject, message } = req.body || {};
   if (!subject || !message) {
     sendError(res, 'Subject and message are required', 400);
     return;
   }
   sendSuccess(res, 'Confidential support message received', { receivedAt: new Date() }, 201);
-});
+};
+
+app.post(
+  '/api/seeker/support-ticket',
+  authenticate,
+  requireBuildHerAccess,
+  handleBuildHerSupportTicket
+);
+app.post(
+  '/api/build-her/support-ticket',
+  authenticate,
+  requireBuildHerAccess,
+  handleBuildHerSupportTicket
+);
 
 app.use('/api/seeker/assessments', assessmentRoutes);
 app.use('/api/seeker/learning', learningRoutes);
@@ -270,19 +285,37 @@ app.get('/api/notifications', authenticate, getEmployerNotifications);
 app.patch('/api/notifications/read-all', authenticate, markAllNotificationsRead);
 app.patch('/api/notifications/:id/read', authenticate, markNotificationRead);
 
-// Public Aliases
+// Public Aliases (general catalogs remain accessible; Build Her is strictly gated to eligible female job seekers)
 app.use('/api/public/opportunities', opportunityRoutes);
 app.use('/api/public/schemes', schemeRoutes);
-app.get('/api/public/build-her', async (_req, res) => {
+
+const getBuildHerResourcesHandler = async (_req: AuthenticatedRequest, res: express.Response) => {
   try {
-    const [returneeJobs, refreshers] = await Promise.all([
-      Opportunity.find({ isCareerRestart: true, status: 'published' }).limit(6),
-      LearningResource.find({ type: { $in: ['tutorial', 'course'] } }).limit(4)
+    const [returneeJobs, refreshers, allSchemes] = await Promise.all([
+      Promise.resolve(
+        Opportunity.find({
+          $or: [{ isCareerRestart: true }, { workMode: { $in: ['remote', 'hybrid'] } }],
+          status: 'published'
+        }).limit(6)
+      ).catch(() => []),
+      Promise.resolve(
+        LearningResource.find({ type: { $in: ['tutorial', 'course'] } }).limit(4)
+      ).catch(() => []),
+      Promise.resolve(GovernmentScheme.find().limit(25)).catch(() => [])
     ]);
+
+    const womenSchemes = (Array.isArray(allSchemes) ? allSchemes : [])
+      .filter((s: any) =>
+        /women|mahila|girl|female|stand-up|shg|lakhpati|udyogini/i.test(
+          `${s.title || ''} ${s.category || ''} ${s.targetGroup || ''} ${s.summary || ''}`
+        )
+      )
+      .slice(0, 6);
 
     sendSuccess(res, 'Build Her initiatives retrieved', {
       restartOpportunities: returneeJobs,
       refreshers,
+      womenSchemes,
       sanctuaryGuidelines: [
         'Zero-tolerance policy against workplace harassment (POSH compliance verified).',
         'Flexible remote and hybrid options designed for career returnees.',
@@ -292,7 +325,10 @@ app.get('/api/public/build-her', async (_req, res) => {
   } catch (error: any) {
     sendError(res, error.message || 'Failed to load Build Her resources', 500);
   }
-});
+};
+
+app.get('/api/build-her', authenticate, requireBuildHerAccess, getBuildHerResourcesHandler);
+app.get('/api/public/build-her', authenticate, requireBuildHerAccess, getBuildHerResourcesHandler);
 
 // Fallback JSON 404 for unknown endpoints (strictly never HTML)
 app.use(notFoundHandler);

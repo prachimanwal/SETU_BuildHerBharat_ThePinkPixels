@@ -10,7 +10,7 @@ import {
   LayoutDashboard,
   ArrowRight
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, isBuildHerEligible } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { UserAvatar } from './UserAvatar';
 import { ThemeToggleButton } from './ThemeToggleButton';
@@ -52,11 +52,15 @@ export const Navbar: React.FC = () => {
     return location.pathname.startsWith(path);
   };
 
+  const showBuildHer = isBuildHerEligible(user);
+
   const navLinks = [
     { label: language === 'hi' ? 'मुख्य पृष्ठ' : 'Home', path: '/' },
     { label: language === 'hi' ? 'अवसर खोजें' : 'Opportunities', path: '/opportunities' },
     { label: language === 'hi' ? 'सीखें' : 'Learn', path: '/learn' },
-    { label: language === 'hi' ? 'मेंटरशिप' : 'Mentorship', path: '/build-her' },
+    ...(showBuildHer
+      ? [{ label: language === 'hi' ? 'मेंटरशिप' : 'Mentorship', path: '/build-her' }]
+      : []),
     { label: language === 'hi' ? 'योजनाएं' : 'Schemes', path: '/schemes' },
     { label: language === 'hi' ? 'परिचय' : 'About', path: '/#about' }
   ];

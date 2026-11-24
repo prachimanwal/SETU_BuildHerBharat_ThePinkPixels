@@ -33,7 +33,7 @@ import {
   Compass,
   Clock
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, isBuildHerEligible } from '../context/AuthContext';
 import { apiFetch, extractArray, formatLocation, unwrapData } from '../utils/api';
 import { UserAvatar } from '../components/UserAvatar';
 import { formatAcademicScore, formatEducationTitle } from '../utils/educationHelpers';
@@ -499,6 +499,31 @@ export const SeekerDashboardPage: React.FC = () => {
             </section>
           )}
         </div>
+      )}
+
+      {/* Personalized Build Her Sanctuary Card (Exclusively for Female Job Seekers) */}
+      {isBuildHerEligible(user) && (
+        <section className="rounded-3xl bg-gradient-to-r from-[#EAF7FF] via-white to-[#FCE7F3]/60 border border-pink-200/80 p-6 shadow-baby-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1.5 max-w-2xl">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-pink-200 text-[11px] font-bold text-pink-700">
+              <Sparkles className="w-3.5 h-3.5 text-pink-500" />
+              <span>Build Her Exclusive Hub</span>
+            </div>
+            <h2 className="text-lg font-extrabold text-[#1E3A5F] font-display">
+              Women Career Restart, Entrepreneurship &amp; Flexible Roles
+            </h2>
+            <p className="text-xs text-[#64748B] leading-relaxed">
+              Access verified career-restart jobs, flexible remote options, women entrepreneurship schemes, mentorship circles, and POSH workplace safety support.
+            </p>
+          </div>
+          <Link
+            to="/build-her"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] text-[#1E3A5F] text-xs font-bold shadow-baby-sm shrink-0"
+          >
+            <span>Open Build Her</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </section>
       )}
 
       {/* 4. Recommended Opportunities */}

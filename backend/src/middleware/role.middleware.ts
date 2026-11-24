@@ -1,7 +1,10 @@
 import { Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from './auth.middleware';
 import { UserRole } from '../models/User';
+import { isEligibleForBuildHer } from '../utils/userSerializer';
 import { sendError } from '../utils/response';
+
+export { isEligibleForBuildHer };
 
 export const requireRole = (...allowedRoles: UserRole[]) => {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
@@ -43,6 +46,32 @@ export const requireApprovedEmployer = (
     sendError(
       res,
       `Your employer account is currently ${status || 'pending'} verification. Publishing opportunities requires approval from SETU platform administration.`,
+      403
+    );
+    return;
+  }
+
+  next();
+};
+
+/**
+ * Enforces strict Build Her eligibility from the authenticated MongoDB user profile.
+ * Accessible exclusively to Job Seekers whose stored gender is Female.
+ */
+export const requireBuildHerAccess = (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): void => {
+  if (!req.user) {
+    sendError(res, 'Authentication required', 401);
+    return;
+  }
+
+  if (!isEligibleForBuildHer(req.user)) {
+    sendError(
+      res,
+      'Access denied. Build Her is exclusively available to eligible female job seekers.',
       403
     );
     return;

@@ -4,7 +4,6 @@ import {
   ArrowRight,
   Sparkles,
   ShieldCheck,
-  Heart,
   Landmark,
   Briefcase,
   CheckCircle2,
@@ -270,43 +269,7 @@ export const HomePage: React.FC = () => {
         )}
       </section>
 
-      {/* 4. BUILD HER SANCTUARY & MENTORSHIP (Soft Pastel Sky & Blush) */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="rounded-3xl bg-gradient-to-br from-[#EAF7FF] via-white to-[#FFF1F5] border border-[#D8ECFA] p-8 sm:p-12 relative overflow-hidden shadow-baby">
-          <div className="absolute right-0 top-0 w-72 h-72 bg-[#BDE0FE]/45 rounded-full blur-3xl pointer-events-none" />
-
-          <div className="relative z-10 max-w-2xl space-y-4">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-pink-200 text-pink-600 text-xs font-semibold shadow-xs">
-              <Heart className="w-3.5 h-3.5 fill-pink-400 text-pink-400" />
-              <span>Build Her Sanctuary & Mentorship</span>
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-[#334155] tracking-tight font-display">
-              Dedicated Support for Women Returning to Work
-            </h2>
-            <p className="text-sm sm:text-base text-[#64748B] leading-relaxed">
-              Welcoming spaces, verified employers, career-restart guidance, and flexible roles designed for women rebuilding financial independence after a career break.
-            </p>
-
-            <div className="pt-3 flex flex-col sm:flex-row gap-3">
-              <Link
-                to="/build-her"
-                className="px-6 py-3 rounded-full bg-gradient-to-r from-[#A2D2FF] to-[#BDE0FE] hover:from-[#8CC6FA] hover:to-[#A2D2FF] text-[#1E3A5F] text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-baby-sm transition"
-              >
-                <span>Enter Build Her Sanctuary</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-              <Link
-                to="/register"
-                className="px-6 py-3 rounded-full bg-white hover:bg-[#EAF7FF] text-[#334155] text-xs sm:text-sm font-semibold border border-[#D8ECFA] flex items-center justify-center gap-2 transition"
-              >
-                <span>Create Your Profile</span>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 5. GOVERNMENT SCHEMES DIRECTORY */}
+      {/* 4. GOVERNMENT SCHEMES DIRECTORY */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
           <div>

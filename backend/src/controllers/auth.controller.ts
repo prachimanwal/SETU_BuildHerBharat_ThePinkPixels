@@ -49,7 +49,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const { name, email, password, role } = parseResult.data;
+    const { name, email, password, role, gender } = parseResult.data;
     const normalizedEmail = email.toLowerCase().trim();
 
     // Check if email already exists
@@ -71,6 +71,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       email: normalizedEmail,
       passwordHash,
       role: assignedRole,
+      gender: assignedRole === 'seeker' ? gender || '' : '',
       emailVerified: false,
       lastLogin: new Date(),
       seekerProfile: assignedRole === 'seeker' ? createEmptySeekerProfile() : undefined,

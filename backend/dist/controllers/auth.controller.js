@@ -37,7 +37,7 @@ const register = async (req, res) => {
             (0, response_1.sendError)(res, parseResult.error.errors[0]?.message || 'Validation failed', 400);
             return;
         }
-        const { name, email, password, role } = parseResult.data;
+        const { name, email, password, role, gender } = parseResult.data;
         const normalizedEmail = email.toLowerCase().trim();
         // Check if email already exists
         const existingUser = await User_1.User.findOne({ email: normalizedEmail });
@@ -55,6 +55,7 @@ const register = async (req, res) => {
             email: normalizedEmail,
             passwordHash,
             role: assignedRole,
+            gender: assignedRole === 'seeker' ? gender || '' : '',
             emailVerified: false,
             lastLogin: new Date(),
             seekerProfile: assignedRole === 'seeker' ? (0, securityHelpers_1.createEmptySeekerProfile)() : undefined,

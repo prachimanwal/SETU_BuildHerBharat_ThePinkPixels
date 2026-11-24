@@ -1,3 +1,11 @@
+export const GENDER_OPTIONS = [
+  'Female',
+  'Male',
+  'Non-binary',
+  'Other',
+  'Prefer not to say'
+] as const;
+
 export const EDUCATION_LEVELS = [
   'Below Class 10',
   'Class 10 completed',

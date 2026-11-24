@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthProvider, useAuth, isBuildHerEligible } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider } from './context/ToastContext';
@@ -69,6 +69,29 @@ const ProtectedDashboardRoute: React.FC<{
     if (user.role === 'employer') return <Navigate to="/employer" replace />;
     return <Navigate to="/dashboard" replace />;
   }
+
+  return <DashboardLayout>{children}</DashboardLayout>;
+};
+
+// Strict guard ensuring Build Her is accessible ONLY to authenticated Female Job Seekers
+const BuildHerProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F8FCFF]">
+        <div className="animate-spin w-8 h-8 border-4 border-[#A2D2FF] border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user.role === 'admin') return <Navigate to="/admin" replace />;
+  if (user.role === 'employer') return <Navigate to="/employer" replace />;
+  if (!isBuildHerEligible(user)) return <Navigate to="/dashboard" replace />;
 
   return <DashboardLayout>{children}</DashboardLayout>;
 };
@@ -240,9 +263,9 @@ export default function App() {
             <Route
               path="/build-her"
               element={
-                <HybridRoute>
+                <BuildHerProtectedRoute>
                   <BuildHerPage />
-                </HybridRoute>
+                </BuildHerProtectedRoute>
               }
             />
             <Route

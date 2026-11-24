@@ -3,6 +3,16 @@ import bcrypt from 'bcryptjs';
 
 export type UserRole = 'seeker' | 'employer' | 'admin';
 
+export const GENDER_OPTIONS = [
+  'Female',
+  'Male',
+  'Non-binary',
+  'Other',
+  'Prefer not to say'
+] as const;
+
+export type GenderOption = (typeof GENDER_OPTIONS)[number] | '';
+
 export interface IEducationEntry {
   level: string;
   degree?: string;
@@ -154,6 +164,7 @@ export interface IUser extends Document {
   emailVerified: boolean;
   profileCompletion: number;
   lastLogin?: Date;
+  gender?: GenderOption;
   themePreference?: ThemePreference;
   tokenVersion?: number;
   googleId?: string;
@@ -192,6 +203,11 @@ const UserSchema = new Schema<IUser>(
     emailVerified: { type: Boolean, default: false },
     profileCompletion: { type: Number, default: 10, min: 0, max: 100 },
     lastLogin: { type: Date },
+    gender: {
+      type: String,
+      enum: ['', 'Female', 'Male', 'Non-binary', 'Other', 'Prefer not to say'],
+      default: ''
+    },
     themePreference: {
       type: String,
       enum: ['light', 'dark', 'system'],

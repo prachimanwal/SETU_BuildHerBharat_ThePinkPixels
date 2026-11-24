@@ -10,9 +10,10 @@ import {
   CheckCircle2,
   Sparkles
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, GenderOption } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { ThemeToggleButton } from '../components/ThemeToggleButton';
+import { GENDER_OPTIONS } from '../constants/profileOptions';
 
 export const RegisterPage: React.FC = () => {
   const { register } = useAuth();
@@ -22,6 +23,7 @@ export const RegisterPage: React.FC = () => {
   const [role, setRole] = useState<'seeker' | 'employer'>('seeker');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [gender, setGender] = useState<GenderOption>('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -70,7 +72,8 @@ export const RegisterPage: React.FC = () => {
       name: name.trim(),
       email: email.trim().toLowerCase(),
       password,
-      role
+      role,
+      ...(role === 'seeker' && gender ? { gender } : {})
     });
 
     setLoading(false);
@@ -260,6 +263,30 @@ export const RegisterPage: React.FC = () => {
                   className="w-full px-4 py-3 rounded-2xl bg-[#F8FCFF] border border-[#D8ECFA] text-sm text-[#334155] placeholder-[#94A3B8] focus:bg-white focus:border-[#60B6F8] focus:ring-2 focus:ring-[#BDE0FE]/60 outline-none transition"
                 />
               </div>
+
+              {role === 'seeker' && (
+                <div>
+                  <label
+                    htmlFor="register-gender"
+                    className="block text-xs font-semibold text-[#334155] mb-1.5"
+                  >
+                    Gender <span className="text-[#64748B] font-normal">(Optional)</span>
+                  </label>
+                  <select
+                    id="register-gender"
+                    value={gender}
+                    onChange={(e) => setGender(e.target.value as GenderOption)}
+                    className="w-full px-4 py-3 rounded-2xl bg-[#F8FCFF] border border-[#D8ECFA] text-sm text-[#334155] focus:bg-white focus:border-[#60B6F8] focus:ring-2 focus:ring-[#BDE0FE]/60 outline-none transition"
+                  >
+                    <option value="">Select gender (Optional)</option>
+                    {GENDER_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Password Field */}
               <div>

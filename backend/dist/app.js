@@ -25,6 +25,7 @@ const Opportunity_1 = require("./models/Opportunity");
 const AssessmentResult_1 = require("./models/AssessmentResult");
 const LearningProgress_1 = require("./models/LearningProgress");
 const LearningResource_1 = require("./models/LearningResource");
+const GovernmentScheme_1 = require("./models/GovernmentScheme");
 const Report_1 = require("./models/Report");
 const auth_routes_1 = __importDefault(require("./routes/auth.routes"));
 const user_routes_1 = __importDefault(require("./routes/user.routes"));
@@ -61,6 +62,7 @@ app.use((0, cors_1.default)({
             /^http:\/\/127\.0\.0\.1:\d+$/.test(normalizedOrigin);
         const isAllowed = allowedOrigins.includes(normalizedOrigin) ||
             /^https:\/\/[a-z0-9-]+(--[a-z0-9-]+)?\.netlify\.app$/i.test(normalizedOrigin) ||
+            /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(normalizedOrigin) ||
             (env_1.ENV.NODE_ENV !== 'production' && isLocalOrigin);
         if (isAllowed) {
             callback(null, true);
@@ -169,14 +171,16 @@ app.post('/api/seeker/report', auth_middleware_1.authenticate, async (req, res) 
         (0, response_1.sendError)(res, error.message || 'Failed to submit report', 500);
     }
 });
-app.post('/api/seeker/support-ticket', async (req, res) => {
+const handleBuildHerSupportTicket = async (req, res) => {
     const { subject, message } = req.body || {};
     if (!subject || !message) {
         (0, response_1.sendError)(res, 'Subject and message are required', 400);
         return;
     }
     (0, response_1.sendSuccess)(res, 'Confidential support message received', { receivedAt: new Date() }, 201);
-});
+};
+app.post('/api/seeker/support-ticket', auth_middleware_1.authenticate, role_middleware_1.requireBuildHerAccess, handleBuildHerSupportTicket);
+app.post('/api/build-her/support-ticket', auth_middleware_1.authenticate, role_middleware_1.requireBuildHerAccess, handleBuildHerSupportTicket);
 app.use('/api/seeker/assessments', assessment_routes_1.default);
 app.use('/api/seeker/learning', learning_routes_1.default);
 app.use('/api/seeker/portfolio', portfolio_routes_1.default);
@@ -225,18 +229,26 @@ app.get('/api/companies/:id/public', auth_middleware_1.optionalAuthenticate, emp
 app.get('/api/notifications', auth_middleware_1.authenticate, employerPortal_controller_1.getEmployerNotifications);
 app.patch('/api/notifications/read-all', auth_middleware_1.authenticate, employerPortal_controller_1.markAllNotificationsRead);
 app.patch('/api/notifications/:id/read', auth_middleware_1.authenticate, employerPortal_controller_1.markNotificationRead);
-// Public Aliases
+// Public Aliases (general catalogs remain accessible; Build Her is strictly gated to eligible female job seekers)
 app.use('/api/public/opportunities', opportunity_routes_1.default);
 app.use('/api/public/schemes', scheme_routes_1.default);
-app.get('/api/public/build-her', async (_req, res) => {
+const getBuildHerResourcesHandler = async (_req, res) => {
     try {
-        const [returneeJobs, refreshers] = await Promise.all([
-            Opportunity_1.Opportunity.find({ isCareerRestart: true, status: 'published' }).limit(6),
-            LearningResource_1.LearningResource.find({ type: { $in: ['tutorial', 'course'] } }).limit(4)
+        const [returneeJobs, refreshers, allSchemes] = await Promise.all([
+            Promise.resolve(Opportunity_1.Opportunity.find({
+                $or: [{ isCareerRestart: true }, { workMode: { $in: ['remote', 'hybrid'] } }],
+                status: 'published'
+            }).limit(6)).catch(() => []),
+            Promise.resolve(LearningResource_1.LearningResource.find({ type: { $in: ['tutorial', 'course'] } }).limit(4)).catch(() => []),
+            Promise.resolve(GovernmentScheme_1.GovernmentScheme.find().limit(25)).catch(() => [])
         ]);
+        const womenSchemes = (Array.isArray(allSchemes) ? allSchemes : [])
+            .filter((s) => /women|mahila|girl|female|stand-up|shg|lakhpati|udyogini/i.test(`${s.title || ''} ${s.category || ''} ${s.targetGroup || ''} ${s.summary || ''}`))
+            .slice(0, 6);
         (0, response_1.sendSuccess)(res, 'Build Her initiatives retrieved', {
             restartOpportunities: returneeJobs,
             refreshers,
+            womenSchemes,
             sanctuaryGuidelines: [
                 'Zero-tolerance policy against workplace harassment (POSH compliance verified).',
                 'Flexible remote and hybrid options designed for career returnees.',
@@ -247,7 +259,9 @@ app.get('/api/public/build-her', async (_req, res) => {
     catch (error) {
         (0, response_1.sendError)(res, error.message || 'Failed to load Build Her resources', 500);
     }
-});
+};
+app.get('/api/build-her', auth_middleware_1.authenticate, role_middleware_1.requireBuildHerAccess, getBuildHerResourcesHandler);
+app.get('/api/public/build-her', auth_middleware_1.authenticate, role_middleware_1.requireBuildHerAccess, getBuildHerResourcesHandler);
 // Fallback JSON 404 for unknown endpoints (strictly never HTML)
 app.use(error_middleware_1.notFoundHandler);
 // Centralized JSON Error Handler

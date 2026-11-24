@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Heart,
   Briefcase,
@@ -13,15 +13,18 @@ import {
   AlertCircle,
   Coins,
   Compass,
-  Users
+  Users,
+  Landmark,
+  ExternalLink
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, isBuildHerEligible } from '../context/AuthContext';
 import { apiFetch, unwrapData } from '../utils/api';
 
 export const BuildHerPage: React.FC = () => {
   const { language } = useLanguage();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const [resources, setResources] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -37,15 +40,24 @@ export const BuildHerPage: React.FC = () => {
   const [formError, setFormError] = useState('');
 
   useEffect(() => {
-    apiFetch('/api/public/build-her')
+    if (!isBuildHerEligible(user)) {
+      navigate('/dashboard', { replace: true });
+      return;
+    }
+
+    apiFetch('/api/build-her')
       .then((res) => {
+        if (res.status === 403 || res.status === 401) {
+          navigate('/dashboard', { replace: true });
+          return;
+        }
         if (res.ok && res.data) {
           setResources(unwrapData(res.data));
         }
       })
       .catch((err) => console.error('Failed to load Build Her resources:', err))
       .finally(() => setLoading(false));
-  }, []);
+  }, [user, navigate]);
 
   const handleSupportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,7 +66,7 @@ export const BuildHerPage: React.FC = () => {
     setFormSuccess('');
 
     try {
-      const res = await apiFetch('/api/seeker/support-ticket', {
+      const res = await apiFetch('/api/build-her/support-ticket', {
         method: 'POST',
         body: JSON.stringify({
           name,
@@ -258,6 +270,44 @@ export const BuildHerPage: React.FC = () => {
               </a>
             </div>
           </div>
+
+          {Array.isArray(resources?.womenSchemes) && resources.womenSchemes.length > 0 && (
+            <div className="pt-2 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-900 uppercase tracking-wider">
+                  <Landmark className="w-3.5 h-3.5" />
+                  <span>Additional Women-Focused Schemes on SETU</span>
+                </span>
+                <Link to="/schemes" className="text-xs font-bold text-amber-900 hover:underline">
+                  Explore All Schemes →
+                </Link>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                {resources.womenSchemes.map((sch: any, i: number) => (
+                  <div
+                    key={sch._id || i}
+                    className="bg-white p-4 rounded-xl border border-amber-200/80 flex items-center justify-between gap-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-bold text-[#334155] truncate">{sch.title}</p>
+                      <p className="text-[11px] text-[#64748B] truncate">{sch.ministry}</p>
+                    </div>
+                    {sch.officialUrl && (
+                      <a
+                        href={sch.officialUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 font-bold text-amber-800 hover:underline shrink-0"
+                      >
+                        <span>Open</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </section>
 
         {/* Section 4: Workplace Safety & POSH Act Rights */}

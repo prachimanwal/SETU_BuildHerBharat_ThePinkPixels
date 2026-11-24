@@ -23,7 +23,7 @@ import {
   BarChart3,
   Settings
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, isBuildHerEligible } from '../context/AuthContext';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -48,13 +48,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     navigate('/login');
   };
 
-  // Preserved intact for Job Seeker accounts
+  const showBuildHer = isBuildHerEligible(user);
+
+  // Job Seeker sidebar (Build Her exclusively shown for authenticated Female Job Seekers)
   const seekerNavItems: NavItem[] = [
     { label: 'Home', path: '/dashboard', icon: Home },
     { label: 'My Profile', path: '/profile', icon: UserCheck },
     { label: 'Opportunities', path: '/opportunities', icon: Briefcase },
     { label: 'Government Schemes', path: '/schemes', icon: Landmark },
-    { label: 'Build Her', path: '/build-her', icon: Sparkles },
+    ...(showBuildHer ? [{ label: 'Build Her', path: '/build-her', icon: Sparkles }] : []),
     { label: 'Assessments', path: '/assess', icon: Award },
     { label: 'Learn & Practice', path: '/learn', icon: BookOpen },
     { label: 'Portfolio', path: '/portfolio', icon: FolderGit2 },
@@ -80,7 +82,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     { label: 'Admin Console', path: '/admin', icon: ShieldCheck },
     { label: 'Explore Opportunities', path: '/opportunities', icon: Briefcase },
     { label: 'Government Schemes', path: '/schemes', icon: Landmark },
-    { label: 'Build Her Network', path: '/build-her', icon: Sparkles },
     { label: 'Assessments', path: '/assess', icon: Award }
   ];
 
