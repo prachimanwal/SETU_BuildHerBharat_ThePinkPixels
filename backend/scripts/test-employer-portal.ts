@@ -582,7 +582,38 @@ async function run() {
     assert.ok(notifRes.json.data.notifications.length >= 2);
     console.log('  ✓ 8. Interview scheduling, real recruitment analytics & employer notifications verified');
 
-    console.log('\n✅ ALL 8 EMPLOYER PORTAL END-TO-END VERIFICATION SUITES PASSED!');
+    // 9. Role-Based Authorization: CANE AI completely blocked for employers & unauthenticated requests; allowed for seekers
+    const unauthCaneStatus = await jsonReq('/api/cane/status');
+    assert.equal(unauthCaneStatus.status, 401, 'Unauthenticated access to /api/cane/status must return 401');
+
+    const empCaneStatus = await jsonReq('/api/cane/status', { token: empToken });
+    assert.equal(empCaneStatus.status, 403, 'Employer must receive 403 on GET /api/cane/status');
+
+    const empCaneList = await jsonReq('/api/cane/conversations', { token: empToken });
+    assert.equal(empCaneList.status, 403, 'Employer must receive 403 on GET /api/cane/conversations');
+
+    const empCaneCreate = await jsonReq('/api/cane/conversations', {
+      method: 'POST',
+      token: empToken,
+      body: { title: 'Blocked Recruiter Chat', mode: 'general' }
+    });
+    assert.equal(empCaneCreate.status, 403, 'Employer must receive 403 on POST /api/cane/conversations');
+
+    const empCaneRoadmaps = await jsonReq('/api/cane/roadmaps', { token: empToken });
+    assert.equal(empCaneRoadmaps.status, 403, 'Employer must receive 403 on GET /api/cane/roadmaps');
+
+    const empImproveResume = await jsonReq('/api/resumes/improve-resume', {
+      method: 'POST',
+      token: empToken,
+      body: { draftResume: {} }
+    });
+    assert.equal(empImproveResume.status, 403, 'Employer must receive 403 on POST /api/resumes/improve-resume');
+
+    const seekerCaneStatus = await jsonReq('/api/cane/status', { token: seekerToken });
+    assert.equal(seekerCaneStatus.status, 200, 'Job seeker CANE AI /api/cane/status must remain accessible');
+    console.log('  ✓ 9. CANE AI backend authorization verified (403 for employer, 401 unauth, 200 for job seeker)');
+
+    console.log('\n✅ ALL 9 EMPLOYER PORTAL & CANE ACCESS ISOLATION VERIFICATION SUITES PASSED!');
   } finally {
     if (usingRealMongo) {
       if (createdInterviewId) await Interview.findByIdAndDelete(createdInterviewId).catch(() => {});

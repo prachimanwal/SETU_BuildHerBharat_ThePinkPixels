@@ -21,7 +21,6 @@ import {
   SlidersHorizontal,
   CalendarClock,
   BarChart3,
-  Bot,
   Settings
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -63,7 +62,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     { label: 'My Progress', path: '/progress', icon: TrendingUp }
   ];
 
-  // Dedicated 11-section Employer Recruitment Platform sidebar (employer role ONLY)
+  // Dedicated 10-section Employer Recruitment Platform sidebar (employer role ONLY)
   const employerNavItems: NavItem[] = [
     { label: 'Employer Dashboard', path: '/employer', icon: LayoutDashboard },
     { label: 'Company Profile', path: '/employer/company-profile', icon: Building2 },
@@ -74,7 +73,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     { label: 'Hiring Preferences', path: '/employer/hiring-preferences', icon: SlidersHorizontal },
     { label: 'Interview Management', path: '/employer/interviews', icon: CalendarClock },
     { label: 'Recruitment Analytics', path: '/employer/analytics', icon: BarChart3 },
-    { label: 'CANE AI Recruiter', path: '/employer/cane', icon: Bot, badge: 'AI' },
     { label: 'Settings', path: '/employer/settings', icon: Settings }
   ];
 

@@ -125,7 +125,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
     if (p.startsWith('/employer/hiring-preferences')) return 'Hiring Preferences';
     if (p.startsWith('/employer/interviews')) return 'Interview Management';
     if (p.startsWith('/employer/analytics')) return 'Recruitment Analytics';
-    if (p.startsWith('/employer/cane')) return 'CANE AI Recruiter';
     if (p.startsWith('/employer/settings')) return 'Employer Settings';
     if (p.startsWith('/employer')) return 'Employer Dashboard';
     if (p.startsWith('/companies/')) return 'Company Profile';
@@ -454,10 +453,10 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
         <Footer />
       </div>
 
-      {/* Floating CANE AI Assistant available across all authenticated SETU pages */}
-      {user &&
-        !location.pathname.startsWith('/cane') &&
-        !location.pathname.startsWith('/employer/cane') && <CaneFloatingWidget />}
+      {/* Floating CANE AI Assistant reserved strictly for authenticated Job Seekers */}
+      {user?.role === 'seeker' && !location.pathname.startsWith('/cane') && (
+        <CaneFloatingWidget />
+      )}
     </div>
   );
 };

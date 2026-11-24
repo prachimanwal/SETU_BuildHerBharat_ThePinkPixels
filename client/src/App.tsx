@@ -41,7 +41,6 @@ import { EmployerApplicationsPage } from './pages/employer/EmployerApplicationsP
 import { HiringPreferencesPage } from './pages/employer/HiringPreferencesPage';
 import { InterviewManagementPage } from './pages/employer/InterviewManagementPage';
 import { RecruitmentAnalyticsPage } from './pages/employer/RecruitmentAnalyticsPage';
-import { CaneRecruiterPage } from './pages/employer/CaneRecruiterPage';
 import { EmployerSettingsPage } from './pages/employer/EmployerSettingsPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { CanePage } from './pages/CanePage';
@@ -319,7 +318,7 @@ export default function App() {
             <Route
               path="/cane"
               element={
-                <ProtectedDashboardRoute allowedRoles={['seeker', 'employer', 'admin']}>
+                <ProtectedDashboardRoute allowedRoles={['seeker']}>
                   <CanePage />
                 </ProtectedDashboardRoute>
               }
@@ -417,10 +416,10 @@ export default function App() {
               }
             />
             <Route
-              path="/employer/cane"
+              path="/employer/cane/*"
               element={
                 <ProtectedDashboardRoute allowedRoles={['employer']}>
-                  <CaneRecruiterPage />
+                  <Navigate to="/employer" replace />
                 </ProtectedDashboardRoute>
               }
             />

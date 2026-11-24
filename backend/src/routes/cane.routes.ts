@@ -14,10 +14,12 @@ import {
   deleteCaneRoadmap
 } from '../controllers/cane.controller';
 import { authenticate } from '../middleware/auth.middleware';
+import { requireRole } from '../middleware/role.middleware';
 
 const router = Router();
 
 router.use(authenticate);
+router.use(requireRole('seeker'));
 
 router.get('/status', getCaneStatus);
 

@@ -23,6 +23,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { apiFetch, unwrapData } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
 
 type CaneLang = 'English' | 'Hindi' | 'Hinglish';
 type CaneMode =
@@ -72,6 +73,7 @@ export const CaneWorkspace: React.FC<CaneWorkspaceProps> = ({
   onClose
 }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [aiStatus, setAiStatus] = useState<{ configured: boolean; hint: string; model?: string }>({
@@ -117,8 +119,10 @@ export const CaneWorkspace: React.FC<CaneWorkspaceProps> = ({
   };
 
   useEffect(() => {
-    loadStatusAndConversations();
-  }, []);
+    if (user?.role === 'seeker') {
+      loadStatusAndConversations();
+    }
+  }, [user?.role]);
 
   useEffect(() => {
     if (initialPrompt) setInput(initialPrompt);
@@ -325,6 +329,10 @@ export const CaneWorkspace: React.FC<CaneWorkspaceProps> = ({
     utter.lang = language === 'Hindi' ? 'hi-IN' : 'en-IN';
     window.speechSynthesis.speak(utter);
   };
+
+  if (user?.role !== 'seeker') {
+    return null;
+  }
 
   return (
     <div
@@ -746,7 +754,12 @@ export const CaneWorkspace: React.FC<CaneWorkspaceProps> = ({
 };
 
 export const CaneFloatingWidget: React.FC = () => {
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
+
+  if (user?.role !== 'seeker') {
+    return null;
+  }
 
   return (
     <div className="fixed bottom-5 right-5 z-40 flex flex-col items-end gap-3">

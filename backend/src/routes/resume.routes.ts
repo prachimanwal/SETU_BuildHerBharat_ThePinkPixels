@@ -18,6 +18,7 @@ import {
   improveResumeWithCane
 } from '../controllers/resume.controller';
 import { authenticate } from '../middleware/auth.middleware';
+import { requireRole } from '../middleware/role.middleware';
 import { sendError } from '../utils/response';
 
 const ALLOWED_RESUME_MIMES = new Set([
@@ -96,8 +97,8 @@ router.use(authenticate);
 router.get('/', getResumes);
 router.get('/prefill', getResumePrefill);
 router.post('/', createResume);
-router.post('/improve-project', improveProjectDescription);
-router.post('/improve-resume', improveResumeWithCane);
+router.post('/improve-project', requireRole('seeker'), improveProjectDescription);
+router.post('/improve-resume', requireRole('seeker'), improveResumeWithCane);
 
 // Uploaded PDF/DOCX management (private MongoDB Atlas storage — never relies on ephemeral disk)
 router.post('/upload', handleResumeUploadMiddleware, uploadAndParseResume);

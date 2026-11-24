@@ -12,7 +12,6 @@ import {
   ShieldAlert,
   ArrowRight,
   Plus,
-  Bot,
   BarChart3,
   Sparkles
 } from 'lucide-react';
@@ -225,13 +224,6 @@ export const EmployerDashboardPage: React.FC = () => {
           >
             <Users className="w-4 h-4" />
             <span>Search Candidates</span>
-          </Link>
-          <Link
-            to="/employer/cane"
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-white hover:bg-[#F8FCFF] text-[#1E3A5F] text-xs font-semibold border border-[#D8ECFA] transition"
-          >
-            <Bot className="w-4 h-4 text-[#3B9EE8]" />
-            <span>CANE AI Recruiter</span>
           </Link>
         </div>
       </div>
